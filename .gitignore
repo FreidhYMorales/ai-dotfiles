@@ -1,0 +1,10 @@
+# Never commit runtime state, credentials or memory data
+.claude.json
+*.bak-*
+.env
+.env.*
+*.db
+*.db-wal
+*.db-shm
+.engram/
+.atl/

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ai-dotfiles",
+  "description": "Personal AI tooling: planning-first workflow on top of engram memory",
+  "owner": {
+    "name": "FreidhYMorales"
+  },
+  "plugins": [
+    {
+      "name": "flow",
+      "description": "Planning-first workflow: research, scope + UX planning, review, gap filling and handoff to implementation.",
+      "version": "0.1.0",
+      "source": "./plugins/flow",
+      "category": "productivity"
+    }
+  ]
+}
