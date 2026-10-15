@@ -59,6 +59,6 @@ Requires `jq`, `rg` and `claude`.
 - [x] `flow` skills content
 - [ ] `bin/ai-update`: safe engram/tool updates (backup, checksum, confirm on major)
 - [ ] Session-start hook: notify-only update check
-- [ ] Permissions allow/deny list
+- [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
 - [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
 - [ ] OpenCode and Gemini support

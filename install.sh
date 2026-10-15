@@ -43,7 +43,15 @@ merge_settings() {
   local fragment="$REPO_DIR/claude/settings.json" target="$CLAUDE_DIR/settings.json"
   [[ -f "$target" ]] || { run cp "$fragment" "$target"; return; }
   local merged
-  merged="$(jq -s '.[0] * .[1]' "$target" "$fragment")"
+  # Deep merge; arrays (e.g. permissions.deny) are unioned so entries added
+  # locally through Claude Code are kept.
+  merged="$(jq -s '
+    def m($a; $b):
+      reduce ($b | keys_unsorted[]) as $k ($a;
+        .[$k] = (if ($a[$k] | type) == "object" and ($b[$k] | type) == "object" then m($a[$k]; $b[$k])
+                 elif ($a[$k] | type) == "array" and ($b[$k] | type) == "array" then ($a[$k] + $b[$k] | unique)
+                 else $b[$k] end));
+    m(.[0]; .[1])' "$target" "$fragment")"
   if [[ "$merged" == "$(jq . "$target")" ]]; then
     echo "ok: $target"
     return
@@ -63,6 +71,26 @@ link_output_styles() {
     [[ -e "$src" ]] || continue
     link_file "$src" "$CLAUDE_DIR/output-styles/$(basename "$src")"
   done
+}
+
+# Global git hooks: gitleaks on pre-commit, then chain to each repo's own hooks.
+GIT_HOOKS=(pre-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push)
+
+install_git_hooks() {
+  local dir="$REPO_DIR/git-hooks" hook current
+  for hook in "${GIT_HOOKS[@]}"; do
+    [[ -L "$dir/$hook" ]] || run ln -sf _dispatch "$dir/$hook"
+  done
+  current="$(git config --global --get core.hooksPath || true)"
+  if [[ "$current" == "$dir" ]]; then
+    echo "ok: core.hooksPath"
+  elif [[ -n "$current" ]]; then
+    echo "skip: global core.hooksPath already set to $current" >&2
+  else
+    run git config --global core.hooksPath "$dir"
+    echo "set: git core.hooksPath -> $dir"
+  fi
+  command -v gitleaks >/dev/null || echo "warning: gitleaks not installed (sudo pacman -S gitleaks)" >&2
 }
 
 install_plugins() {
@@ -89,6 +117,7 @@ main() {
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
   link_output_styles
   merge_settings
+  install_git_hooks
   install_plugins
   echo "done. Restart Claude Code to apply."
 }

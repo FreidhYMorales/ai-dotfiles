@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Global git hook dispatcher (installed via `git config --global core.hooksPath`).
+# - pre-commit: scans staged changes for secrets with gitleaks.
+# - Every hook then chains to the repository's own .git/hooks/<name>, so
+#   setting a global hooksPath does not disable per-repo hooks.
+# Bypass a single commit (only when you are sure): SKIP_GITLEAKS=1 git commit ...
+set -euo pipefail
+
+hook="$(basename "$0")"
+
+if [[ "$hook" == "pre-commit" && "${SKIP_GITLEAKS:-0}" != "1" ]]; then
+  if command -v gitleaks >/dev/null 2>&1; then
+    if ! gitleaks git --pre-commit --staged --redact --no-banner; then
+      echo "gitleaks: possible secret in staged changes. Commit blocked." >&2
+      echo "If it is a false positive, add it to .gitleaksignore or use SKIP_GITLEAKS=1." >&2
+      exit 1
+    fi
+  else
+    echo "warning: gitleaks not installed; secret scan skipped." >&2
+  fi
+fi
+
+# Not `git rev-parse --git-path hooks/...`: it honors core.hooksPath and would
+# resolve back to this dispatcher.
+local_hook="$(git rev-parse --git-common-dir)/hooks/$hook"
+if [[ -x "$local_hook" && "$(readlink -f "$local_hook")" != "$(readlink -f "$0")" ]]; then
+  exec "$local_hook" "$@"
+fi
