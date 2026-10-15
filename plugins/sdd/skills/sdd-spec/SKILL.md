@@ -12,10 +12,10 @@ metadata:
 
 ## Execution Role
 
-Confirm your role before acting. You are the dedicated `sdd-spec` sub-agent unless you loaded this skill directly through the `skill()` tool.
+Confirm your role before acting. You are the dedicated `sdd-spec` sub-agent (plugin agent `sdd:sdd-spec`) that Read this file by path.
 
-- If you are the `sdd-spec` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
-- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-spec` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+- As the `sdd-spec` sub-agent, continue with the phase work below. Do not delegate. Do not load SDD skills through the Skill tool.
+- If you are the main conversation (orchestrator), stop here: load the `sdd:orchestrator` skill and delegate to the `sdd:sdd-spec` agent with the Agent tool.
 
 
 ## Language Domain Contract
@@ -38,17 +38,17 @@ From the orchestrator:
 
 ## Execution and Persistence Contract
 
-> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
+> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/orchestrator/references/sdd-phase-common.md`.
 
 - **engram**: Read `sdd/{change-name}/proposal` (required). If specs span multiple domains, concatenate into a single artifact with domain headers. Save as `sdd/{change-name}/spec`.
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`.
+- **openspec**: Read and follow `skills/orchestrator/references/openspec-convention.md`.
 - **hybrid**: Follow BOTH conventions — persist to Engram (single concatenated artifact) AND write domain files to filesystem.
 - **none**: Return result only. Never create or modify project files.
 
 ## What to Do
 
 ### Step 1: Load Skills
-Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section A** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ### Step 2: Identify Affected Domains
 
@@ -194,7 +194,7 @@ The system {MUST/SHALL/SHOULD} {behavior}.
 
 **This step is MANDATORY — do NOT skip it.**
 
-Follow **Section C** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section C** from `skills/orchestrator/references/sdd-phase-common.md`.
 - artifact: `spec`
 - topic_key: `sdd/{change-name}/spec`
 - type: `architecture`
@@ -239,7 +239,7 @@ Ready for design (sdd-design). If design already exists, ready for tasks (sdd-ta
 - RENAMED requirements MUST state both old and new names explicitly and SHOULD include Migration guidance for references/tests/docs
 - Apply any `rules.specs` from `openspec/config.yaml`
 - **Size budget**: Spec artifact MUST be under 650 words. Prefer requirement tables over narrative descriptions. Each scenario: 3-5 lines max.
-- Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.
+- Return envelope per **Section D** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ## RFC 2119 Keywords Quick Reference
 

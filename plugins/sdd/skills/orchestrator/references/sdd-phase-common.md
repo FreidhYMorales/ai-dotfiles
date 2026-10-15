@@ -2,19 +2,18 @@
 
 Boilerplate identical across all SDD phase skills. Sub-agents MUST load this alongside their phase-specific SKILL.md.
 
+Paths written as `skills/...` in SDD skill files are relative to the sdd plugin root; your agent instructions give its absolute path.
+
 Executor boundary: every SDD phase agent is an EXECUTOR, not an orchestrator. Do the phase work yourself. Do NOT launch sub-agents, do NOT call `delegate`/`task`, and do NOT bounce work back unless the phase skill explicitly says to stop and report a blocker.
 
 ## A. Skill Loading
 
-1. Check if the orchestrator injected a `## Skills to load before work` block in your launch prompt. If yes, read those exact `SKILL.md` files before task-specific work.
-2. If no skills block was provided, check for `SKILL: Load` instructions. If present, load those exact skill files.
-3. If neither was provided, search for the skill registry as a fallback:
-   a. `mem_search(query: "skill-registry", project: "{project}")` — if found, `mem_get_observation(id)` for full content
-   b. Fallback: read `.atl/skill-registry.md` from the project root if it exists
-   c. From the registry's skills index, match triggers to your task and read the exact listed `SKILL.md` paths.
-4. If no registry exists, proceed with your phase skill only.
+1. If the launch prompt has a `## Skills to load before work` block, load each listed skill before task-specific work: plugin/user skills by name with the Skill tool, or Read the given `SKILL.md` path when one is listed or the Skill tool is unavailable.
+2. If no block was provided, match your task against the skills available in your session and load at most five relevant ones. Also read project conventions (`AGENTS.md`, project `CLAUDE.md`) when they exist.
+3. Never load SDD phase skills or `sdd:orchestrator` through the Skill tool; your own phase skill is Read by path as your agent instructions say.
+4. If nothing matches, proceed with your phase skill only. This is not an error.
 
-NOTE: the preferred path is (1) — exact skill paths selected by the orchestrator. Paths (2) and (3) are fallbacks. Searching the registry is SKILL LOADING, not delegation. If `## Skills to load before work` is present, IGNORE redundant `SKILL: Load` instructions.
+Loading skills is SKILL LOADING, not delegation.
 
 ## B. Artifact Retrieval (Engram Mode)
 
@@ -38,7 +37,7 @@ Do NOT use search previews as source material.
 
 Every phase that produces an artifact MUST persist it. Skipping this BREAKS the pipeline — downstream phases will not find your output.
 
-For `verify-report`, first build exact candidate bytes and run `gentle-ai sdd-verify-validate` with authoritative requirement/scenario counts before any OpenSpec or Engram write. If the validator is unavailable or denies admission, make zero writes and leave the prior report untouched; otherwise persist only the same admitted bytes, including a valid `fail`.
+For `verify-report`, build the complete report first and check its leading envelope against the actual requirement/scenario counts before any write. A valid `fail` report is persisted too; validity and archive readiness are separate decisions.
 
 ### Engram mode
 
@@ -80,9 +79,7 @@ Every phase MUST return a structured envelope to the orchestrator:
 - `artifacts`: list of artifact keys/paths written
 - `next_recommended`: the next SDD phase to run, or "none"
 - `risks`: risks discovered, or "None"
-- `skill_resolution`: how skills were loaded — `paths-injected` (received exact skill paths from orchestrator), `fallback-registry` (self-loaded paths from registry), `fallback-path` (loaded via SKILL: Load path), or `none` (no skills loaded)
-
-If the task transport reports `sdd_task_result_empty` or `sdd_task_result_malformed`, do not assume this envelope was delivered. Do not retry automatically or initiate another phase. The terminal value starts with `GENTLE_AI_SDD_FAILURE ` followed by a `gentle-ai.sdd-task-result-failure/v1` JSON handoff; preserve it unchanged, run its `continuation` exactly once to inspect current state, report the typed failure to the user, and wait for an explicit decision. A later launch in the same session receives `sdd_task_dispatch_latched` instead: that launch never dispatched, so it names the phase it requested, the earlier phase and code that actually failed, and its `exit` -- start a new session to launch SDD phases again.
+- `skill_resolution`: how skills were loaded — `paths-injected` (loaded the skills block from the orchestrator), `self-resolved` (no block; matched skills yourself), or `none` (no skills loaded)
 
 Example:
 
@@ -93,7 +90,7 @@ Example:
 **Next**: sdd-spec or sdd-design
 **Risks**: None
 **Skill Resolution**: paths-injected — 3 skills (react-19, typescript, tailwind-4)
-(other values: `fallback-registry`, `fallback-path`, or `none — no registry found`)
+(other values: `self-resolved` or `none`)
 ```
 
 ## E. Review Workload Guard
@@ -101,7 +98,7 @@ Example:
 SDD must protect reviewer cognitive load, not only generate tasks.
 
 - The default PR review budget is **400 changed lines** (`additions + deletions`).
-- Count authored text additions plus deletions only for this threshold. Generated goldens are excluded from authored risk count but remain included in complete snapshot identity and receipt validation.
+- Count authored text additions plus deletions only for this threshold. Generated files (goldens, lockfiles, snapshots) are excluded from the authored count.
 - The orchestrator MUST cache a delivery strategy at session start: `ask-on-risk` (default), `auto-chain`, `single-pr`, or `exception-ok`. Those four are the whole domain.
 - Any other `delivery_strategy` value is invalid. A phase MUST NOT map it to the nearest branch, MUST NOT record it in an artifact, and MUST NOT forward it: report the unrecognised value and stop.
 - The orchestrator MUST pass `delivery_strategy` to `sdd-tasks` and the resolved decision to `sdd-apply`.
@@ -127,7 +124,7 @@ Close your **final report message** (the return envelope) with a `## Key Learnin
 
 1. Async validation in the apply phase caught a race condition in concurrent writes.
 2. Golden test regeneration for system prompts requires the `-update` flag before re-run.
-3. Bounded review contracts must stay consistent across `sdd-phase-common.md` and `engram/protocol.md`.
+3. Strict TDD evidence must list the RED test before the GREEN implementation for every task.
 ```
 
 This applies to your final text response to the orchestrator, not intermediate tool outputs or artifact content. Engram will automatically extract and persist these learnings.

@@ -28,7 +28,7 @@ Set `capture_prompt: false` when the Engram tool schema supports it; if an older
 | `tasks` | sdd-tasks | Task breakdown |
 | `apply-progress` | sdd-apply | Implementation progress (one per batch) |
 | `verify-report` | sdd-verify | Verification report |
-| `archive-report` | sdd-archive | Archive closure with lineage |
+| `archive-report` | sdd-archive | Archive closure with observation IDs |
 | `state` | orchestrator | DAG state for recovery after compaction |
 
 
@@ -129,7 +129,7 @@ mem_search(query: "sdd/{change-name}/", project: "{project}")
 
 Engram auto-detects the project name from the git remote at MCP startup. The `--project` flag and `ENGRAM_PROJECT` env var can override detection. All project names are normalized to lowercase and trimmed.
 
-If the agent saves a memory under a project name that doesn't match existing observations, engram warns about potential name drift. Use `mem_merge_projects` (MCP tool) or `engram projects consolidate` (CLI) to merge variants.
+If the agent saves a memory under a project name that doesn't match existing observations, engram warns about potential name drift. Use `mem_current_project` to confirm the detected name; use `engram projects consolidate` (CLI) to merge variants.
 
 ## Upsert Behavior
 
@@ -141,4 +141,4 @@ Same `topic_key` + `project` + `scope` → UPDATE (overwrite), not INSERT. Previ
 - `topic_key` → enables upserts without duplicates
 - `sdd/` prefix → namespaces all SDD artifacts
 - Two-step recovery → search previews are always truncated; `mem_get_observation` is the only way to get full content
-- Lineage → archive-report includes all observation IDs for complete traceability
+- Traceability → archive-report includes all observation IDs

@@ -14,7 +14,7 @@ Every `SKILL.md` MUST use this order unless a section is truly irrelevant:
 6. **Output Contract** — required final format or artifacts.
 7. **References** — local files only; supporting detail lives outside the skill.
 
-`## Compact Rules` is not required. The skill registry indexes skill names, triggers, scopes, and paths; agents load the full `SKILL.md` as the source of truth.
+`## Compact Rules` is not required. Claude Code lists each skill's name and description; agents load the full `SKILL.md` as the source of truth.
 
 ## Frontmatter Rules
 
@@ -54,11 +54,11 @@ Every `SKILL.md` MUST use this order unless a section is truly irrelevant:
 - Use `references/` for local docs that explain concepts or edge cases.
 - Keep references stable and relative to the skill directory when possible.
 
-## Registry Behavior
+## Discovery Behavior
 
-- `gentle-ai skill-registry refresh` indexes skills; it does not summarize or rewrite them.
-- The registry records `name`, `description` trigger text, scope, and exact `SKILL.md` path.
-- Delegators pass matching paths to subagents, and subagents read the full skill before work.
+- Claude Code discovers skills from `~/.claude/skills/`, project `.claude/skills/`, and enabled plugins (`<plugin>:<skill>`); only `name` and `description` are always in context.
+- The `description` is the trigger: keep trigger words first so the model matches it.
+- Delegators pass matching skill names (or exact `SKILL.md` paths) to subagents, and subagents read the full skill before work.
 - Use `skill-improver` to audit and refactor existing skills against this guide.
 
 ## Quality Gates

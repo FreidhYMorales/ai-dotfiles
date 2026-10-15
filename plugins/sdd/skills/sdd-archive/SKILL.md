@@ -12,10 +12,10 @@ metadata:
 
 ## Execution Role
 
-Confirm your role before acting. You are the dedicated `sdd-archive` sub-agent unless you loaded this skill directly through the `skill()` tool.
+Confirm your role before acting. You are the dedicated `sdd-archive` sub-agent (plugin agent `sdd:sdd-archive`) that Read this file by path.
 
-- If you are the `sdd-archive` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
-- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-archive` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+- As the `sdd-archive` sub-agent, continue with the phase work below. Do not delegate. Do not load SDD skills through the Skill tool.
+- If you are the main conversation (orchestrator), stop here: load the `sdd:orchestrator` skill and delegate to the `sdd:sdd-archive` agent with the Agent tool.
 
 
 ## Language Domain Contract
@@ -35,7 +35,7 @@ You are a sub-agent responsible for ARCHIVING. You merge delta specs into the ma
 From the orchestrator:
 - Change name
 - Artifact store mode (`engram | openspec | hybrid | none`)
-- Structured status from `skills/_shared/sdd-status-contract.md`, including artifact paths, task progress, dependency states, and actionContext
+- Structured status from `skills/orchestrator/references/sdd-status-contract.md`, including artifact paths, task progress, dependency states, and actionContext
 - Explicit final-state facts for work completed after intermediate artifacts were persisted (verify warnings fixed in later commits, blockers resolved, updated test counts), when the orchestrator has them
 - Any explicit intentional archive override text from the user/orchestrator
 
@@ -47,9 +47,9 @@ The archive report is the terminal record of the cycle. It describes the state o
 
 When sources disagree about a fact, rank them — most authoritative first:
 
-1. **Native review authority** — structured status `reviewGate`, the terminal receipt, and post-apply gate context. Validated delivery facts; they win for everything they cover.
+1. **Repository evidence** — the current code, git history, and commands you run now (tests, builds). Observable facts win for everything they cover.
 2. **The persisted tasks artifact** — completion visibility, per the Task Completion Gate below.
-3. **Explicit final-state facts in the orchestrator's launch prompt** — e.g. "these verify warnings were fixed in later commits", "this blocker was resolved and the gate passed". The launch prompt is the most recent account of the change and outranks intermediate snapshots.
+3. **Explicit final-state facts in the orchestrator's launch prompt** — e.g. "these verify warnings were fixed in later commits", "this blocker was resolved". The launch prompt is the most recent account of the change and outranks intermediate snapshots.
 4. **`verify-report` and `apply-progress`** — intermediate snapshots. Lowest rank: valid history of what was true at their time, never evidence of final state.
 
 Reporting rules that follow:
@@ -60,29 +60,23 @@ Reporting rules that follow:
 - Carry final numbers (test counts, warnings, open issues) from the highest-ranked source that covers them; do not copy numbers from `verify-report` or `apply-progress` when later work changed them.
 - Never merge distinct defects or failures into a single causal story. A cause is recorded as confirmed only with evidence; otherwise record the failure as undiagnosed.
 
-This hierarchy governs how the archive REPORTS facts. It does not weaken gates: CRITICAL issues in `verify-report` still block archive with no prompt override (a claim that a CRITICAL was fixed requires re-running `sdd-verify`, not a prompt assertion), and the Native Review Receipt Gate and Task Completion Gate below keep their own authority rules.
+This hierarchy governs how the archive REPORTS facts. It does not weaken gates: CRITICAL issues in `verify-report` still block archive with no prompt override (a claim that a CRITICAL was fixed requires re-running `sdd-verify`, not a prompt assertion), and the Verification Gate and Task Completion Gate below keep their own authority rules.
 
 ## Execution and Persistence Contract
 
-> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
+> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/orchestrator/references/sdd-phase-common.md`.
 
-- **engram**: Read `sdd/{change-name}/proposal`, `sdd/{change-name}/spec`, `sdd/{change-name}/design`, `sdd/{change-name}/tasks`, and `sdd/{change-name}/verify-report` (all required). Read the exact `sdd/{change-name}/review/{transaction,ledger,receipt,gate-context}` topics only when the Native Review Receipt Gate below finds `reviewGate` present (a review was actually discovered) — when `reviewGate` is structurally absent, no review ever happened for this candidate and none of those topics exist to read. Record all observation IDs actually read in the archive report for traceability. Save as `sdd/{change-name}/archive-report`.
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`. Perform merge and archive folder moves.
+- **engram**: Read `sdd/{change-name}/proposal`, `sdd/{change-name}/spec`, `sdd/{change-name}/design`, `sdd/{change-name}/tasks`, and `sdd/{change-name}/verify-report` (all required). Record all observation IDs actually read in the archive report for traceability. Save as `sdd/{change-name}/archive-report`.
+- **openspec**: Read and follow `skills/orchestrator/references/openspec-convention.md`. Perform merge and archive folder moves.
 - **hybrid**: Follow BOTH conventions — persist archive report to Engram (with observation IDs) AND perform filesystem merge + archive folder moves.
 - **none**: Return closure summary only. Do not perform archive file operations.
 
-### Native Review Receipt Gate
+### Verification Gate
 
-Before any task reconciliation, spec sync, or archive move, require structured status. `reviewGate` is a structurally ABSENT key — not a populated value — in every case except a genuine, discovered review artifact for this candidate:
+Before any task reconciliation, spec sync, or archive move, require structured status and the latest `verify-report`:
 
-- **`reviewGate` absent, archive proceeds under ordinary repository policy** in both of these cases; there is no `disabled/unmanaged` value to check for, and no explicit-artifact carve-out either:
-  - **the kill switch is off**: receipt-driven development does not exist for this candidate, so zero review code ran and there is nothing to read or block on.
-  - **the kill switch is on, verify has passed, and no review was ever started for this candidate**: the post-verify offer (`reviewOffer`) is present in the SAME status output — an invitation, never a gate. Declining is proceeding to archive without acting on it, not a verb; nothing about the decline is recorded, and `dependencies.archive: ready` here means proceed, not "investigate why the gate is missing".
-- **`reviewGate` present with `result: allow`** (a discovered receipt that governs this candidate and validates): proceed. Read the exact transaction, frozen ledger, approved terminal receipt, and post-apply gate context referenced by status; the receipt must match final candidate tree, paths digest, policy, ledger, fix delta, current independent verification evidence, mode counters, and base relationship.
-- **Post-review final verification report delta**: SDD archive status may project `allow` only when native final-verify settlement attests the exact canonical passing report bytes and resulting candidate tree, the receipt-to-current delta is that report path alone, and restoring its receipt blob reconstructs the receipt candidate. This archive-status exception never changes generic review or delivery gates.
-- **`reviewGate` present with any other result** (pending, malformed, `scope-changed`, `invalidated`, or `escalated` — a review was actually discovered and failed validation): blocks archive with no override and no automatic reviewer launch. The gate never manufactures `allow`, and re-enabling a disabled switch revalidates from the current state.
-
-Do not treat `reviewGate`'s absence itself as a defect to investigate or as grounds to demand a receipt — only a present, non-`allow` value blocks.
+- Verdict `PASS` or `PASS WITH WARNINGS` with zero CRITICAL issues: proceed.
+- Verdict `FAIL`, any CRITICAL issue, or no `verify-report`: STOP and return `blocked` with `next_recommended: sdd-apply` (fix) or `sdd-verify` (missing report). No prompt override exists for CRITICAL issues; a claim that one was fixed requires re-running `sdd-verify`.
 
 ### Task Completion Gate
 
@@ -103,7 +97,7 @@ The archived audit trail MUST NOT contain stale unchecked tasks for completed wo
 
 ### Strict-vs-OpenSpec Archive Policy
 
-OpenSpec permits archiving with incomplete artifacts or tasks after a user confirmation. gentle-ai is stricter by default:
+OpenSpec permits archiving with incomplete artifacts or tasks after a user confirmation. This workflow is stricter by default:
 
 - Incomplete implementation tasks block archive unless they are stale checkboxes and apply-progress/verify-report prove completion.
 - CRITICAL issues in `verify-report` always block archive. Do not accept an override for CRITICAL verification issues.
@@ -127,7 +121,7 @@ Archival is a mechanical filesystem operation. File content MUST NEVER pass thro
 ## What to Do
 
 ### Step 1: Load Skills
-Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section A** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ### Step 2: Sync Delta Specs to Main Specs
 
@@ -271,7 +265,7 @@ A failed or skipped `diff -r` FAILS the phase regardless of the checkboxes above
 
 **This step is MANDATORY — do NOT skip it.**
 
-Follow **Section C** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section C** from `skills/orchestrator/references/sdd-phase-common.md`.
 - artifact: `archive-report`
 - topic_key: `sdd/{change-name}/archive-report`
 - type: `architecture`
@@ -322,4 +316,4 @@ Ready for the next change.
 - The archive is an AUDIT TRAIL — never delete or modify archived changes
 - If `openspec/changes/archive/` doesn't exist, create it
 - Apply any `rules.archive` from `openspec/config.yaml`
-- Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.
+- Return envelope per **Section D** from `skills/orchestrator/references/sdd-phase-common.md`.

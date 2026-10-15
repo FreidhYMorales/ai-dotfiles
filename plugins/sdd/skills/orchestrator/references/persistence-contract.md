@@ -4,7 +4,7 @@
 
 The orchestrator passes `artifact_store.mode` with one of: `engram | openspec | hybrid | none`.
 
-The orchestrator ASKs the user which mode they want when `/sdd-new`, `/sdd-ff`, or `/sdd-continue` is invoked for the first time in a session. The choice is cached for the session.
+The orchestrator collects the mode in the SDD Session Preflight (first `/sdd:*` command of a session) and caches it for the session.
 
 Default (if user doesn't specify): if Engram is available → `engram`. Otherwise → `none`.
 
@@ -73,11 +73,9 @@ The orchestrator persists DAG state after each phase transition to enable SDD re
 - NEVER force `openspec/` creation unless orchestrator explicitly passed `openspec` or `hybrid`
 - If unsure which mode to use, default to `none`
 
-### Verify-report admission
+### Verify-report persistence
 
-Build a complete `verify-report` in memory as exact candidate bytes. Count authoritative requirements and scenarios, then run `gentle-ai sdd-verify-validate` on those bytes before any OpenSpec or Engram write.
-
-If admission fails or the validator is unavailable, STOP with zero persistence calls. Do not create, truncate, delete, or overwrite any prior `verify-report`. On success, persist the same candidate bytes for the selected mode; hybrid preflights once before both writes. A valid `fail` report must be persisted because validity and archive readiness are separate decisions.
+Build the complete `verify-report` before any write and check that its leading envelope matches the actual requirement/scenario counts. Persist the same content for the selected mode (hybrid writes both). A valid `fail` report must be persisted because validity and archive readiness are separate decisions. Never truncate or delete a prior report without replacing it.
 
 ## Sub-Agent Context Rules
 
@@ -151,13 +149,9 @@ When a sub-agent persists artifacts (via `mem_save` or file writes), the persist
 
 Sub-agents must NOT call `mem_session_summary` — that's reserved for top-level agents only.
 
-## Skill Registry
+## Skill Loading
 
-The orchestrator pre-resolves skill paths from the skill registry and injects them as `## Skills to load before work` in your launch prompt. Sub-agents read those exact `SKILL.md` files before task-specific work.
-
-To generate/update: run the `skill-registry` skill, or run `sdd-init`.
-
-Sub-agent skill loading: check for a `## Skills to load before work` block in your prompt — if present, read those exact files. If not present, check for `SKILL: Load` instructions as a fallback. If neither exists, proceed without — this is not an error.
+The orchestrator selects relevant skills and injects them as `## Skills to load before work` in your launch prompt (see `skill-resolver.md`). Load those before task-specific work. If no block is present, match skills yourself or proceed without — this is not an error.
 
 ## Detail Level
 

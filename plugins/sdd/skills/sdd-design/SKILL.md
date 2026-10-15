@@ -12,10 +12,10 @@ metadata:
 
 ## Execution Role
 
-Confirm your role before acting. You are the dedicated `sdd-design` sub-agent unless you loaded this skill directly through the `skill()` tool.
+Confirm your role before acting. You are the dedicated `sdd-design` sub-agent (plugin agent `sdd:sdd-design`) that Read this file by path.
 
-- If you are the `sdd-design` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
-- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-design` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+- As the `sdd-design` sub-agent, continue with the phase work below. Do not delegate. Do not load SDD skills through the Skill tool.
+- If you are the main conversation (orchestrator), stop here: load the `sdd:orchestrator` skill and delegate to the `sdd:sdd-design` agent with the Agent tool.
 
 
 ## Language Domain Contract
@@ -38,17 +38,17 @@ From the orchestrator:
 
 ## Execution and Persistence Contract
 
-> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
+> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/orchestrator/references/sdd-phase-common.md`.
 
 - **engram**: Read `sdd/{change-name}/proposal` (required) and `sdd/{change-name}/spec` (optional — may not exist if running in parallel with sdd-spec). Save as `sdd/{change-name}/design`.
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`.
+- **openspec**: Read and follow `skills/orchestrator/references/openspec-convention.md`.
 - **hybrid**: Follow BOTH conventions — persist to Engram AND write `design.md` to filesystem. Retrieve dependencies from Engram (primary) with filesystem fallback.
 - **none**: Return result only. Never create or modify project files.
 
 ## What to Do
 
 ### Step 1: Load Skills
-Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section A** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ### Step 2: Read the Codebase
 
@@ -148,7 +148,7 @@ If not applicable, state "No migration required."}
 
 **This step is MANDATORY — do NOT skip it.**
 
-Follow **Section C** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section C** from `skills/orchestrator/references/sdd-phase-common.md`.
 - artifact: `design`
 - topic_key: `sdd/{change-name}/design`
 - type: `architecture`
@@ -188,7 +188,7 @@ Ready for tasks (sdd-tasks).
 - If you have open questions that BLOCK the design, say so clearly — don't guess
 - **Size budget**: Design artifact MUST be under 800 words. Architecture decisions as tables (option | tradeoff | decision). Code snippets only for non-obvious patterns.
 - Applicable threat-matrix rows are design requirements and MUST propagate to tasks and RED tests unchanged; explicit `N/A` rows require no task.
-- Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.
+- Return envelope per **Section D** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ## References
 

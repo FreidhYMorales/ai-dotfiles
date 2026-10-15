@@ -12,10 +12,10 @@ metadata:
 
 ## Execution Role
 
-Confirm your role before acting. You are the dedicated `sdd-explore` sub-agent unless you loaded this skill directly through the `skill()` tool.
+Confirm your role before acting. You are the dedicated `sdd-explore` sub-agent (plugin agent `sdd:sdd-explore`) that Read this file by path.
 
-- If you are the `sdd-explore` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
-- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-explore` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+- As the `sdd-explore` sub-agent, continue with the phase work below. Do not delegate. Do not load SDD skills through the Skill tool.
+- If you are the main conversation (orchestrator), stop here: load the `sdd:orchestrator` skill and delegate to the `sdd:sdd-explore` agent with the Agent tool.
 
 
 ## Language Domain Contract
@@ -38,16 +38,16 @@ The orchestrator will give you:
 
 ## Execution and Persistence Contract
 
-> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
+> Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/orchestrator/references/sdd-phase-common.md`.
 
 - **engram**: Optionally read `sdd-init/{project}` for project context. Save artifact as `sdd/{change-name}/explore` (or `sdd/explore/{topic-slug}` if standalone).
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`.
+- **openspec**: Read and follow `skills/orchestrator/references/openspec-convention.md`.
 - **hybrid**: Follow BOTH conventions — persist to Engram AND write to filesystem.
 - **none**: Return result only.
 
 ### Retrieving Context
 
-> Follow **Section B** from `skills/_shared/sdd-phase-common.md` for retrieval.
+> Follow **Section B** from `skills/orchestrator/references/sdd-phase-common.md` for retrieval.
 
 - **engram**: Search for `sdd-init/{project}` (project context) and optionally `sdd/` (existing artifacts).
 - **openspec**: Read `openspec/config.yaml` and `openspec/specs/`.
@@ -56,7 +56,7 @@ The orchestrator will give you:
 ## What to Do
 
 ### Step 1: Load Skills
-Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section A** from `skills/orchestrator/references/sdd-phase-common.md`.
 
 ### Step 2: Understand the Request
 
@@ -94,7 +94,7 @@ If there are multiple approaches, compare them:
 
 **This step is MANDATORY when tied to a named change — do NOT skip it.**
 
-Follow **Section C** from `skills/_shared/sdd-phase-common.md`.
+Follow **Section C** from `skills/orchestrator/references/sdd-phase-common.md`.
 - artifact: `explore`
 - topic_key: `sdd/{change-name}/explore` (or `sdd/explore/{topic-slug}` if standalone)
 - type: `architecture`
@@ -143,4 +143,4 @@ Return EXACTLY this format to the orchestrator (and write the same content to `e
 - Keep your analysis CONCISE - the orchestrator needs a summary, not a novel
 - If you can't find enough information, say so clearly
 - If the request is too vague to explore, say what clarification is needed
-- Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.
+- Return envelope per **Section D** from `skills/orchestrator/references/sdd-phase-common.md`.

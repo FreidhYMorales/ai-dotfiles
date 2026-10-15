@@ -1,0 +1,10 @@
+{
+  "name": "sdd",
+  "description": "Spec-Driven Development: /sdd:* commands, a lazy orchestrator skill, and phase sub-agents (explore, propose, spec, design, tasks, apply, verify, archive) persisting to engram and/or openspec, with Strict TDD.",
+  "version": "0.1.0",
+  "author": {
+    "name": "FreidhYMorales"
+  },
+  "license": "MIT AND Apache-2.0",
+  "keywords": ["sdd", "spec-driven-development", "tdd", "engram", "openspec"]
+}

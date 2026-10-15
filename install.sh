@@ -3,7 +3,9 @@
 #   - Symlinks claude/CLAUDE.md into ~/.claude (existing file is backed up).
 #   - Merges claude/settings.json into ~/.claude/settings.json (Claude Code
 #     rewrites that file itself, so it is merged, never symlinked).
-#   - Registers this repo as a plugin marketplace and installs the `flow` plugin.
+#   - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
+#   - Registers this repo as a plugin marketplace and installs the `flow`,
+#     `sdd` and `toolkit` plugins.
 #
 # Usage: ./install.sh [--dry-run]
 set -euo pipefail
@@ -11,7 +13,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 MARKETPLACE="ai-dotfiles"
-PLUGIN="flow"
+PLUGINS=(flow sdd toolkit)
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
@@ -55,17 +57,29 @@ merge_settings() {
   fi
 }
 
-install_plugin() {
+link_output_styles() {
+  local src
+  for src in "$REPO_DIR"/claude/output-styles/*.md; do
+    [[ -e "$src" ]] || continue
+    link_file "$src" "$CLAUDE_DIR/output-styles/$(basename "$src")"
+  done
+}
+
+install_plugins() {
   if claude plugin marketplace list 2>/dev/null | rg -q "$MARKETPLACE"; then
     echo "ok: marketplace $MARKETPLACE"
   else
     run claude plugin marketplace add "$REPO_DIR"
   fi
-  if claude plugin list 2>/dev/null | rg -q "$PLUGIN@$MARKETPLACE"; then
-    run claude plugin update "$PLUGIN@$MARKETPLACE"
-  else
-    run claude plugin install "$PLUGIN@$MARKETPLACE"
-  fi
+  local installed plugin
+  installed="$(claude plugin list 2>/dev/null || true)"
+  for plugin in "${PLUGINS[@]}"; do
+    if rg -qF "$plugin@$MARKETPLACE" <<<"$installed"; then
+      run claude plugin update "$plugin@$MARKETPLACE"
+    else
+      run claude plugin install "$plugin@$MARKETPLACE"
+    fi
+  done
 }
 
 main() {
@@ -73,8 +87,9 @@ main() {
   require rg
   require claude
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
+  link_output_styles
   merge_settings
-  install_plugin
+  install_plugins
   echo "done. Restart Claude Code to apply."
 }
 

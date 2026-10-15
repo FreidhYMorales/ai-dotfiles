@@ -7,25 +7,11 @@
 - Coverage: `vitest --coverage`, `jest --coverage`, `c8`, `pytest-cov`, `go test -cover`, `coverlet`.
 - Quality: linter, type checker, formatter commands.
 
-## Skill Registry Scan Rules
+## Convention Files
 
-- Scan user skills: `~/.pi/agent/skills/`, `~/.config/agents/skills/`, `~/.agents/skills/`, `~/.kimi/skills/`, `~/.config/opencode/skills/`, `~/.config/kilo/skills/`, `~/.claude/skills/`, `~/.gemini/skills/`, `~/.gemini/antigravity/skills/`, `~/.cursor/skills/`, `~/.copilot/skills/`, `~/.codex/skills/`, `~/.codeium/windsurf/skills/`, `~/.qwen/skills/`, `~/.kiro/skills/`, and `~/.openclaw/skills/`.
-- Scan project skills: `{project-root}/skills/`, `{project-root}/.opencode/skills/`, `{project-root}/.claude/skills/`, `{project-root}/.gemini/skills/`, `{project-root}/.cursor/skills/`, `{project-root}/.github/skills/`, `{project-root}/.codex/skills/`, `{project-root}/.qwen/skills/`, `{project-root}/.kiro/skills/`, `{project-root}/.openclaw/skills/`, `{project-root}/.pi/skills/`, `{project-root}/.agent/skills/`, `{project-root}/.agents/skills/`, and `{project-root}/.atl/skills/`.
-- Skip `sdd-*`, `_shared`, and `skill-registry`; deduplicate by skill name, preferring project-level skills over user-level skills.
-- Read each selected `SKILL.md` frontmatter as needed.
-- Extract `name`, trigger text from `description`, full `SKILL.md` path, and scope.
-- Treat the registry as an index, not a generated summary; subagents receive exact paths and read the full skill source of truth.
-- Scan project convention files: `agents.md`, `AGENTS.md`, project-level `CLAUDE.md`, `.cursorrules`, `GEMINI.md`, and `copilot-instructions.md`.
-- For index files such as `AGENTS.md`, extract referenced file paths and include both the index and referenced files in the registry.
-
-## LLM-First Skill Criteria
-
-- Treat skills as runtime instruction contracts, not human documentation.
-- Required structure: frontmatter, Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
-- Keep `description` quoted, one physical line, trigger-first, and no longer than 250 characters.
-- Target 180-450 body tokens; move examples, schemas, edge cases, and background into local `references/` or `assets/`.
-- References must be local files and stable relative to the skill directory when possible.
-- Quality gates: hard rules are observable, decision gates cover real forks, output contract states exactly what to return, and references resolve locally.
+- Look for `AGENTS.md`, `agents.md`, project-level `CLAUDE.md`, `.cursorrules`, `GEMINI.md`, and `copilot-instructions.md`.
+- For index files such as `AGENTS.md`, also list the files they reference.
+- Record their paths in the project context; do not summarize them.
 
 ## Engram Saves
 
@@ -38,11 +24,6 @@ capture_prompt: false when available
 mem_save title/topic_key: sdd/{project}/testing-capabilities
 type: config
 content: testing capabilities markdown
-capture_prompt: false when available
-
-mem_save title/topic_key: skill-registry
-type: config
-content: registry markdown
 capture_prompt: false when available
 ```
 

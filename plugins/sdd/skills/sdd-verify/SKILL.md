@@ -12,10 +12,10 @@ metadata:
 
 ## Execution Role
 
-Confirm your role before acting. You are the dedicated `sdd-verify` sub-agent unless you loaded this skill directly through the `skill()` tool.
+Confirm your role before acting. You are the dedicated `sdd-verify` sub-agent (plugin agent `sdd:sdd-verify`) that Read this file by path.
 
-- If you are the `sdd-verify` sub-agent, continue with the phase work below. Do not delegate. Do not call the Skill tool.
-- If you loaded this skill through the `skill()` tool, you are the orchestrator. Stop here and delegate to the dedicated `sdd-verify` sub-agent using your platform's delegation primitive (for example, `task(...)` or a sub-agent invocation).
+- As the `sdd-verify` sub-agent, continue with the phase work below. Do not delegate. Do not load SDD skills through the Skill tool.
+- If you are the main conversation (orchestrator), stop here: load the `sdd:orchestrator` skill and delegate to the `sdd:sdd-verify` agent with the Agent tool.
 
 ## Language Domain Contract
 
@@ -29,7 +29,7 @@ Public/contextual comments follow the target context language by default. Explic
 
 Run when the orchestrator launches verification for an SDD change. You are the quality gate: prove completion with source inspection plus real execution evidence.
 
-The orchestrator should provide structured status from `skills/_shared/sdd-status-contract.md`. Use its `schemaName`, `planningHome`, `changeRoot`, `artifactPaths`, `contextFiles`, task progress, dependency states, and `actionContext` before judging artifacts.
+The orchestrator should provide structured status from `skills/orchestrator/references/sdd-status-contract.md`. Use its `changeRoot`, `artifactPaths`, `contextFiles`, task progress, dependency states, and `actionContext` before judging artifacts.
 
 ## Hard Rules
 
@@ -39,28 +39,13 @@ The orchestrator should provide structured status from `skills/_shared/sdd-statu
 - A spec scenario is compliant only when a covering test passed at runtime.
 - Compare specs first, design second, task completion third.
 - Do not fix issues; report them for the orchestrator/user.
-- Build the complete report as exact candidate bytes, then run `gentle-ai sdd-verify-validate` with authoritative spec counts before any OpenSpec or Engram write. If the validator is unavailable or denies admission, make zero writes and leave the prior report untouched; otherwise persist the same bytes, including a valid `fail`.
+- Build the complete report first; its leading envelope counts must match the actual requirements/scenarios. Persist it even when the verdict is `fail`.
 - Persist `verify-report` according to mode: Engram, openspec file, hybrid both, or inline-only for `none`.
-- For the final OpenSpec `verify` work unit, persist the canonical passing `openspec/changes/{change}/verify-report.md` before settlement. Native settlement reads, strictly admits, and immutably attests the exact report bytes and resulting candidate tree; never provide a caller digest.
-- If Strict TDD is active, load `strict-tdd-verify.md` from this skill directory; if inactive, never load it.
-- Return the Section D envelope from `../_shared/sdd-phase-common.md`.
+- If Strict TDD is active, load `skills/sdd-verify/strict-tdd-verify.md` (relative to the plugin root); if inactive, never load it.
+- Return the Section D envelope from `skills/orchestrator/references/sdd-phase-common.md`.
 - Count the actual requirements and scenarios from the retrieved specs; never invent envelope totals.
-- Record current test/build commands, exit codes, and `test_output_hash` / `build_output_hash` values in the strict envelope.
-- Model/provider/profile/effort selection remains user-owned and is never changed by verification.
-- This is the one independent requirements/runtime final verification. A contradiction or new failing check returns FAIL/escalation; it never starts 4R, Judgment Day, a refuter, another correction, or scoped validation.
-- For native final verification, consume only the authoritative preterminal transaction plus the preserved policy and canonical ledger preimages. Do not require `receipt.json`, `chain-bundle.json`, `gate-context.json`, or any terminal-only artifact: final verification must complete before those artifacts can exist.
-- Return and preserve the exact canonical verification-evidence bytes, not only their hash. The parent hashes that preimage for `complete-final-verification` and retains the same bytes for the later GateRequest; hashes cannot reconstruct artifact content.
-- If authoritative preflight alone denies verification because review authority is missing, persist a failed strict envelope with the five fields below. Both declared commands must not be executed: record exit `125` for each, hash their exact empty output, and bind the observed authority revision from that preflight. Do not use this envelope for substantive failures or command failures.
-
-```yaml
-authority_only_failure: true
-missing_review_authority: true
-substantive_failure: false
-command_failed: false
-observed_authority_revision: sha256:{observed-authority-revision}
-test_exit_code: 125
-build_exit_code: 125
-```
+- Record the exact test/build commands and their exit codes in the envelope.
+- This is the single independent requirements/runtime verification. A contradiction or failing check returns FAIL; you never launch reviews, judges, or fix actors.
 
 ## Decision Gates
 
@@ -86,7 +71,7 @@ build_exit_code: 125
 4. Count completed and incomplete tasks. Any unchecked task blocks full verification; focused checks remain an apply work-unit responsibility.
 5. If specs exist, map each spec requirement/scenario to implementation evidence and tests.
 6. If design exists, check design decisions against changed code. If design is missing, skip design coherence and record why.
-7. Run test, build/type-check, and coverage commands when available. For full spec verification, preserve gentle-ai's stricter runtime evidence: source inspection alone does not prove spec scenario compliance.
+7. Run test, build/type-check, and coverage commands when available. For full spec verification, require runtime evidence: source inspection alone does not prove spec scenario compliance.
 8. Build the behavioral compliance matrix from actual test results when specs/scenarios exist.
 9. Persist and return the verification report, including skipped dimensions for missing artifacts.
 
@@ -105,4 +90,4 @@ Return `## Verification Report` with change, mode, completeness table, build/tes
 
 - [references/report-format.md](references/report-format.md) — full report template, compliance statuses, and command evidence fields.
 - [strict-tdd-verify.md](strict-tdd-verify.md) — load only when Strict TDD is active.
-- `../_shared/sdd-phase-common.md` — skill loading, retrieval, persistence, and return envelope.
+- `skills/orchestrator/references/sdd-phase-common.md` (plugin-root relative) — skill loading, retrieval, persistence, and return envelope.

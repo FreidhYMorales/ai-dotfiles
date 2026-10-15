@@ -69,7 +69,7 @@ When `sdd-tasks` produces a Review Workload Forecast:
 - Low risk: keep work-unit commits inside one PR.
 - Medium risk: commit by work unit and monitor changed lines before PR creation.
 - High risk: follow SDD `delivery_strategy` — ask on `ask-on-risk`, auto-slice on `auto-chain`, require `size:exception` on over-budget `single-pr`, or record accepted `size:exception` on `exception-ok`.
-- Count authored additions plus deletions for the `>400` threshold. Exclude generated goldens from that authored count, but include every generated file in complete snapshot identity and receipt validation.
+- Count authored additions plus deletions for the `>400` threshold. Exclude generated files (goldens, lockfiles, snapshots) from that authored count.
 
 Each SDD work unit should map cleanly to a commit or PR with:
 
@@ -83,7 +83,7 @@ Its implementation evidence MUST include:
 - Focused test command and exact result.
 - Runtime harness command/scenario and exact result, or explicit `N/A` with reason.
 - Rollback boundary stated independently of commit creation; uncommitted work units still require it.
-- When fixing a bounded review ledger, group atomic work units inside the single correction transaction; work-unit count never creates another fix budget.
+- When fixing confirmed review findings, group the fixes as atomic work units in one correction pass.
 
 ## Commands
 
