@@ -13,6 +13,16 @@
     ],
     "SessionStart": [
       {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/host-info.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "startup",
         "hooks": [
           {
