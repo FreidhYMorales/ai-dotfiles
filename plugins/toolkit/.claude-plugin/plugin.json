@@ -1,7 +1,7 @@
 {
   "name": "toolkit",
   "description": "General engineering skills: Judgment Day blind dual review (with judge and fix agents), work-unit commits, chained PRs, comment writing, cognitive doc design, skill authoring/auditing, and Go testing.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "FreidhYMorales"
   },

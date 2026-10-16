@@ -14,8 +14,9 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review` | via plugin |
 | `plugins/sdd/` | Spec-Driven Development: `/sdd:*` commands, lazy `sdd:orchestrator` skill, phase agents `sdd:sdd-*` (engram/openspec persistence, Strict TDD) | `claude plugin install sdd@ai-dotfiles` |
 | `plugins/sdd/upstream/` | Upstream origin of `sdd`/`toolkit` (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
-| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`) | `claude plugin install toolkit@ai-dotfiles` |
+| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`), `require-check` (Stop; runs `make check` from the git root when the tree is dirty and blocks finishing on failure; `SKIP_REQUIRE_CHECK=1` opts out), `engram-resume-fallback` (SessionStart on resume; while engram <= 3.4.0 blocks MCP writes after `--continue`, tells Claude to save via the `engram save` CLI; silent on fixed versions) | `claude plugin install toolkit@ai-dotfiles` |
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
+| `Makefile`, `scripts/` | `make check`: shellcheck, JSON/structure/settings validation, skill lint, hook tests | Run manually; enforced by `require-check` |
 | `bin/` | Maintenance scripts (e.g. `ai-update`) | Run manually |
 | `docs/` | Workflow design notes | - |
 
@@ -35,7 +36,7 @@ idea: enters at any time to triage a new idea (GO / DEFER / DROP / SPIKE)
 | `/flow:research` | Optional pre-planning research brief (prior art, libraries, policies), tagged v1/v2 |
 | `/flow:idea` | Triages an idea at any time: feasibility, effort, value, fit; GO/DEFER/DROP/SPIKE in `docs/ideas.md` |
 | `/flow:plan` | Scope + UX tracks: 3 ASCII variants per screen, backend demands, `plan.md` |
-| `/flow:foundation` | New projects: chooses stack, proportional architecture, conventions; writes `docs/architecture.md`, ADRs, `AGENTS.md` |
+| `/flow:foundation` | New projects: chooses stack, proportional architecture, conventions; writes `docs/architecture.md`, ADRs, `AGENTS.md`, and a `Makefile` with a `check` target plus a passing smoke test |
 | `/flow:plan-review` | Blind review by the `plan-reviewer` agent: verdict, gaps, MUST/SHOULD/LATER cut |
 | `/flow:fill-gaps` | Resolves findings one question at a time; appends `Plan-review resolutions` |
 | `/flow:split` | Freezes contracts; writes paste-able work packages for teammates using browser AI |
@@ -54,6 +55,19 @@ Memory: [engram](https://github.com/Gentleman-Programming/engram) is the only me
 
 Requires `jq`, `rg` and `claude`.
 
+## Verification
+
+Agent output is accepted because it passes checks, not because someone read every line. Every repo (this one and projects created by `/flow:foundation`) exposes `make check`; the toolkit `require-check` Stop hook runs it before Claude can finish. Never weaken or skip a check to make it pass.
+
+```bash
+make check   # all steps, summary of failures
+make lint    # shell + skills
+make validate
+make test
+```
+
+`make check` needs `shellcheck`; `shfmt` is used when installed.
+
 ## Roadmap
 
 - [x] `flow` skills content
@@ -61,4 +75,8 @@ Requires `jq`, `rg` and `claude`.
 - [ ] Session-start hook: notify-only update check
 - [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
 - [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
+- [x] Verification harness: `make check` + `require-check` Stop hook
+- [ ] Mutation testing for hooks
+- [ ] `claude plugin eval` suites for skills
+- [ ] `install.sh` idempotency test and CI running `make check`
 - [ ] OpenCode and Gemini support
