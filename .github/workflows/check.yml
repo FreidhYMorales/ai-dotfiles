@@ -22,6 +22,18 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq jq ripgrep shellcheck shfmt sqlite3
+          sudo apt-get install -y -qq jq ripgrep shellcheck sqlite3
+      # Pinned to the maintainer's Arch version: shfmt releases format some
+      # constructs differently, so CI and local runs must use the same one.
+      - name: Install shfmt
+        env:
+          SHFMT_VERSION: v3.14.1
+          SHFMT_SHA256: 76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf
+        run: |
+          curl -fsSL -o shfmt "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
+          echo "${SHFMT_SHA256}  shfmt" | sha256sum -c -
+          sudo install -m 755 shfmt /usr/local/bin/shfmt
+          rm shfmt
+          shfmt --version
       - name: make check
         run: make check

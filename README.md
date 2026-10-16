@@ -17,7 +17,7 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`), `require-check` (Stop; runs `make check` from the git root when the tree is dirty and blocks finishing on failure; `SKIP_REQUIRE_CHECK=1` opts out), `engram-resume-fallback` (SessionStart on resume; while engram <= 3.4.0 blocks MCP writes after `--continue`, tells Claude to save via the `engram save` CLI; silent on fixed versions), `update-check` (SessionStart on startup; notify-only: installed plugins older than their marketplace, engram older than its latest release, checked once a day; `SKIP_UPDATE_CHECK=1` opts out), `host-info` (SessionStart on startup/clear/compact; one line with the dev machine OS/distro, package managers and shell so install commands fit the host; `SKIP_HOST_INFO=1` opts out) | `claude plugin install toolkit@ai-dotfiles` |
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
 | `Makefile`, `scripts/` | `make check`: shellcheck, JSON/structure/settings validation, skill lint, hook tests | Run manually; enforced by `require-check` |
-| `bin/` | `ai-update`: updates plugins and the engram binary (checksum, DB + binary backup, rollback, confirm on major; `--check` reports only) | Run manually |
+| `bin/` | `ai-update`: updates plugins and the engram binary (checksum, DB + binary backup, rollback, confirm on major; `--check` reports only) | Symlinked into `~/.local/bin` |
 | `docs/` | Workflow design notes | - |
 
 ## Workflow
@@ -66,7 +66,7 @@ make validate
 make test
 ```
 
-`make check` needs `shellcheck`; `shfmt` is used when installed (CI always installs it, so install it locally too to catch formatting before pushing). CI runs `make check` on every push to `main` and every pull request.
+`make check` needs `shellcheck`; `shfmt` is used when installed. CI pins shfmt to the version Arch ships (currently v3.14.1); bump `SHFMT_VERSION` and `SHFMT_SHA256` in the workflow when Arch updates it, since releases format some constructs differently. CI runs `make check` on every push to `main` and every pull request.
 
 ## Roadmap
 
