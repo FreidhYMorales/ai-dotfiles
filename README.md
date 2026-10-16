@@ -14,7 +14,7 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review` | via plugin |
 | `plugins/sdd/` | Spec-Driven Development: `/sdd:*` commands, lazy `sdd:orchestrator` skill, phase agents `sdd:sdd-*` (engram/openspec persistence, Strict TDD) | `claude plugin install sdd@ai-dotfiles` |
 | `plugins/sdd/upstream/` | Upstream origin of `sdd`/`toolkit` (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
-| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing` | `claude plugin install toolkit@ai-dotfiles` |
+| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`) | `claude plugin install toolkit@ai-dotfiles` |
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
 | `bin/` | Maintenance scripts (e.g. `ai-update`) | Run manually |
 | `docs/` | Workflow design notes | - |

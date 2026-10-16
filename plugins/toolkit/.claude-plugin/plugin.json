@@ -1,10 +1,17 @@
 {
   "name": "toolkit",
   "description": "General engineering skills: Judgment Day blind dual review (with judge and fix agents), work-unit commits, chained PRs, comment writing, cognitive doc design, skill authoring/auditing, and Go testing.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "FreidhYMorales"
   },
   "license": "MIT AND Apache-2.0",
-  "keywords": ["review", "commits", "pull-requests", "docs", "skills", "go"]
+  "keywords": [
+    "review",
+    "commits",
+    "pull-requests",
+    "docs",
+    "skills",
+    "go"
+  ]
 }
