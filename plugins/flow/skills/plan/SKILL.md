@@ -4,7 +4,7 @@ description: "Trigger: plan a feature, new feature, scope, UX, screens, wirefram
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -42,15 +42,16 @@ Load when the user starts a new feature or project, asks to plan, or runs `/flow
 2. Read existing proposal, specs, source docs and visual artifacts. Delegate broad reading (4+ files) to one research subagent.
 3. Ask: is this project solo or collaborative? Record the answer (details come later in `/flow:split`).
 4. Ask for the deadline and what the demo/evaluation will prioritize; use it to rank SHOULD items by demo value.
-5. Agree the core model (entities, relations, key events) in a short block.
-6. For each screen, in priority order:
+5. **Target platforms**: where the product runs (web/PWA, Android, iOS, Windows, macOS, Linux and which distros) and how it reaches users (URL, app stores, installer, AUR/Flatpak/package). Show the options as a checklist with a recommendation; state the cost of each extra platform vs the deadline (scope decision, not a stack decision). Never infer targets from the machine you run on. Record minimum versions and form factors (phone width ~32 cols, desktop ~70 cols) that drive the wireframes.
+6. Agree the core model (entities, relations, key events) in a short block.
+7. For each screen, in priority order:
    - Show 3 variants + mixing invitation using `templates/screen-variants.md`.
    - After the pick, show the backend-demands table and the data inventory (shown data, actions, states: empty/loading/error/offline).
    - Cross-check the inventory against scope; add missing demands; save the decision to engram.
-7. Keep a running list: v1 scope, v2 deferred, open data gaps with assumptions.
-8. Consolidate into the plan file using `templates/plan.md`. Fill every section; write "n/a" rather than delete.
-9. Save the plan path and a summary to engram (type `decision`, topic `plan/<feature>`).
-10. Recommend `/flow:plan-review` next (blind review by a fresh agent).
+8. Keep a running list: v1 scope, v2 deferred, open data gaps with assumptions.
+9. Consolidate into the plan file using `templates/plan.md`. Fill every section; write "n/a" rather than delete.
+10. Save the plan path and a summary to engram (type `decision`, topic `plan/<feature>`).
+11. Recommend `/flow:plan-review` next (blind review by a fresh agent).
 
 ## Output Contract
 

@@ -13,7 +13,9 @@
 | Team | <n people; skills per person> |
 | Hosting / budget | <e.g. free tier, Vercel + Supabase> |
 | Required capabilities | <offline, maps, realtime, auth...> |
-| Target devices | <phone, desktop, both> |
+| Target platforms | <from the plan: e.g. Web (PWA, phone width); Android v2> |
+| Distribution | <URL, app stores, installer, AUR/Flatpak> |
+| Dev environments | <every supported contributor OS; setup in [development.md](development.md)> |
 
 ## Stack
 

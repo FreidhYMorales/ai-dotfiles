@@ -4,7 +4,7 @@ description: "Trigger: split work, collaborators, teammates, assign tasks, work 
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -20,7 +20,7 @@ Load after `/flow:plan-review` passes on a collaborative project, or when the us
 - Distribute equitably by estimated dev-days, adjusted for each person's strengths and availability; respect dependencies and file ownership (one owner per file).
 - The CLI user is a participant and keeps integration, architecture, offline sync and backend config. Hand off isolated logic and UI pieces.
 - Each package stays under a few pages. Cut context, not contracts or tests.
-- Inline the relevant conventions from `docs/architecture.md` / `AGENTS.md` (stack, folder map, naming, lint/test commands, no new deps) into every package; teammates' browser AI cannot read the repo.
+- Inline the relevant conventions from `docs/architecture.md` / `AGENTS.md` (stack, folder map, naming, lint/test commands, no new deps) and the setup steps for the teammate's OS from `docs/development.md` into every package; teammates' browser AI cannot read the repo.
 - Talk to the user in their language; packages are always in English (user decision: English is the default standard; teammates translate if needed).
 
 ## Decision Gates

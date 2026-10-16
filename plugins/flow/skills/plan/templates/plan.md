@@ -5,6 +5,15 @@
 - Mode: solo | collaborative (<n> people)
 - Supersedes: <earlier proposal items this plan replaces, or "none">
 
+## Platforms
+
+| Target | In v1? | Min version / form factor | Distribution |
+|---|---|---|---|
+| <e.g. Web (PWA)> | yes | <Chrome/Safari last 2; phone width> | <URL> |
+| <e.g. Android> | v2 | <API 26+> | <Play Store / APK> |
+
+- Out of scope: <platforms explicitly not supported>
+
 ## Research
 
 <Short findings brief from /flow:research, or "not run". Mark each item v1 or v2.>

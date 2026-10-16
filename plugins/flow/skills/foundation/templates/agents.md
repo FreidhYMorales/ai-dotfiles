@@ -6,6 +6,11 @@ Rules for ANY AI (CLI or browser) working on this repo. Keep it short; details l
 
 <language, framework, data layer, key libraries>
 
+## Platforms
+
+- Targets: <where the product runs; see docs/architecture.md>
+- Dev setup: follow `docs/development.md` for your OS. Do not assume the maintainer's OS, package manager or shell.
+
 ## Folder map
 
 ```
