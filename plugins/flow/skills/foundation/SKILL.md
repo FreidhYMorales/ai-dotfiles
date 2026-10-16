@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.4"
+  version: "1.5"
 ---
 
 ## Activation Contract
@@ -23,6 +23,7 @@ Load during planning of a greenfield project (or one with no established convent
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
 - Delegate broad reading (4+ files) or library/hosting research to one research subagent (context7 MCP for library docs); cite its findings.
 - Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
+- Every project gets a `Makefile` with a `check` target (format check, lint, typecheck if the language has one, tests) and at least one passing smoke test, so `make check` is green from day one (`templates/check.md`). Not optional, whatever the stack: wrap the native tools. The toolkit Stop hook blocks agents from finishing while it fails.
 - Never scaffold, move files, create remotes or install dependencies without explicit approval. Bootstrap asks for ONE approval of the full, filled-in plan, then runs it without further stops.
 
 ## Decision Gates
@@ -51,9 +52,9 @@ Load during planning of a greenfield project (or one with no established convent
    5. Mixed stacks (e.g. a Python ML service behind a TS app) only when a capability has no viable option in the main stack; state the extra ops cost.
 3. **Architecture style**: 2–3 ASCII folder-tree variants proportional to size (feature-based "screaming" for small apps; hexagonal/clean only when domain complexity or multiple adapters justify it). User picks/mixes.
 4. **Conventions**: naming, formatter/linter (exact tools), conventional commits, branching/PR flow, dependency policy (allowlist: no new deps without approval).
-5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands.
+5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands. Compose the `make check` recipe from the chosen format/lint/typecheck/test commands (`templates/check.md`).
 6. **Config & secrets**: `.env.example`, `.gitignore` entries, where CI/deploy secrets live.
-7. **CI and deploy**: tests, lint, typecheck on every PR; deploy target.
+7. **CI and deploy**: CI runs `make check` on every PR; deploy target.
 8. **Agent permissions**: build the project `.claude/settings.json` from `templates/permissions.md` using the exact test/lint/format/typecheck/build commands decided above. Show the three tiers (allow/ask/deny) and confirm before writing.
 9. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
 10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
@@ -64,7 +65,7 @@ Load during planning of a greenfield project (or one with no established convent
 
 ## Output Contract
 
-- `docs/architecture.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`.
+- `docs/architecture.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`, `Makefile` with a green `check` target.
 - Updated plan `Foundation` section; engram entry per decision.
 - Repo created and pushed (greenfield) or reorganization PR (existing), when approved.
 - Final message: chosen stack, style, key conventions, files written, repo URL or PR, next step.
@@ -75,4 +76,5 @@ Load during planning of a greenfield project (or one with no established convent
 - `templates/adr.md` — ADR template.
 - `templates/agents.md` — project AGENTS.md template.
 - `templates/bootstrap.md` — repo creation and folder reorganization sequences.
+- `templates/check.md` — `make check` recipes per stack.
 - `templates/permissions.md` — project permission tiers and base `.claude/settings.json`.

@@ -62,7 +62,8 @@ Strict TDD: write the failing test first.
 
 ## CI / deploy
 
-- CI on every PR: tests, lint, typecheck (<workflow file>).
+- Quality gate: `make check` (format check, lint, typecheck, tests); see `Makefile`.
+- CI on every PR: `make check` (<workflow file>).
 - Deploy target: <platform, trigger>.
 
 ## Observability & errors

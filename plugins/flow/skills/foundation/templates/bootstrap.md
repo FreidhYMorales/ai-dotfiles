@@ -16,9 +16,9 @@ Show the full plan below (filled in) and get ONE approval for the whole sequence
 1. `git init -b main` (skip if `.git` exists).
 2. Write `.gitignore` (stack template + `.env`, `.env.*.local`, `.claude/settings.local.json`) and `.env.example`.
 3. Create the chosen folder tree; add `.gitkeep` only to empty leaf folders.
-4. Write tooling config decided in Conventions (formatter, linter, typecheck, test runner) and the project `.claude/settings.json`.
+4. Write tooling config decided in Conventions (formatter, linter, typecheck, test runner), the project `.claude/settings.json`, and a `Makefile` whose `check` target runs format check, lint, typecheck and tests (`templates/check.md`). Mandatory for every stack.
 5. Install dependencies only if approved in this same plan (listed by name and version).
-6. Run the test/lint commands once to prove the toolchain works (an empty test suite passing is fine).
+6. Write one smoke test (e.g. the entry module loads, or `1 + 1 == 2` against the test runner) and run `make check`: it MUST pass before the first commit. An empty suite does not count.
 7. Commit: `chore: bootstrap project` (docs from Foundation may go in the same commit).
 8. `gh repo create <owner>/<name> --<visibility> --source=. --remote=origin --push` (skip if `origin` exists; never overwrite a remote).
 9. Branch protection on `main` (require PR + passing checks) via `gh api`. GitHub Free does not support it on private repos: if the call returns 403, report it and continue.
@@ -28,7 +28,7 @@ Show the full plan below (filled in) and get ONE approval for the whole sequence
 Never move files without a migration table the user approved.
 
 1. Verify a clean working tree (`git status --porcelain` empty); otherwise stop and ask the user to commit or stash.
-2. Run tests/build and record the baseline result.
+2. Run tests/build and record the baseline result. If there is no `Makefile` with a `check` target, add one (`templates/check.md`) in its own commit before any move.
 3. Present the migration table:
 
    | From | To | Reason |

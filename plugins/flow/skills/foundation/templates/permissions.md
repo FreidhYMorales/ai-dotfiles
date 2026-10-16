@@ -24,6 +24,7 @@ Replace `<...>` with the exact commands chosen in the Conventions and Testing st
 {
   "permissions": {
     "allow": [
+      "Bash(make check:*)",
       "Bash(<test command>:*)",
       "Bash(<lint command>:*)",
       "Bash(<format command>:*)",
@@ -60,7 +61,7 @@ Replace `<...>` with the exact commands chosen in the Conventions and Testing st
 ## Example: Node + pnpm
 
 ```json
-"allow": ["Bash(pnpm test:*)", "Bash(pnpm lint:*)", "Bash(pnpm format:*)", "Bash(pnpm typecheck:*)", "Bash(pnpm build:*)"],
+"allow": ["Bash(make check:*)", "Bash(pnpm test:*)", "Bash(pnpm lint:*)", "Bash(pnpm format:*)", "Bash(pnpm typecheck:*)", "Bash(pnpm build:*)"],
 "ask": ["Bash(pnpm add:*)", "Bash(pnpm install:*)"]
 ```
 

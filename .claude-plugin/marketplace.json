@@ -9,7 +9,7 @@
     {
       "name": "flow",
       "description": "Planning-first workflow: research, scope + UX planning, review, gap filling and handoff to implementation.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./plugins/flow",
       "category": "productivity"
     },
@@ -23,7 +23,7 @@
     {
       "name": "toolkit",
       "description": "Engineering skills: Judgment Day dual review, work-unit commits, chained PRs, comment writing, doc design, skill authoring, Go testing.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./plugins/toolkit",
       "category": "development"
     }

@@ -18,6 +18,7 @@ Rules for ANY AI (CLI or browser) working on this repo. Keep it short; details l
 - Format/lint: run `<format command>` and `<lint command>` before committing.
 - Commits: conventional commits; no AI attribution.
 - Tests first (Strict TDD). Run `<test command>`; typecheck with `<typecheck command>`.
+- Work is done only when `make check` passes; never weaken or skip checks to make it pass. (The toolkit Stop hook runs it before an agent may finish.)
 
 ## Do not
 
