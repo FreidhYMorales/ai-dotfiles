@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -33,7 +33,8 @@ Load during planning of a greenfield project (or one with no established convent
 | Constraints already answered in `/flow:plan` | Reuse them; ask only what is missing |
 | Required capability (offline, maps, realtime, auth) narrows the stack | Verify library support via research subagent before recommending |
 | Candidate pattern adds layers the domain does not need | Flag it as over-engineering and recommend the simpler option |
-| No UI in the project | Skip step 9 and write "n/a" |
+| No UI in the project | Skip step 10 and write "n/a" |
+| `.claude/settings.json` already exists | Merge: keep existing rules, propose only missing ones |
 
 ## Execution Steps
 
@@ -44,16 +45,17 @@ Load during planning of a greenfield project (or one with no established convent
 5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands.
 6. **Config & secrets**: `.env.example`, `.gitignore` entries, where CI/deploy secrets live.
 7. **CI and deploy**: tests, lint, typecheck on every PR; deploy target.
-8. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
-9. **Accessibility and i18n** when there is UI (UI language may differ from code language).
-10. Write `docs/architecture.md` (`templates/architecture.md`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`templates/adr.md`), `AGENTS.md` (`templates/agents.md`) and a `CLAUDE.md` containing only `@AGENTS.md`.
-11. Update the plan's `## Foundation` section with links and a 3–5 line summary.
-12. Offer (do not do) scaffolding of the folder tree and tooling config; proceed only on approval.
-13. Tell the user next: `/flow:plan-review`, then `/flow:split` inlines these conventions into every work package.
+8. **Agent permissions**: build the project `.claude/settings.json` from `templates/permissions.md` using the exact test/lint/format/typecheck/build commands decided above. Show the three tiers (allow/ask/deny) and confirm before writing.
+9. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
+10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
+11. Write `docs/architecture.md` (`templates/architecture.md`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`templates/adr.md`), `AGENTS.md` (`templates/agents.md`) a `CLAUDE.md` containing only `@AGENTS.md`, and `.claude/settings.json` (step 8); add `.claude/settings.local.json` to `.gitignore`.
+12. Update the plan's `## Foundation` section with links and a 3–5 line summary.
+13. Offer (do not do) scaffolding of the folder tree and tooling config; proceed only on approval.
+14. Tell the user next: `/flow:plan-review`, then `/flow:split` inlines these conventions into every work package.
 
 ## Output Contract
 
-- `docs/architecture.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`).
+- `docs/architecture.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`.
 - Updated plan `Foundation` section; engram entry per decision.
 - Final message: chosen stack, style, key conventions, files written, scaffolding offer, next step.
 
@@ -62,3 +64,4 @@ Load during planning of a greenfield project (or one with no established convent
 - `templates/architecture.md` — architecture doc template.
 - `templates/adr.md` — ADR template.
 - `templates/agents.md` — project AGENTS.md template.
+- `templates/permissions.md` — project permission tiers and base `.claude/settings.json`.
