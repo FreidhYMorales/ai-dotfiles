@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.2"
+  version: "1.3"
 ---
 
 ## Activation Contract
@@ -30,6 +30,7 @@ Load during planning of a greenfield project (or one with no established convent
 | Situation | Action |
 |---|---|
 | Existing stack/config detected (package.json, pyproject, go.mod, lint config...) | Audit mode: document what exists, ask only about gaps |
+| Best-fit stack unknown to the team | Show learning cost vs deadline; never hide the better option, never force it (step 2.4) |
 | Constraints already answered in `/flow:plan` | Reuse them; ask only what is missing |
 | Required capability (offline, maps, realtime, auth) narrows the stack | Verify library support via research subagent before recommending |
 | Candidate pattern adds layers the domain does not need | Flag it as over-engineering and recommend the simpler option |
@@ -40,8 +41,13 @@ Load during planning of a greenfield project (or one with no established convent
 
 ## Execution Steps
 
-1. **Constraints intake**: deadline, team size and each person's skills, hosting/budget, required capabilities, target devices. Reuse plan answers.
-2. **Stack**: 2–3 candidates in a table (team familiarity, capability/library fit, time-to-demo, hosting/cost, maintainability, AI-friendliness). Recommend one.
+1. **Constraints intake**: deadline, team size, hosting/budget, required capabilities, target devices. Reuse plan answers. Do NOT ask about known languages yet: it anchors the choice.
+2. **Stack, fit-first**:
+   1. Shortlist 2–3 stacks by fit alone: for each required capability, which ecosystem is strongest (library maturity, runtime model, deploy target). Use the research subagent when unsure.
+   2. Only then ask each person's skills.
+   3. Table: capability fit, learning cost vs deadline (rough weeks to productive, per person), time-to-demo, hosting/cost, maintainability, AI-friendliness. Recommend one.
+   4. If the best fit is unfamiliar, say so plainly and recommend it only when the deadline absorbs the learning cost AND someone can review AI-written code in it. Otherwise recommend the familiar stack and record the best fit under "Alternatives considered" in the stack ADR.
+   5. Mixed stacks (e.g. a Python ML service behind a TS app) only when a capability has no viable option in the main stack; state the extra ops cost.
 3. **Architecture style**: 2–3 ASCII folder-tree variants proportional to size (feature-based "screaming" for small apps; hexagonal/clean only when domain complexity or multiple adapters justify it). User picks/mixes.
 4. **Conventions**: naming, formatter/linter (exact tools), conventional commits, branching/PR flow, dependency policy (allowlist: no new deps without approval).
 5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands.
