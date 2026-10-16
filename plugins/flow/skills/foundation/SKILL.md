@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.1"
+  version: "1.2"
 ---
 
 ## Activation Contract
@@ -23,7 +23,7 @@ Load during planning of a greenfield project (or one with no established convent
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
 - Delegate broad reading (4+ files) or library/hosting research to one research subagent (context7 MCP for library docs); cite its findings.
 - Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
-- Never scaffold files or install dependencies without explicit approval.
+- Never scaffold, move files, create remotes or install dependencies without explicit approval. Bootstrap asks for ONE approval of the full, filled-in plan, then runs it without further stops.
 
 ## Decision Gates
 
@@ -34,6 +34,8 @@ Load during planning of a greenfield project (or one with no established convent
 | Required capability (offline, maps, realtime, auth) narrows the stack | Verify library support via research subagent before recommending |
 | Candidate pattern adds layers the domain does not need | Flag it as over-engineering and recommend the simpler option |
 | No UI in the project | Skip step 10 and write "n/a" |
+| No `.git` or no `origin` remote | Include `git init` / `gh repo create` in the bootstrap plan (step 13) |
+| Existing files do not match the chosen structure | Audit mode: propose a migration table, apply with `git mv` on a branch (step 13) |
 | `.claude/settings.json` already exists | Merge: keep existing rules, propose only missing ones |
 
 ## Execution Steps
@@ -50,18 +52,20 @@ Load during planning of a greenfield project (or one with no established convent
 10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
 11. Write `docs/architecture.md` (`templates/architecture.md`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`templates/adr.md`), `AGENTS.md` (`templates/agents.md`) a `CLAUDE.md` containing only `@AGENTS.md`, and `.claude/settings.json` (step 8); add `.claude/settings.local.json` to `.gitignore`.
 12. Update the plan's `## Foundation` section with links and a 3–5 line summary.
-13. Offer (do not do) scaffolding of the folder tree and tooling config; proceed only on approval.
+13. **Bootstrap**: fill in `templates/bootstrap.md` (greenfield: git init, tree, tooling, first commit, `gh repo create`; existing project: migration table + `git mv` on a branch) and present it as one plan. On approval, run it end to end; on any failure, stop and report.
 14. Tell the user next: `/flow:plan-review`, then `/flow:split` inlines these conventions into every work package.
 
 ## Output Contract
 
 - `docs/architecture.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`.
 - Updated plan `Foundation` section; engram entry per decision.
-- Final message: chosen stack, style, key conventions, files written, scaffolding offer, next step.
+- Repo created and pushed (greenfield) or reorganization PR (existing), when approved.
+- Final message: chosen stack, style, key conventions, files written, repo URL or PR, next step.
 
 ## References
 
 - `templates/architecture.md` — architecture doc template.
 - `templates/adr.md` — ADR template.
 - `templates/agents.md` — project AGENTS.md template.
+- `templates/bootstrap.md` — repo creation and folder reorganization sequences.
 - `templates/permissions.md` — project permission tiers and base `.claude/settings.json`.
