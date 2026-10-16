@@ -14,10 +14,10 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review` | via plugin |
 | `plugins/sdd/` | Spec-Driven Development: `/sdd:*` commands, lazy `sdd:orchestrator` skill, phase agents `sdd:sdd-*` (engram/openspec persistence, Strict TDD) | `claude plugin install sdd@ai-dotfiles` |
 | `plugins/sdd/upstream/` | Upstream origin of `sdd`/`toolkit` (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
-| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`), `require-check` (Stop; runs `make check` from the git root when the tree is dirty and blocks finishing on failure; `SKIP_REQUIRE_CHECK=1` opts out), `engram-resume-fallback` (SessionStart on resume; while engram <= 3.4.0 blocks MCP writes after `--continue`, tells Claude to save via the `engram save` CLI; silent on fixed versions) | `claude plugin install toolkit@ai-dotfiles` |
+| `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`. Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`), `require-check` (Stop; runs `make check` from the git root when the tree is dirty and blocks finishing on failure; `SKIP_REQUIRE_CHECK=1` opts out), `engram-resume-fallback` (SessionStart on resume; while engram <= 3.4.0 blocks MCP writes after `--continue`, tells Claude to save via the `engram save` CLI; silent on fixed versions), `update-check` (SessionStart on startup; notify-only: installed plugins older than their marketplace, engram older than its latest release, checked once a day; `SKIP_UPDATE_CHECK=1` opts out) | `claude plugin install toolkit@ai-dotfiles` |
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
 | `Makefile`, `scripts/` | `make check`: shellcheck, JSON/structure/settings validation, skill lint, hook tests | Run manually; enforced by `require-check` |
-| `bin/` | Maintenance scripts (e.g. `ai-update`) | Run manually |
+| `bin/` | Maintenance scripts (none yet) | Run manually |
 | `docs/` | Workflow design notes | - |
 
 ## Workflow
@@ -72,7 +72,7 @@ make test
 
 - [x] `flow` skills content
 - [ ] `bin/ai-update`: safe engram/tool updates (backup, checksum, confirm on major)
-- [ ] Session-start hook: notify-only update check
+- [x] Session-start hook: notify-only update check
 - [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
 - [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
 - [x] Verification harness: `make check` + `require-check` Stop hook

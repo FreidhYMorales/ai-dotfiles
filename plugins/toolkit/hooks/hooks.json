@@ -13,6 +13,16 @@
     ],
     "SessionStart": [
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/update-check.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "resume",
         "hooks": [
           {
