@@ -36,7 +36,7 @@ LAST_EXIT=0
 install() {
   local home=$1
   shift
-  LAST_OUTPUT=$(env HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
+  LAST_OUTPUT=$(env -u XDG_BIN_HOME HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
     GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
     FAKE_CLAUDE_STATE="$home/state" PATH="$home/bin:$PATH" \
     bash "$INSTALL" "$@" 2>&1)
@@ -53,7 +53,7 @@ snapshot() {
     else
       printf 'file %s %s\n' "${path#"$home"}" "$(sha256sum <"$path" | cut -d' ' -f1)"
     fi
-  done < <(find "$home/.claude" "$home/.gitconfig" \( -type f -o -type l \) 2>/dev/null | sort)
+  done < <(find "$home/.claude" "$home/.gitconfig" "$home/.local/bin" \( -type f -o -type l \) 2>/dev/null | sort)
 }
 
 # assert LABEL CONDITION...: run a test command and record PASS/FAIL.
@@ -89,6 +89,9 @@ assert 'output style is linked' test -L "$home/.claude/output-styles/gentleman.m
 assert 'settings.json is created' test -f "$home/.claude/settings.json"
 assert 'git hooksPath points to the repo' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+assert 'ai-update is linked into ~/.local/bin' \
+  same "$(readlink "$home/.local/bin/ai-update")" "$ROOT/bin/ai-update"
+assert 'missing ~/.local/bin on PATH is reported' rg -q 'not on PATH' <<<"$LAST_OUTPUT"
 assert 'marketplace is added' test -f "$home/state/marketplace"
 assert 'all plugins are installed' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
   'flow@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '

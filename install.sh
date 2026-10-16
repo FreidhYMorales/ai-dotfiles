@@ -4,6 +4,7 @@
 #   - Merges claude/settings.json into ~/.claude/settings.json (Claude Code
 #     rewrites that file itself, so it is merged, never symlinked).
 #   - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
+#   - Symlinks bin/* (e.g. ai-update) into ~/.local/bin.
 #   - Registers this repo as a plugin marketplace and installs the `flow`,
 #     `sdd` and `toolkit` plugins.
 #
@@ -12,6 +13,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow sdd toolkit)
 DRY_RUN=0
@@ -82,6 +84,18 @@ link_output_styles() {
   done
 }
 
+link_bin() {
+  local src
+  for src in "$REPO_DIR"/bin/*; do
+    [[ -f "$src" && -x "$src" ]] || continue
+    link_file "$src" "$BIN_DIR/$(basename "$src")"
+  done
+  case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *) echo "warning: $BIN_DIR is not on PATH; add it to run ai-update directly" >&2 ;;
+  esac
+}
+
 # Global git hooks: gitleaks on pre-commit, then chain to each repo's own hooks.
 GIT_HOOKS=(pre-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push)
 
@@ -125,6 +139,7 @@ main() {
   require claude
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
   link_output_styles
+  link_bin
   merge_settings
   install_git_hooks
   install_plugins
