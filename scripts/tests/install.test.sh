@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# Idempotency tests for install.sh. Run: bash scripts/tests/install.test.sh
+# Each case runs the real installer against a throwaway HOME with a stub
+# `claude` CLI, then checks that a second run changes nothing.
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+INSTALL="$ROOT/install.sh"
+failures=0
+TMP_ROOT=$(mktemp -d)
+trap 'rm -rf "$TMP_ROOT"' EXIT
+
+# sandbox NAME: create an isolated HOME with a stateful `claude` stub; print its path.
+sandbox() {
+  local home="$TMP_ROOT/$1"
+  mkdir -p "$home/bin" "$home/state"
+  cat >"$home/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+state=$FAKE_CLAUDE_STATE
+printf '%s\n' "$*" >>"$state/calls"
+case "$1 $2 ${3:-}" in
+"plugin marketplace list") [[ -f $state/marketplace ]] && echo "  ❯ ai-dotfiles" ;;
+"plugin marketplace add") touch "$state/marketplace" ;;
+"plugin list "*) cat "$state/plugins" 2>/dev/null ;;
+"plugin install "*) printf '%s\n' "$3" >>"$state/plugins" ;;
+esac
+exit 0
+EOF
+  chmod +x "$home/bin/claude"
+  printf '%s\n' "$home"
+}
+
+# install HOME [ARGS...]: run install.sh inside the sandbox; output in $LAST_OUTPUT.
+LAST_OUTPUT=""
+LAST_EXIT=0
+install() {
+  local home=$1
+  shift
+  LAST_OUTPUT=$(env HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
+    GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
+    FAKE_CLAUDE_STATE="$home/state" PATH="$home/bin:$PATH" \
+    bash "$INSTALL" "$@" 2>&1)
+  LAST_EXIT=$?
+}
+
+# snapshot HOME: every file under the sandbox's ~/.claude and ~/.gitconfig,
+# with its type, link target and content hash.
+snapshot() {
+  local home=$1 path
+  while IFS= read -r path; do
+    if [[ -L $path ]]; then
+      printf 'link %s -> %s\n' "${path#"$home"}" "$(readlink "$path")"
+    else
+      printf 'file %s %s\n' "${path#"$home"}" "$(sha256sum <"$path" | cut -d' ' -f1)"
+    fi
+  done < <(find "$home/.claude" "$home/.gitconfig" \( -type f -o -type l \) 2>/dev/null | sort)
+}
+
+# assert LABEL CONDITION...: run a test command and record PASS/FAIL.
+assert() {
+  local label=$1
+  shift
+  if "$@"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s\n' "$label"
+    failures=$((failures + 1))
+  fi
+}
+
+same() { [[ $1 == "$2" ]]; }
+# json_true FILE [JQ_ARGS...] FILTER: FILTER evaluates to true on FILE.
+json_true() {
+  local file=$1
+  shift
+  jq -e "$@" "$file" >/dev/null 2>&1
+}
+backups() { find "$1/.claude" -name '*.bak-*' 2>/dev/null | wc -l; }
+calls_since() { tail -n +"$(($2 + 1))" "$1/state/calls"; }
+call_count() { wc -l <"$1/state/calls"; }
+
+echo "== fresh HOME =="
+
+home=$(sandbox fresh)
+install "$home"
+assert 'first run succeeds' test "$LAST_EXIT" -eq 0
+assert 'CLAUDE.md is linked to the repo' same "$(readlink "$home/.claude/CLAUDE.md")" "$ROOT/claude/CLAUDE.md"
+assert 'output style is linked' test -L "$home/.claude/output-styles/gentleman.md"
+assert 'settings.json is created' test -f "$home/.claude/settings.json"
+assert 'git hooksPath points to the repo' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+assert 'marketplace is added' test -f "$home/state/marketplace"
+assert 'all plugins are installed' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
+  'flow@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '
+
+first=$(snapshot "$home")
+before=$(call_count "$home")
+install "$home"
+assert 'second run succeeds' test "$LAST_EXIT" -eq 0
+assert 'second run changes no file' same "$(snapshot "$home")" "$first"
+assert 'second run makes no backup' same "$(backups "$home")" 0
+assert 'second run does not re-add the marketplace' \
+  test -z "$(calls_since "$home" "$before" | rg 'marketplace add')"
+assert 'second run updates instead of installing' \
+  test -z "$(calls_since "$home" "$before" | rg 'plugin install')"
+
+echo "== existing user config =="
+
+home=$(sandbox existing)
+mkdir -p "$home/.claude"
+printf '# my own notes\n' >"$home/.claude/CLAUDE.md"
+jq -n '{model: "opus", permissions: {deny: ["Read(./secret.txt)"]}}' >"$home/.claude/settings.json"
+install "$home"
+assert 'run with existing config succeeds' test "$LAST_EXIT" -eq 0
+assert 'existing CLAUDE.md is backed up' \
+  rg -q '^# my own notes$' "$(find "$home/.claude" -name 'CLAUDE.md.bak-*' | head -n1)"
+settings=$home/.claude/settings.json
+assert 'user settings keys are kept' json_true "$settings" '.model == "opus"'
+assert 'user deny rules come first, in order' \
+  json_true "$settings" '.permissions.deny[0] == "Read(./secret.txt)"'
+# shellcheck disable=SC2016 # $repo is a jq variable, not a shell one.
+assert 'repo deny rules are merged in repo order' \
+  json_true "$settings" --slurpfile repo "$ROOT/claude/settings.json" \
+  '.permissions.deny[1:] == $repo[0].permissions.deny'
+
+first=$(snapshot "$home")
+first_backups=$(backups "$home")
+install "$home"
+assert 'second run over merged config changes no file' same "$(snapshot "$home")" "$first"
+assert 'second run over merged config makes no new backup' same "$(backups "$home")" "$first_backups"
+
+echo "== existing core.hooksPath =="
+
+home=$(sandbox hookspath)
+git config --file "$home/.gitconfig" core.hooksPath /elsewhere
+install "$home"
+assert 'foreign hooksPath is left alone' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" /elsewhere
+assert 'foreign hooksPath is reported' rg -q 'skip: global core.hooksPath' <<<"$LAST_OUTPUT"
+
+echo "== dry run =="
+
+home=$(sandbox dry)
+install "$home" --dry-run
+assert 'dry run succeeds' test "$LAST_EXIT" -eq 0
+assert 'dry run writes nothing' test -z "$(snapshot "$home")"
+assert 'dry run calls no mutating claude command' \
+  test -z "$(rg 'marketplace add|plugin (install|update)' "$home/state/calls" 2>/dev/null)"
+
+echo
+if [[ $failures -gt 0 ]]; then
+  echo "$failures case(s) failed"
+  exit 1
+fi
+echo "All cases passed"

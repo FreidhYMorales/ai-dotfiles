@@ -50,12 +50,14 @@ merge_settings() {
   }
   local merged
   # Deep merge; arrays (e.g. permissions.deny) are unioned so entries added
-  # locally through Claude Code are kept.
+  # locally through Claude Code are kept. The union preserves order (no
+  # `unique`, which sorts) so re-running over a merged file is a no-op.
   merged="$(jq -s '
+    def union($a; $b): reduce $b[] as $x ($a; if any(.[]; . == $x) then . else . + [$x] end);
     def m($a; $b):
       reduce ($b | keys_unsorted[]) as $k ($a;
         .[$k] = (if ($a[$k] | type) == "object" and ($b[$k] | type) == "object" then m($a[$k]; $b[$k])
-                 elif ($a[$k] | type) == "array" and ($b[$k] | type) == "array" then ($a[$k] + $b[$k] | unique)
+                 elif ($a[$k] | type) == "array" and ($b[$k] | type) == "array" then union($a[$k]; $b[$k])
                  else $b[$k] end));
     m(.[0]; .[1])' "$target" "$fragment")"
   if [[ "$merged" == "$(jq . "$target")" ]]; then

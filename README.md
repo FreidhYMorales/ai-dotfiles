@@ -79,5 +79,5 @@ make test
 - [ ] Mutation testing for hooks
 - [ ] `claude plugin eval` suites for skills
 - [x] CI running `make check` (`.github/workflows/check.yml`)
-- [ ] `install.sh` idempotency test
+- [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
 - [ ] OpenCode and Gemini support
