@@ -6,11 +6,15 @@ Write to `.claude/settings.json` at the project root and commit it (shared with 
 
 | Tier | Rule | Examples |
 |---|---|---|
-| `allow` | Read-only or local, reversible commands the workflow runs constantly | test, lint, format, typecheck, build, dev server, `git status/diff/log/add/commit`, `gh pr view/list/create` |
+| `allow` | Read-only or local, reversible commands that EXIT on their own | test, lint, format, typecheck, build, `git status/diff/log/add/commit`, `gh pr view/list/create` |
 | `ask` | Outward-facing or hard to reverse | `git push`, `gh pr merge`, dependency install/add, migrations against shared DBs, deploy |
 | `deny` | Destructive, never needed by the agent | `git push --force`, `git reset --hard`, `rm -rf`, `gh repo delete` |
 
+Never `allow` long-running commands (dev servers, `--watch`, `test:watch`): they never exit and block the agent. Leave them out of every tier; the user runs them.
+
 Secret-file `Read` denies live in the global settings; do not duplicate them here.
+
+Rules from all settings files are merged and evaluated deny → ask → allow; the first match wins regardless of which file it came from. A personal `allow` in `settings.local.json` does NOT override a project `ask`.
 
 ## Base
 
@@ -63,4 +67,4 @@ Replace `<...>` with the exact commands chosen in the Conventions and Testing st
 ## Notes
 
 - `deny` on Bash prefixes is a safety net, not a guarantee: flag order or shell wrappers can bypass it. Real protection for `main` is branch protection on the remote.
-- Temporary grants (e.g. `gh pr merge` during a test run) go in `settings.local.json`, never in the committed file.
+- Temporary personal grants go in `settings.local.json`, never in the committed file, and only work for commands the project file does not list under `ask` or `deny`.

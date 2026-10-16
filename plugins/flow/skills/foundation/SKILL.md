@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.3"
+  version: "1.4"
 ---
 
 ## Activation Contract
@@ -38,6 +38,7 @@ Load during planning of a greenfield project (or one with no established convent
 | No `.git` or no `origin` remote | Include `git init` / `gh repo create` in the bootstrap plan (step 13) |
 | Existing files do not match the chosen structure | Audit mode: propose a migration table, apply with `git mv` on a branch (step 13) |
 | `.claude/settings.json` already exists | Merge: keep existing rules, propose only missing ones |
+| A personal `allow` (settings.local.json) matches a proposed `ask` | Warn: `ask` wins across all settings files, so it WILL prompt. User picks: keep `ask` or drop it from the project file |
 
 ## Execution Steps
 
@@ -57,7 +58,7 @@ Load during planning of a greenfield project (or one with no established convent
 9. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
 10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
 11. Write `docs/architecture.md` (`templates/architecture.md`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`templates/adr.md`), `AGENTS.md` (`templates/agents.md`) a `CLAUDE.md` containing only `@AGENTS.md`, and `.claude/settings.json` (step 8); add `.claude/settings.local.json` to `.gitignore`.
-12. Update the plan's `## Foundation` section with links and a 3–5 line summary.
+12. Update the plan's `## Foundation` section with links and a 3–5 line summary. Resolve plans exactly like `/flow:plan`: `openspec/changes/*/plan.md`, then `docs/plans/*/plan.md` (no depth limit). Several → ask which; none → say so.
 13. **Bootstrap**: fill in `templates/bootstrap.md` (greenfield: git init, tree, tooling, first commit, `gh repo create`; existing project: migration table + `git mv` on a branch) and present it as one plan. On approval, run it end to end; on any failure, stop and report.
 14. Tell the user next: `/flow:plan-review`, then `/flow:split` inlines these conventions into every work package.
 
