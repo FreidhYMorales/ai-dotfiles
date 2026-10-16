@@ -18,11 +18,14 @@ DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
 run() {
-  if (( DRY_RUN )); then echo "[dry-run] $*"; else "$@"; fi
+  if ((DRY_RUN)); then echo "[dry-run] $*"; else "$@"; fi
 }
 
 require() {
-  command -v "$1" >/dev/null || { echo "missing dependency: $1" >&2; exit 1; }
+  command -v "$1" >/dev/null || {
+    echo "missing dependency: $1" >&2
+    exit 1
+  }
 }
 
 link_file() {
@@ -41,7 +44,10 @@ link_file() {
 
 merge_settings() {
   local fragment="$REPO_DIR/claude/settings.json" target="$CLAUDE_DIR/settings.json"
-  [[ -f "$target" ]] || { run cp "$fragment" "$target"; return; }
+  [[ -f "$target" ]] || {
+    run cp "$fragment" "$target"
+    return
+  }
   local merged
   # Deep merge; arrays (e.g. permissions.deny) are unioned so entries added
   # locally through Claude Code are kept.
@@ -57,10 +63,11 @@ merge_settings() {
     return
   fi
   run cp "$target" "$target.bak-$(date +%Y%m%d-%H%M%S)"
-  if (( DRY_RUN )); then
-    echo "[dry-run] would merge into $target:"; jq . "$fragment"
+  if ((DRY_RUN)); then
+    echo "[dry-run] would merge into $target:"
+    jq . "$fragment"
   else
-    printf '%s\n' "$merged" > "$target"
+    printf '%s\n' "$merged" >"$target"
     echo "merged: $target"
   fi
 }

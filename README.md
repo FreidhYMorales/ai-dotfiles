@@ -66,7 +66,7 @@ make validate
 make test
 ```
 
-`make check` needs `shellcheck`; `shfmt` is used when installed.
+`make check` needs `shellcheck`; `shfmt` is used when installed (CI always installs it, so install it locally too to catch formatting before pushing). CI runs `make check` on every push to `main` and every pull request.
 
 ## Roadmap
 
@@ -78,5 +78,6 @@ make test
 - [x] Verification harness: `make check` + `require-check` Stop hook
 - [ ] Mutation testing for hooks
 - [ ] `claude plugin eval` suites for skills
-- [ ] `install.sh` idempotency test and CI running `make check`
+- [x] CI running `make check` (`.github/workflows/check.yml`)
+- [ ] `install.sh` idempotency test
 - [ ] OpenCode and Gemini support
