@@ -73,7 +73,14 @@ merge_settings() {
     echo "[dry-run] would merge into $target:"
     jq . "$fragment"
   else
-    printf '%s\n' "$merged" >"$target"
+    # Write aside and rename into place (same directory, so mv is atomic): an
+    # interrupted run leaves either the old or the new file, never a truncated one.
+    local real tmp
+    real="$(readlink -f "$target")"
+    tmp="$(mktemp "$real.tmp.XXXXXX")"
+    printf '%s\n' "$merged" >"$tmp"
+    chmod --reference="$real" "$tmp"
+    mv -f "$tmp" "$real"
     echo "merged: $target"
   fi
 }

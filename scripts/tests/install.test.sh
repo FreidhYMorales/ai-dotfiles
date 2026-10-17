@@ -124,8 +124,16 @@ home=$(sandbox existing)
 mkdir -p "$home/.claude"
 printf '# my own notes\n' >"$home/.claude/CLAUDE.md"
 jq -n '{model: "opus", permissions: {deny: ["Read(./secret.txt)"]}}' >"$home/.claude/settings.json"
+chmod 640 "$home/.claude/settings.json"
+inode_before=$(stat -c %i "$home/.claude/settings.json")
 install "$home"
 assert 'run with existing config succeeds' test "$LAST_EXIT" -eq 0
+# A new inode means the merge was written aside and renamed into place, so an
+# interrupted run can never leave a truncated settings.json behind.
+assert 'settings.json is replaced atomically' \
+  test "$(stat -c %i "$home/.claude/settings.json")" != "$inode_before"
+assert 'replacement keeps the file mode' same "$(stat -c %a "$home/.claude/settings.json")" 640
+assert 'no temporary file is left behind' test -z "$(find "$home/.claude" -name '*.tmp*')"
 assert 'existing CLAUDE.md is backed up' \
   rg -q '^# my own notes$' "$(find "$home/.claude" -name 'CLAUDE.md.bak-*' | head -n1)"
 settings=$home/.claude/settings.json
