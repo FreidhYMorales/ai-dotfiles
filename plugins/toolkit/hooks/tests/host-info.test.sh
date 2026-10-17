@@ -91,6 +91,18 @@ run "$dir"
 assert 'windows: flags Git Bash' has 'Windows (Git Bash/MSYS)'
 assert 'windows: lists every manager found' has 'packages: winget, scoop'
 
+echo "== installed tools =="
+
+dir=$(host tools Linux pacman docker gh ffmpeg yt-dlp)
+printf 'PRETTY_NAME="Arch Linux"\n' >"$dir/os-release"
+run "$dir"
+assert 'lists installed tools' has 'tools: '
+assert 'lists docker' has 'docker'
+assert 'lists gh' has 'gh'
+assert 'lists media tools' has 'ffmpeg, yt-dlp'
+assert 'omits tools that are not installed' lacks 'kubectl'
+assert 'package managers are not repeated as tools' lacks 'tools: pacman'
+
 echo "== when it runs =="
 
 dir=$(host sources Linux pacman)

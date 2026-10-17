@@ -64,7 +64,23 @@ for helper in paru yay; do
   fi
 done
 
-context="Host (dev machine): $os · packages: $packages · shell: ${SHELL##*/}. Give install commands for this package manager. This is the machine you run on, not the project target platform or other contributors' machines: for those, follow the project's docs (e.g. docs/development.md)."
+# Curated, so the line stays short: only tools that change what Claude can do
+# or which command it should pick. Order is the reported order.
+TOOLS=(git gh glab docker podman kubectl make just mise
+  node bun deno pnpm python3 uv go cargo java
+  rg fd bat eza sd fzf jq yq sqlite3 psql shellcheck shfmt gitleaks
+  ffmpeg yt-dlp magick pandoc tmux nvim code)
+found=()
+for tool in "${TOOLS[@]}"; do
+  has "$tool" && found+=("$tool")
+done
+tools=none
+if ((${#found[@]})); then
+  tools=$(printf '%s, ' "${found[@]}")
+  tools=${tools%, }
+fi
+
+context="Host (dev machine): $os · packages: $packages · shell: ${SHELL##*/} · tools: $tools. Give install commands for this package manager; prefer installed tools and say when a task needs one that is missing. This is the machine you run on, not the project target platform or other contributors' machines: for those, follow the project's docs (e.g. docs/development.md)."
 
 jq -n --arg ctx "$context" \
   '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}'
