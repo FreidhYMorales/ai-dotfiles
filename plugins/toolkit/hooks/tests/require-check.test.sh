@@ -80,6 +80,7 @@ notgit="$TMP_ROOT/notgit"
 mkdir -p "$notgit"
 write_makefile "$notgit" 'exit 1'
 expect 0 'cwd outside a git repo skips' "$(payload "$notgit")"
+expect 0 'nonexistent cwd skips' "$(payload "$TMP_ROOT/does-not-exist")"
 
 repo=$(new_repo clean)
 write_makefile "$repo" 'exit 1'

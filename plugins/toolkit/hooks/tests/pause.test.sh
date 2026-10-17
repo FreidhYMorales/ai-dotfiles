@@ -26,14 +26,17 @@ printf 'x\n' >"$repo/dirty.txt"
 
 # run PROMPT [ENV...]: run the hook; context in $LAST_CONTEXT.
 LAST_CONTEXT=""
+LAST_EXIT=0
 run() {
   local prompt=$1
   shift
   rm -f "$TMP_ROOT"/engram.*
-  LAST_CONTEXT=$(jq -n --arg p "$prompt" --arg c "$repo" \
+  local out="$TMP_ROOT/hook.out"
+  jq -n --arg p "$prompt" --arg c "$repo" \
     '{hook_event_name: "UserPromptSubmit", prompt: $p, cwd: $c}' |
-    env PATH="$TMP_ROOT/bin:$PATH" "$@" bash "$HOOK" 2>/dev/null |
-    jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+    env PATH="$TMP_ROOT/bin:$PATH" "$@" bash "$HOOK" >"$out" 2>/dev/null
+  LAST_EXIT=$?
+  LAST_CONTEXT=$(jq -r '.hookSpecificOutput.additionalContext // empty' <"$out" 2>/dev/null)
 }
 
 # assert LABEL CONDITION...: run a test command and record PASS/FAIL.
@@ -75,9 +78,11 @@ echo "== everything else =="
 for prompt in 'no hagas pausa' 'sigamos' 'pausado el deploy?'; do
   run "$prompt"
   assert "'$prompt' is ignored" test -z "$LAST_CONTEXT"
+  assert "'$prompt' exits 0" test "$LAST_EXIT" -eq 0
 done
 run 'pausa' SKIP_PAUSE_HOOK=1
 assert 'SKIP_PAUSE_HOOK=1 is ignored' test -z "$LAST_CONTEXT"
+assert 'SKIP_PAUSE_HOOK=1 exits 0' test "$LAST_EXIT" -eq 0
 
 echo
 if [[ $failures -gt 0 ]]; then

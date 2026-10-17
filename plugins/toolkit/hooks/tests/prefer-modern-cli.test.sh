@@ -61,6 +61,30 @@ allow 'grep foo f # legacy-cli'
 run_raw 0 'non-Bash payload (Read)' '{"tool_name":"Read","tool_input":{"file_path":"x"}}'
 run_raw 0 'empty stdin' ''
 run_raw 0 'invalid JSON stdin' 'not json {'
+run_raw 0 'Bash payload without a command' '{"tool_name":"Bash","tool_input":{}}'
+allow 'cat notes.md > copy.md'
+allow "cat <<'EOF' | wc -l"
+
+echo "== split on every operator =="
+block 'false || grep x f'
+block 'true && grep x f'
+
+echo "== fails open without jq =="
+# Hide jq: PATH holds only bash, so `command -v jq` fails.
+nojq=$(mktemp -d)
+ln -s "$(command -v bash)" "$nojq/bash"
+actual=$(
+  printf '%s' '{"tool_name":"Bash","tool_input":{"command":"grep x f"}}' |
+    PATH=$nojq bash "$HOOK" >/dev/null 2>&1
+  echo $?
+)
+rm -rf "$nojq"
+if [[ $actual -eq 0 ]]; then
+  printf 'PASS  [exit 0] missing jq allows everything\n'
+else
+  printf 'FAIL  [want 0, got %d] missing jq allows everything\n' "$actual"
+  failures=$((failures + 1))
+fi
 
 echo
 if [[ $failures -gt 0 ]]; then

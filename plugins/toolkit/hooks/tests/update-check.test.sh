@@ -95,9 +95,11 @@ assert 'failed release lookup exits 0' test "$LAST_EXIT" -eq 0
 dir=$(fixture resume 0.3.0 0.3.1 3.4.0 3.4.1)
 run "$dir" resume
 assert 'resume source is silent' is_empty
+assert 'resume source exits 0' test "$LAST_EXIT" -eq 0
 
 run "$dir" startup SKIP_UPDATE_CHECK=1
 assert 'SKIP_UPDATE_CHECK=1 is silent' is_empty
+assert 'SKIP_UPDATE_CHECK=1 exits 0' test "$LAST_EXIT" -eq 0
 
 dir=$(fixture missing 0.3.1 0.3.1 3.4.0 3.4.0)
 rm -rf "$dir/plugins" "$dir/bin/engram"

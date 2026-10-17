@@ -24,13 +24,15 @@ host() {
 
 # run DIR [SOURCE] [ENV...]: run the hook on fake host DIR; context in $LAST_CONTEXT.
 LAST_CONTEXT=""
+LAST_EXIT=0
 run() {
-  local dir=$1 source=${2:-startup}
+  local dir=$1 source=${2:-startup} out="$TMP_ROOT/hook.out"
   shift 2 2>/dev/null || shift
-  LAST_CONTEXT=$(jq -n --arg s "$source" '{hook_event_name: "SessionStart", source: $s}' |
+  jq -n --arg s "$source" '{hook_event_name: "SessionStart", source: $s}' |
     env -i PATH="$dir/bin" SHELL=/usr/bin/zsh OS_RELEASE_FILE="$dir/os-release" \
-      PROC_VERSION_FILE="$dir/proc-version" "$@" "$BASH_BIN" "$HOOK" 2>/dev/null |
-    "$JQ_BIN" -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+      PROC_VERSION_FILE="$dir/proc-version" "$@" "$BASH_BIN" "$HOOK" >"$out" 2>/dev/null
+  LAST_EXIT=$?
+  LAST_CONTEXT=$("$JQ_BIN" -r '.hookSpecificOutput.additionalContext // empty' <"$out" 2>/dev/null)
 }
 
 # assert LABEL CONDITION...: run a test command and record PASS/FAIL.
@@ -75,6 +77,17 @@ assert 'wsl: flags WSL' has 'Ubuntu 22.04 LTS (WSL)'
 dir=$(host norelease Linux)
 run "$dir"
 assert 'missing os-release falls back to Linux' has 'Host (dev machine): Linux'
+
+dir=$(host name-last Linux)
+printf 'PRETTY_NAME="Fedora Linux 41 (Workstation Edition)"\nNAME="Fedora Linux"\n' >"$dir/os-release"
+run "$dir"
+assert 'PRETTY_NAME wins even when NAME comes after it' has 'Fedora Linux 41 (Workstation Edition)'
+
+dir=$(host native Linux)
+printf 'PRETTY_NAME="Arch Linux"\n' >"$dir/os-release"
+printf 'Linux version 7.2.10-arch1-1 (linux@archlinux)\n' >"$dir/proc-version"
+run "$dir"
+assert 'a non-WSL /proc/version is not flagged as WSL' lacks 'WSL'
 assert 'no package manager says unknown' has 'packages: unknown'
 
 echo "== other systems =="
@@ -113,8 +126,10 @@ for source in startup clear compact; do
 done
 run "$dir" resume
 assert 'resume stays silent (context already in transcript)' test -z "$LAST_CONTEXT"
+assert 'resume exits 0' test "$LAST_EXIT" -eq 0
 run "$dir" startup SKIP_HOST_INFO=1
 assert 'SKIP_HOST_INFO=1 stays silent' test -z "$LAST_CONTEXT"
+assert 'SKIP_HOST_INFO=1 exits 0' test "$LAST_EXIT" -eq 0
 
 echo
 if [[ $failures -gt 0 ]]; then

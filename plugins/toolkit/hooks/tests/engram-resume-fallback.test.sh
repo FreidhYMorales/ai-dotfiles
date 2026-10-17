@@ -57,12 +57,20 @@ echo "== everything else stays silent =="
 
 run resume "$(fake_engram 3.4.1)"
 assert 'resume on fixed version is silent' is_empty
+assert 'resume on fixed version exits 0' test "$LAST_EXIT" -eq 0
 
 run resume "$(fake_engram 3.10.0)"
 assert 'version compare is numeric, not lexical' is_empty
 
 run startup "$(fake_engram 3.4.0)"
 assert 'startup is silent' is_empty
+assert 'startup exits 0' test "$LAST_EXIT" -eq 0
+
+noversion=$(fake_engram 3.4.0)
+printf '#!/usr/bin/env bash\nexit 0\n' >"${noversion%%:*}/engram"
+run resume "$noversion"
+assert 'unparseable engram version is silent' is_empty
+assert 'unparseable engram version exits 0' test "$LAST_EXIT" -eq 0
 
 empty_bin="$TMP_ROOT/empty-bin"
 mkdir -p "$empty_bin"
