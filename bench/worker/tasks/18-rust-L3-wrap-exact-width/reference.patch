@@ -1,0 +1,26 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 5102b69..036bf95 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -11,7 +11,7 @@ pub fn wrap(text: &str, width: usize) -> Vec<String> {
+     for word in text.split_whitespace() {
+         if line.is_empty() {
+             line.push_str(word);
+-        } else if line.len() + 1 + word.len() < width {
++        } else if line.len() + 1 + word.len() <= width {
+             line.push(' ');
+             line.push_str(word);
+         } else {
+diff --git a/tests/wrap.rs b/tests/wrap.rs
+index 6597df0..7e51dde 100644
+--- a/tests/wrap.rs
++++ b/tests/wrap.rs
+@@ -32,3 +32,8 @@ fn empty_text() {
+ fn fill_indents() {
+     assert_eq!(fill("one two three", 10, "  "), "  one two\n  three");
+ }
++
++#[test]
++fn word_ending_at_the_width_fits() {
++    assert_eq!(wrap("hello world", 11), vec!["hello world"]);
++}

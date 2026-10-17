@@ -1,0 +1,80 @@
+diff --git a/envfile.go b/envfile.go
+index aa5f4b4..83287df 100644
+--- a/envfile.go
++++ b/envfile.go
+@@ -1,9 +1,12 @@
+ // Package envfile parses .env files: one KEY=VALUE per line, blank lines and
+ // lines starting with # ignored, whitespace around keys and values trimmed.
++// A value in double quotes keeps its text literally, except for the escapes
++// \" \\ and \n, and may be followed by a # comment.
+ package envfile
+ 
+ import (
+ 	"bufio"
++	"errors"
+ 	"fmt"
+ 	"io"
+ 	"regexp"
+@@ -46,5 +49,34 @@ func Parse(r io.Reader) (map[string]string, error) {
+ 
+ // parseValue turns the raw text after '=' into the variable's value.
+ func parseValue(raw string) (string, error) {
+-	return raw, nil
++	if !strings.HasPrefix(raw, `"`) {
++		return raw, nil
++	}
++	var b strings.Builder
++	for i := 1; i < len(raw); i++ {
++		switch c := raw[i]; c {
++		case '"':
++			rest := strings.TrimSpace(raw[i+1:])
++			if rest != "" && !strings.HasPrefix(rest, "#") {
++				return "", fmt.Errorf("unexpected text after closing quote: %q", rest)
++			}
++			return b.String(), nil
++		case '\\':
++			i++
++			if i == len(raw) {
++				return "", errors.New("missing closing quote")
++			}
++			switch raw[i] {
++			case '"', '\\':
++				b.WriteByte(raw[i])
++			case 'n':
++				b.WriteByte('\n')
++			default:
++				return "", fmt.Errorf("invalid escape \\%c", raw[i])
++			}
++		default:
++			b.WriteByte(c)
++		}
++	}
++	return "", errors.New("missing closing quote")
+ }
+diff --git a/envfile_test.go b/envfile_test.go
+index b5f8bca..9dbc51b 100644
+--- a/envfile_test.go
++++ b/envfile_test.go
+@@ -47,3 +47,22 @@ func TestErrorsNameTheLine(t *testing.T) {
+ 		}
+ 	}
+ }
++
++func TestQuotedValues(t *testing.T) {
++	vars := parse(t, `A="x # y"`+"\n"+`B="say \"hi\"\n"  # note`+"\n")
++	if vars["A"] != "x # y" {
++		t.Errorf("A = %q", vars["A"])
++	}
++	if vars["B"] != "say \"hi\"\n" {
++		t.Errorf("B = %q", vars["B"])
++	}
++}
++
++func TestQuotedErrors(t *testing.T) {
++	for _, src := range []string{"A=1\nB=\"open\n", "A=1\nB=\"x\" y\n", "A=1\nB=\"\\q\"\n"} {
++		_, err := Parse(strings.NewReader(src))
++		if err == nil || !strings.Contains(err.Error(), "line 2") {
++			t.Errorf("Parse(%q) error = %v, want line 2", src, err)
++		}
++	}
++}

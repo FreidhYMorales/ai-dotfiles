@@ -1,0 +1,1 @@
+for f in utils terminal; do luajit -b "dotfiles/nvim/.config/nvim/lua/Deadlock/my-theme/$f.lua" /dev/null || exit 1; done

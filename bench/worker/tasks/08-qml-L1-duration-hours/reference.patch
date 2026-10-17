@@ -1,0 +1,46 @@
+diff --git a/dotfiles/quickshell/.config/quickshell/utils/CUtils.qml b/dotfiles/quickshell/.config/quickshell/utils/CUtils.qml
+index 704def7..2f186de 100644
+--- a/dotfiles/quickshell/.config/quickshell/utils/CUtils.qml
++++ b/dotfiles/quickshell/.config/quickshell/utils/CUtils.qml
+@@ -1,5 +1,6 @@
+ pragma Singleton
+ import QtQuick
++import "format.js" as Format
+ 
+ // Common utility functions — Caelestia-compatible API.
+ QtObject {
+@@ -14,9 +15,7 @@ QtObject {
+     }
+ 
+     function formatDuration(seconds) {
+-        const m = Math.floor(seconds / 60)
+-        const s = Math.floor(seconds % 60)
+-        return `${m}:${s < 10 ? "0" : ""}${s}`
++        return Format.formatDuration(seconds)
+     }
+ 
+     // toLocalFile: strips file:// prefix from a URL string
+diff --git a/dotfiles/quickshell/.config/quickshell/utils/format.js b/dotfiles/quickshell/.config/quickshell/utils/format.js
+new file mode 100644
+index 0000000..d4633c6
+--- /dev/null
++++ b/dotfiles/quickshell/.config/quickshell/utils/format.js
+@@ -0,0 +1,18 @@
++.pragma library
++
++// Time formatting shared by the QML components.
++
++// formatDuration: seconds as m:ss under an hour, h:mm:ss from one hour.
++// Fractions are floored; negative, NaN or missing input gives "0:00".
++function formatDuration(seconds) {
++    const total = Math.floor(Number(seconds))
++    if (!(total > 0))
++        return "0:00"
++    const h = Math.floor(total / 3600)
++    const m = Math.floor((total % 3600) / 60)
++    const s = total % 60
++    const ss = String(s).padStart(2, "0")
++    if (h > 0)
++        return `${h}:${String(m).padStart(2, "0")}:${ss}`
++    return `${m}:${ss}`
++}

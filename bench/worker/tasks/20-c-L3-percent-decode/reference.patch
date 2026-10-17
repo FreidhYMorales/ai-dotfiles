@@ -1,0 +1,28 @@
+diff --git a/src/url.c b/src/url.c
+index 43e4961..9ea0be6 100644
+--- a/src/url.c
++++ b/src/url.c
+@@ -58,7 +58,8 @@ char *url_decode(const char *s)
+ 	for (size_t i = 0; i < len; i++) {
+ 		if (s[i] == '+') {
+ 			*o++ = ' ';
+-		} else if (s[i] == '%') {
++		} else if (s[i] == '%' && hexval(s[i + 1]) >= 0 && hexval(s[i + 2]) >= 0) {
++			/* hexval('\0') is -1, so this never reads past the end. */
+ 			*o++ = (char)(hexval(s[i + 1]) * 16 + hexval(s[i + 2]));
+ 			i += 2;
+ 		} else {
+diff --git a/tests/test_url.c b/tests/test_url.c
+index 438b40a..b371fec 100644
+--- a/tests/test_url.c
++++ b/tests/test_url.c
+@@ -23,6 +23,9 @@ int main(void)
+ 	check("url_decode", url_decode, "a+b%26c%3Dd", "a b&c=d");
+ 	check("url_decode", url_decode, "%e2%82%ac", "\xe2\x82\xac");
+ 	check("url_decode", url_decode, "plain", "plain");
++	check("url_decode", url_decode, "100%", "100%");
++	check("url_decode", url_decode, "50%off", "50%off");
++	check("url_decode", url_decode, "%zz", "%zz");
+ 	check("url_decode", url_decode, "", "");
+ 	if (url_decode(NULL) != NULL || url_encode(NULL) != NULL) {
+ 		printf("FAIL NULL input should give NULL\n");

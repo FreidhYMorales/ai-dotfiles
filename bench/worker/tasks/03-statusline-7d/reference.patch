@@ -1,0 +1,50 @@
+diff --git a/claude/statusline.sh b/claude/statusline.sh
+index 20195ca..f43a33f 100755
+--- a/claude/statusline.sh
++++ b/claude/statusline.sh
+@@ -1,16 +1,17 @@
+ #!/usr/bin/env bash
+ # Claude Code status line: model, project, git branch, context use, 5-hour
+-# plan quota and zellij session, on one line. Reads the session JSON on stdin.
++# and 7-day plan quotas and zellij session, on one line. Reads the session JSON on stdin.
+ # Colors: green < 50%, yellow < 80%, red from 80% (context and quota).
+ set -u
+ 
+-IFS=$'\x1f' read -r model dir ctx five resets < <(jq -r '[
++IFS=$'\x1f' read -r model dir ctx five resets seven < <(jq -r '[
+     .model.display_name // "Claude",
+     .workspace.current_dir // .cwd // "",
+     (.context_window.used_percentage // 0 | floor),
+     (.rate_limits.five_hour.used_percentage // "" | if . == "" then "" else floor end),
+-    (.rate_limits.five_hour.resets_at // "")
+-  ] | map(tostring) | join("\u001f")' 2>/dev/null || printf 'Claude\x1f\x1f0\x1f\x1f\n')
++    (.rate_limits.five_hour.resets_at // ""),
++    (.rate_limits.seven_day.used_percentage // "" | if . == "" then "" else floor end)
++  ] | map(tostring) | join("\u001f")' 2>/dev/null || printf 'Claude\x1f\x1f0\x1f\x1f\x1f\n')
+ 
+ dim=$'\e[2m'
+ reset=$'\e[0m'
+@@ -49,6 +50,7 @@ if [[ -n $five ]]; then
+   [[ -n $resets ]] && quota+=" ${dim}(resets $(date -d "@$resets" +%H:%M 2>/dev/null))$reset"
+   parts+=("$quota")
+ fi
++[[ -n $seven ]] && parts+=("$(color "$seven")7d $seven%$reset")
+ 
+ [[ -n ${ZELLIJ_SESSION_NAME:-} ]] && parts+=("${dim}zj $ZELLIJ_SESSION_NAME$reset")
+ 
+diff --git a/scripts/tests/statusline.test.sh b/scripts/tests/statusline.test.sh
+index bcb24ea..c33354c 100755
+--- a/scripts/tests/statusline.test.sh
++++ b/scripts/tests/statusline.test.sh
+@@ -86,6 +86,11 @@ echo "== optional parts =="
+ 
+ render "$(payload "$repo" 10)"
+ assert 'no rate-limit data hides the quota' lacks '5h'
++assert 'no 7-day data hides the 7-day quota' lacks '7d'
++
++render '{"rate_limits":{"five_hour":{"used_percentage":10},"seven_day":{"used_percentage":85.2}}}'
++assert 'shows the 7-day quota after the 5-hour one' has '5h 10% · 7d 85%'
++assert 'high 7-day quota is red' raw_has $'\e[31m7d 85%'
+ 
+ render "$(payload "$repo" 10)" ZELLIJ_SESSION_NAME=claude-my-repo
+ assert 'shows the zellij session' has 'zj claude-my-repo'

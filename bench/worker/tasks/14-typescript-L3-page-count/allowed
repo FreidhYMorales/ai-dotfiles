@@ -1,0 +1,3 @@
+src/paginate.ts
+src/links.ts
+test/paginate.test.ts

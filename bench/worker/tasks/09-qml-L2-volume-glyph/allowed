@@ -1,0 +1,3 @@
+dotfiles/quickshell/.config/quickshell/utils/volume.js
+dotfiles/quickshell/.config/quickshell/modules/bar/VolumeWidget.qml
+dotfiles/quickshell/.config/quickshell/modules/bar/Osd.qml

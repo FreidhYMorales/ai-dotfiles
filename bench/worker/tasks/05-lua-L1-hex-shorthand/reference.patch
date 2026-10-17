@@ -1,0 +1,17 @@
+diff --git a/dotfiles/nvim/.config/nvim/lua/Deadlock/my-theme/utils.lua b/dotfiles/nvim/.config/nvim/lua/Deadlock/my-theme/utils.lua
+index af3535c..4889c3c 100755
+--- a/dotfiles/nvim/.config/nvim/lua/Deadlock/my-theme/utils.lua
++++ b/dotfiles/nvim/.config/nvim/lua/Deadlock/my-theme/utils.lua
+@@ -5,6 +5,12 @@ local function hex_to_rgb(hex)
+ 	local pat = "^#(" .. hex_type .. ")(" .. hex_type .. ")(" .. hex_type .. ")$"
+ 	hex = string.lower(hex)
+ 
++	-- Shorthand #rgb means #rrggbb.
++	local r, g, b = string.match(hex, "^#(%x)(%x)(%x)$")
++	if r then
++		hex = "#" .. r .. r .. g .. g .. b .. b
++	end
++
+ 	assert(string.find(hex, pat) ~= nil, "hex_to_rgb: invalid hex: " .. tostring(hex))
+ 
+ 	local red, green, blue = string.match(hex, pat)

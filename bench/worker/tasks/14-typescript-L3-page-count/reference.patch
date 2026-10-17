@@ -1,0 +1,30 @@
+diff --git a/src/paginate.ts b/src/paginate.ts
+index ecb9ede..189e8d7 100644
+--- a/src/paginate.ts
++++ b/src/paginate.ts
+@@ -11,7 +11,7 @@ export interface Page<T> {
+ 
+ /** Number of pages for `total` items; an empty list still has one page. */
+ export function pageCount(total: number, perPage: number): number {
+-  return Math.floor(total / perPage) + 1;
++  return Math.max(1, Math.ceil(total / perPage));
+ }
+ 
+ /**
+diff --git a/test/paginate.test.ts b/test/paginate.test.ts
+index ba8de50..2b363d2 100644
+--- a/test/paginate.test.ts
++++ b/test/paginate.test.ts
+@@ -19,6 +19,12 @@ test("last partial page", () => {
+   assert.equal(p.hasNext, false);
+ });
+ 
++test("exact multiple has no empty extra page", () => {
++  const p = paginate(items.slice(0, 20), 2, 10);
++  assert.equal(p.pageCount, 2);
++  assert.equal(p.hasNext, false);
++});
++
+ test("clamps out-of-range pages", () => {
+   assert.equal(paginate(items, 0, 10).page, 1);
+   assert.equal(paginate(items, 99, 10).page, 3);

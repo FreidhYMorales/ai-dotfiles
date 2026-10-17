@@ -1,0 +1,76 @@
+diff --git a/src/size.c b/src/size.c
+index b15511b..83781b4 100644
+--- a/src/size.c
++++ b/src/size.c
+@@ -3,9 +3,22 @@
+ #include <limits.h>
+ #include <stddef.h>
+ 
++/* unit_shift: log2 of the multiplier for a unit letter, or -1. */
++static int unit_shift(char c)
++{
++	switch (c) {
++	case 'K': case 'k': return 10;
++	case 'M': case 'm': return 20;
++	case 'G': case 'g': return 30;
++	case 'T': case 't': return 40;
++	default: return -1;
++	}
++}
++
+ int parse_size(const char *s, unsigned long long *out)
+ {
+ 	unsigned long long n = 0;
++	int shift = 0;
+ 	const char *p = s;
+ 
+ 	if (s == NULL || *s == '\0')
+@@ -16,8 +29,15 @@ int parse_size(const char *s, unsigned long long *out)
+ 			return -1;
+ 		n = n * 10 + digit;
+ 	}
+-	if (p == s || *p != '\0')
++	if (p == s)
+ 		return -1;
+-	*out = n;
++	if (*p != '\0') {
++		shift = unit_shift(*p);
++		if (shift < 0 || p[1] != '\0')
++			return -1;
++		if (n > (ULLONG_MAX >> shift))
++			return -1;
++	}
++	*out = n << shift;
+ 	return 0;
+ }
+diff --git a/src/size.h b/src/size.h
+index b911120..8fa79c0 100644
+--- a/src/size.h
++++ b/src/size.h
+@@ -2,7 +2,8 @@
+ #define SIZE_H
+ 
+ /*
+- * parse_size: parse a byte count such as "4096" into *out.
++ * parse_size: parse a byte count such as "4096" or "4K" into *out. One
++ * optional unit suffix K, M, G or T (any case) multiplies by 1024^1..4.
+  * Returns 0 on success, -1 on invalid input or overflow (then *out is left
+  * unchanged).
+  */
+diff --git a/tests/test_size.c b/tests/test_size.c
+index 7911309..4ae4760 100644
+--- a/tests/test_size.c
++++ b/tests/test_size.c
+@@ -27,6 +27,12 @@ int main(void)
+ 	ok("0", 0);
+ 	ok("4096", 4096);
+ 	ok("18446744073709551615", 18446744073709551615ULL);
++	ok("4K", 4096);
++	ok("2m", 2097152);
++	ok("1T", 1099511627776ULL);
++	bad("K");
++	bad("1KB");
++	bad("16777216T");
+ 	bad("");
+ 	bad("abc");
+ 	bad("12x");

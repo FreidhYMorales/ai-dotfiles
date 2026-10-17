@@ -1,0 +1,19 @@
+diff --git a/dotfiles/yazi/.config/yazi/plugins/simple-mtp.yazi/main.lua b/dotfiles/yazi/.config/yazi/plugins/simple-mtp.yazi/main.lua
+index f92abde..53eff10 100755
+--- a/dotfiles/yazi/.config/yazi/plugins/simple-mtp.yazi/main.lua
++++ b/dotfiles/yazi/.config/yazi/plugins/simple-mtp.yazi/main.lua
+@@ -51,8 +51,13 @@ end
+ 
+ --- Lista los subdirectorios bajo MTP_BASE (montajes activos).
+ local function list_mounts()
+-	local text = run("ls", { MTP_BASE })
++	local text, ok = run("ls", { MTP_BASE })
+ 	local mounts = {}
++	-- ls fails (and its error text lands in `text`) until the first mount
++	-- creates MTP_BASE: that means nothing is mounted.
++	if not ok then
++		return mounts
++	end
+ 	for name in text:gmatch("[^\n]+") do
+ 		if name ~= "" then
+ 			table.insert(mounts, name)

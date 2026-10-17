@@ -1,0 +1,52 @@
+diff --git a/slugkit/slug.py b/slugkit/slug.py
+index 2e7262a..307a10a 100644
+--- a/slugkit/slug.py
++++ b/slugkit/slug.py
+@@ -6,14 +6,24 @@ import unicodedata
+ _NON_ALNUM = re.compile(r"[^a-z0-9]+")
+ 
+ 
+-def slugify(text, sep="-"):
++def slugify(text, sep="-", max_length=None):
+     """Return an ASCII slug for text.
+ 
+     Accents are stripped ("é" becomes "e"), letters are lowercased and every
+     run of other characters becomes a single `sep`, never at either end.
++    With `max_length`, whole words are dropped from the end until the slug
++    fits; a first word longer than the limit is cut to it.
+     """
++    if max_length is not None and max_length <= 0:
++        raise ValueError("max_length must be positive")
+     if not isinstance(text, str):
+         raise TypeError("text must be a str")
+     ascii_text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+     words = _NON_ALNUM.split(ascii_text.lower())
+-    return sep.join(w for w in words if w)
++    words = [w for w in words if w]
++    slug = sep.join(words)
++    if max_length is None or len(slug) <= max_length:
++        return slug
++    while len(words) > 1 and len(sep.join(words)) > max_length:
++        words.pop()
++    return sep.join(words)[:max_length]
+diff --git a/tests/test_slug.py b/tests/test_slug.py
+index d9ee62a..2e27cbe 100644
+--- a/tests/test_slug.py
++++ b/tests/test_slug.py
+@@ -19,6 +19,16 @@ class SlugifyTest(unittest.TestCase):
+     def test_empty(self):
+         self.assertEqual(slugify("!!!"), "")
+ 
++    def test_max_length_drops_whole_words(self):
++        self.assertEqual(slugify("Hello World Again", max_length=12), "hello-world")
++
++    def test_max_length_cuts_a_long_first_word(self):
++        self.assertEqual(slugify("Hello World", max_length=3), "hel")
++
++    def test_max_length_must_be_positive(self):
++        with self.assertRaises(ValueError):
++            slugify("Hello", max_length=0)
++
+     def test_rejects_non_str(self):
+         with self.assertRaises(TypeError):
+             slugify(42)

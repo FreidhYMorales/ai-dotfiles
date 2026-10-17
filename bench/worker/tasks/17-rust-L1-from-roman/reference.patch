@@ -1,0 +1,53 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 3090278..5170de4 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -34,3 +34,21 @@ pub fn to_roman(n: u32) -> Option<String> {
+     }
+     Some(out)
+ }
++
++/// The number for a standard uppercase numeral (as `to_roman` writes it), or
++/// `None` for anything else.
++pub fn from_roman(s: &str) -> Option<u32> {
++    let mut rest = s;
++    let mut n = 0;
++    for &(value, symbol) in NUMERALS.iter() {
++        while let Some(tail) = rest.strip_prefix(symbol) {
++            n += value;
++            rest = tail;
++        }
++    }
++    // Greedy parsing accepts forms like "IIII"; only the canonical one counts.
++    if !rest.is_empty() || to_roman(n).as_deref() != Some(s) {
++        return None;
++    }
++    Some(n)
++}
+diff --git a/tests/roman.rs b/tests/roman.rs
+index 4d71462..c210943 100644
+--- a/tests/roman.rs
++++ b/tests/roman.rs
+@@ -1,4 +1,4 @@
+-use roman::{to_roman, MAX};
++use roman::{from_roman, to_roman, MAX};
+ 
+ #[test]
+ fn small_numbers() {
+@@ -19,3 +19,16 @@ fn out_of_range() {
+     assert_eq!(to_roman(0), None);
+     assert_eq!(to_roman(MAX + 1), None);
+ }
++
++#[test]
++fn parses_numerals() {
++    assert_eq!(from_roman("XIV"), Some(14));
++    assert_eq!(from_roman("MCMXCIV"), Some(1994));
++}
++
++#[test]
++fn rejects_non_canonical() {
++    for bad in ["", "IIII", "IC", "iv", "MMMM"] {
++        assert_eq!(from_roman(bad), None, "{bad}");
++    }
++}

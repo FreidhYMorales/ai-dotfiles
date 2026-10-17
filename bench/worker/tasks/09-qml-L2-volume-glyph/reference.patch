@@ -1,0 +1,69 @@
+diff --git a/dotfiles/quickshell/.config/quickshell/modules/bar/Osd.qml b/dotfiles/quickshell/.config/quickshell/modules/bar/Osd.qml
+index 67f97bf..230f31f 100644
+--- a/dotfiles/quickshell/.config/quickshell/modules/bar/Osd.qml
++++ b/dotfiles/quickshell/.config/quickshell/modules/bar/Osd.qml
+@@ -5,6 +5,7 @@ import Quickshell.Wayland
+ import Quickshell.Hyprland
+ import QtQuick
+ import "../../services"
++import "../../utils/volume.js" as Volume
+ import "../../components"
+ 
+ Variants {
+@@ -177,9 +178,7 @@ Variants {
+ 
+                         Text {
+                             anchors.centerIn: parent
+-                            text:           Audio.muted       ? "󰖁" :
+-                                            Audio.volume > 66 ? "󰕾" :
+-                                            Audio.volume > 33 ? "󰖀" : "󰕿"
++                            text:           Volume.volumeGlyph(Audio.volume, Audio.muted)
+                             color:          Audio.muted ? win.colors.m3surfaceContainer : win.colors.m3primary
+                             font.family:    Style.fontFamily
+                             font.pixelSize: 13
+diff --git a/dotfiles/quickshell/.config/quickshell/modules/bar/VolumeWidget.qml b/dotfiles/quickshell/.config/quickshell/modules/bar/VolumeWidget.qml
+index 278a63e..23b3c3d 100755
+--- a/dotfiles/quickshell/.config/quickshell/modules/bar/VolumeWidget.qml
++++ b/dotfiles/quickshell/.config/quickshell/modules/bar/VolumeWidget.qml
+@@ -1,6 +1,7 @@
+ import QtQuick
+ import Quickshell.Io
+ import "../../services"
++import "../../utils/volume.js" as Volume
+ import "../../components"
+ 
+ Item {
+@@ -54,9 +55,7 @@ Item {
+ 
+         HoverIconText {
+             anchors.verticalCenter: parent.verticalCenter
+-            text:           Audio.muted       ? "󰖁" :
+-                            Audio.volume > 66 ? "󰕾" :
+-                            Audio.volume > 33 ? "󰖀" : "󰕿"
++            text:           Volume.volumeGlyph(Audio.volume, Audio.muted)
+             color:          root.active ? root.colors.m3primary : (Audio.muted ? root.colors.m3onSurfaceVariant : root.colors.m3onSurface)
+             font.pixelSize: 13
+             active:         root.active
+diff --git a/dotfiles/quickshell/.config/quickshell/utils/volume.js b/dotfiles/quickshell/.config/quickshell/utils/volume.js
+new file mode 100644
+index 0000000..b7ed983
+--- /dev/null
++++ b/dotfiles/quickshell/.config/quickshell/utils/volume.js
+@@ -0,0 +1,17 @@
++.pragma library
++
++// Volume icon shared by the bar widget and the volume OSD.
++
++// volumeGlyph: Nerd Font glyph for a volume percentage (may exceed 100 when
++// PipeWire boosts the sink). Muted or 0% shows the muted glyph.
++function volumeGlyph(volume, muted) {
++    if (muted || volume <= 0)
++        return "\u{F0581}"
++    if (volume > 100)
++        return "\u{F075D}"
++    if (volume > 66)
++        return "\u{F057E}"
++    if (volume > 33)
++        return "\u{F0580}"
++    return "\u{F057F}"
++}

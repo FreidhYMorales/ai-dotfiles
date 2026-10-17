@@ -1,0 +1,32 @@
+diff --git a/lru/cache.py b/lru/cache.py
+index c855c19..ad9b6b0 100644
+--- a/lru/cache.py
++++ b/lru/cache.py
+@@ -26,6 +26,7 @@ class LRUCache:
+             self.misses += 1
+             return default
+         self.hits += 1
++        self._data.move_to_end(key)
+         return value
+ 
+     def peek(self, key, default=None):
+diff --git a/tests/test_cache.py b/tests/test_cache.py
+index ddc2bab..946f1e5 100644
+--- a/tests/test_cache.py
++++ b/tests/test_cache.py
+@@ -19,6 +19,15 @@ class LRUCacheTest(unittest.TestCase):
+         self.assertNotIn("a", c)
+         self.assertEqual(len(c), 2)
+ 
++    def test_get_counts_as_use(self):
++        c = LRUCache(2)
++        c.put("a", 1)
++        c.put("b", 2)
++        c.get("a")
++        c.put("c", 3)
++        self.assertIn("a", c)
++        self.assertNotIn("b", c)
++
+     def test_put_existing_updates_without_growing(self):
+         c = LRUCache(2)
+         c.put("a", 1)

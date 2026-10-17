@@ -1,0 +1,30 @@
+diff --git a/tests/workspaces.test.mjs b/tests/workspaces.test.mjs
+index 78dae97..3e6667d 100644
+--- a/tests/workspaces.test.mjs
++++ b/tests/workspaces.test.mjs
+@@ -22,6 +22,12 @@ test("adds existing workspaces beyond shown", () => {
+   assert.deepStrictEqual(plain(ws).map((w) => w.id), [1, 2, 3, 4, 5, 7]);
+ });
+ 
++test("sorts workspaces 10+ numerically", () => {
++  const ws = buildWorkspaces([{ id: 12, windows: 1 }], 1, 10);
++  assert.deepStrictEqual(plain(ws).map((w) => w.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]);
++  assert.equal(nextWorkspace(ws, 1, 1), 2);
++});
++
+ test("skips special workspaces", () => {
+   const ws = buildWorkspaces([{ id: -98, windows: 2 }], 1, 2);
+   assert.deepStrictEqual(plain(ws).map((w) => w.id), [1, 2]);
+diff --git a/utils/workspaces.js b/utils/workspaces.js
+index daa5d54..81aaf85 100644
+--- a/utils/workspaces.js
++++ b/utils/workspaces.js
+@@ -21,7 +21,7 @@ function buildWorkspaces(workspaces, activeId, shown) {
+     }
+     if (activeId > 0 && ids.indexOf(activeId) === -1)
+         ids.push(activeId)
+-    ids.sort()
++    ids.sort((a, b) => a - b)
+     return ids.map(id => ({ id: id, active: id === activeId, occupied: occupied[id] === true }))
+ }
+ 

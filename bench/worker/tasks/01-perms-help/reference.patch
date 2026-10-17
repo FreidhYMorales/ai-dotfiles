@@ -1,0 +1,40 @@
+diff --git a/bin/claude-perms-audit b/bin/claude-perms-audit
+index 5a5b73a..4d874b9 100755
+--- a/bin/claude-perms-audit
++++ b/bin/claude-perms-audit
+@@ -10,11 +10,17 @@
+ #
+ # Usage: claude-perms-audit [--fix] [ROOT...]   (default ROOT: $HOME)
+ #   Scans ROOT for .claude/settings.json and .claude/settings.local.json.
++#   --help print this usage and exit
+ #   --fix  remove flagged rules (backup next to each file, atomic write; only
+ #          permissions.allow changes)
+ # Exit: 0 nothing flagged (or all fixed), 1 findings left.
+ set -u
+ 
++if [[ ${1:-} == --help || ${1:-} == -h ]]; then
++  sed -n '3,16p' "$0" | cut -c3-
++  exit 0
++fi
++
+ FIX=0
+ if [[ ${1:-} == --fix ]]; then
+   FIX=1
+diff --git a/scripts/tests/claude-perms-audit.test.sh b/scripts/tests/claude-perms-audit.test.sh
+index 9a9df12..5073f51 100755
+--- a/scripts/tests/claude-perms-audit.test.sh
++++ b/scripts/tests/claude-perms-audit.test.sh
+@@ -76,6 +76,13 @@ audit "$home/clean"
+ assert 'a clean tree exits 0' test "$LAST_EXIT" -eq 0
+ assert 'a clean tree says so' flags 'no risky' ''
+ 
++echo "== --help =="
++
++audit --help
++assert '--help exits 0' test "$LAST_EXIT" -eq 0
++assert '--help prints usage' flags 'Usage:' ''
++assert '--help does not scan' lacks 'risky permission rules'
++
+ echo "== --fix =="
+ 
+ audit --fix "$home/risky"

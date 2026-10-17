@@ -1,0 +1,30 @@
+diff --git a/plugins/toolkit/hooks/host-info.sh b/plugins/toolkit/hooks/host-info.sh
+index 06949dc..15247dd 100755
+--- a/plugins/toolkit/hooks/host-info.sh
++++ b/plugins/toolkit/hooks/host-info.sh
+@@ -49,7 +49,7 @@ esac
+ os=${os% }
+ 
+ managers=()
+-for pm in pacman apt dnf zypper apk nix brew winget scoop choco; do
++for pm in pacman apt dnf zypper apk emerge nix brew winget scoop choco; do
+   has "$pm" && managers+=("$pm")
+ done
+ packages=unknown
+diff --git a/plugins/toolkit/hooks/tests/host-info.test.sh b/plugins/toolkit/hooks/tests/host-info.test.sh
+index e35d31a..8941fd7 100755
+--- a/plugins/toolkit/hooks/tests/host-info.test.sh
++++ b/plugins/toolkit/hooks/tests/host-info.test.sh
+@@ -68,6 +68,12 @@ assert 'ubuntu: names the distro' has 'Ubuntu 24.04.1 LTS'
+ assert 'ubuntu: names apt' has 'packages: apt'
+ assert 'ubuntu: no AUR helper' lacks 'AUR'
+ 
++dir=$(host gentoo Linux emerge)
++printf 'PRETTY_NAME="Gentoo Linux"\nID=gentoo\n' >"$dir/os-release"
++run "$dir"
++assert 'gentoo: names the distro' has 'Gentoo Linux'
++assert 'gentoo: names emerge' has 'packages: emerge'
++
+ dir=$(host wsl Linux apt)
+ printf 'PRETTY_NAME="Ubuntu 22.04 LTS"\n' >"$dir/os-release"
+ printf 'Linux version 5.15.0-microsoft-standard-WSL2\n' >"$dir/proc-version"

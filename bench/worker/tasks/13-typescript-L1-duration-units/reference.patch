@@ -1,0 +1,48 @@
+diff --git a/src/duration.ts b/src/duration.ts
+index 31fe539..f0dc850 100644
+--- a/src/duration.ts
++++ b/src/duration.ts
+@@ -6,10 +6,14 @@ const UNIT_MS: Record<string, number> = {
+   s: 1_000,
+ };
+ 
+-const PART = /(\d+)([hms])/g;
+-const WHOLE = /^(?:\d+[hms])+$/;
++// Parsing also knows days and milliseconds; formatting sticks to h/m/s.
++const PARSE_MS: Record<string, number> = { d: 86_400_000, ...UNIT_MS, ms: 1 };
+ 
+-/** Parse "1h30m", "90s", "2h" into milliseconds. Throws on anything else. */
++// "ms" first so "5ms" is not read as 5 minutes followed by "s".
++const PART = /(\d+)(ms|[dhms])/g;
++const WHOLE = /^(?:\d+(?:ms|[dhms]))+$/;
++
++/** Parse "1h30m", "90s", "1d", "250ms" into milliseconds. Throws on anything else. */
+ export function parseDuration(input: string): number {
+   const text = input.trim();
+   if (!WHOLE.test(text)) {
+@@ -17,7 +21,7 @@ export function parseDuration(input: string): number {
+   }
+   let total = 0;
+   for (const [, amount, unit] of text.matchAll(PART)) {
+-    total += Number(amount) * UNIT_MS[unit];
++    total += Number(amount) * PARSE_MS[unit];
+   }
+   return total;
+ }
+diff --git a/test/duration.test.ts b/test/duration.test.ts
+index 6886a06..3c69350 100644
+--- a/test/duration.test.ts
++++ b/test/duration.test.ts
+@@ -13,6 +13,12 @@ test("parses combinations", () => {
+   assert.equal(parseDuration(" 1m30s "), 90_000);
+ });
+ 
++test("parses days and milliseconds", () => {
++  assert.equal(parseDuration("1d12h"), 129_600_000);
++  assert.equal(parseDuration("5ms"), 5);
++  assert.equal(parseDuration("1m30s500ms"), 90_500);
++});
++
+ test("rejects garbage", () => {
+   for (const bad of ["", "5", "h", "5x", "1h 30m", "-1s"]) {
+     assert.throws(() => parseDuration(bad), /invalid duration/);

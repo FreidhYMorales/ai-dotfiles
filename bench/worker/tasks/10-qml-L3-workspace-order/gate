@@ -1,0 +1,1 @@
+node --test tests/ && bash "$BENCH/shared/qml-gate.sh" utils/workspaces.js modules/bar/WorkspacesWidget.qml shell.qml

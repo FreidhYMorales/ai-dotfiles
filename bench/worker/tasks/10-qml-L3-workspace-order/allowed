@@ -1,0 +1,3 @@
+utils/workspaces.js
+modules/bar/WorkspacesWidget.qml
+tests/workspaces.test.mjs

@@ -1,0 +1,31 @@
+diff --git a/window.go b/window.go
+index a8c7edd..52cbd7c 100644
+--- a/window.go
++++ b/window.go
+@@ -50,7 +50,7 @@ func (w *Window) Last() (float64, bool) {
+ 	if w.n == 0 {
+ 		return 0, false
+ 	}
+-	return w.buf[w.n-1], true
++	return w.buf[(w.start+w.n-1)%len(w.buf)], true
+ }
+ 
+ // Mean returns the average of the samples, or false when empty.
+diff --git a/window_test.go b/window_test.go
+index 87bc352..682e266 100644
+--- a/window_test.go
++++ b/window_test.go
+@@ -58,3 +58,13 @@ func TestSummaries(t *testing.T) {
+ 		t.Errorf("Max = %v", max)
+ 	}
+ }
++
++func TestLastAfterWrap(t *testing.T) {
++	w := mustNew(t, 3)
++	for _, v := range []float64{1, 2, 3, 4} {
++		w.Add(v)
++	}
++	if last, _ := w.Last(); last != 4 {
++		t.Errorf("Last = %v, want 4", last)
++	}
++}

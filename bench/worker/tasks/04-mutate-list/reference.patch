@@ -1,0 +1,141 @@
+diff --git a/scripts/mutate.sh b/scripts/mutate.sh
+index 7553093..6a77574 100755
+--- a/scripts/mutate.sh
++++ b/scripts/mutate.sh
+@@ -6,31 +6,66 @@
+ # at logic no test protects. The real files are never touched.
+ #
+ # Usage: scripts/mutate.sh FILE [--min PERCENT] TEST_COMMAND...
++#        scripts/mutate.sh --list FILE
+ #   FILE           script to mutate, relative to the repo root
+ #   --min PERCENT  exit 1 when the kill rate is below PERCENT
++#   --list         print every mutant (line N: <mutated line>) and run nothing
+ # Exit: 0 ok, 1 below --min, 2 the test command fails before any mutation.
+ set -u
+ 
+ usage() {
+-  sed -n '2,13p' "$0" | cut -c3- >&2
++  sed -n '2,15p' "$0" | cut -c3- >&2
+   exit 2
+ }
+ 
+-[[ $# -ge 2 ]] || usage
++list=0
++if [[ ${1:-} == --list ]]; then
++  list=1
++  shift
++  [[ $# -eq 1 ]] || usage
++else
++  [[ $# -ge 2 ]] || usage
++fi
+ target=$1
+ shift
+ min=0
+-if [[ $1 == --min ]]; then
++if [[ ${1:-} == --min ]]; then
+   min=$2
+   shift 2
+ fi
+-[[ $# -ge 1 ]] || usage
++((list)) || [[ $# -ge 1 ]] || usage
+ TIMEOUT=${MUTATE_TIMEOUT:-120}
+ 
++# mutants LINE...: print "INDEX<TAB>MUTATED" for each mutant of the lines.
++mutants() {
++  local lines=("$@") i k line
++  for i in "${!lines[@]}"; do
++    line=${lines[i]}
++    [[ $line =~ ^[[:space:]]*(#|$) ]] && continue
++    for k in "${!FROM[@]}"; do
++      [[ $line == *"${FROM[k]}"* ]] || continue
++      printf '%d\t%s\n' "$i" "${line/"${FROM[k]}"/"${TO[k]}"}"
++    done
++  done
++}
++trim() { printf '%s' "${1#"${1%%[![:space:]]*}"}"; }
++
+ # Operator pairs: each occurrence on a line yields one mutant (first match).
+ FROM=('==' '!=' '-eq' '-ne' '-gt' '-lt' '-ge' '-le' '&&' '||' '[[ -z ' '[[ -n ' '[[ -f ' '[[ -d ' 'exit 0' 'exit 1' 'exit 2' 'return 0' 'return 1')
+ TO=('!=' '==' '-ne' '-eq' '-le' '-ge' '-lt' '-gt' '||' '&&' '[[ -n ' '[[ -z ' '[[ ! -f ' '[[ ! -d ' 'exit 1' 'exit 0' 'exit 0' 'return 1' 'return 0')
+ 
++if ((list)); then
++  [[ -f $target ]] || {
++    echo "not found: $target" >&2
++    exit 2
++  }
++  mapfile -t lines <"$target"
++  while IFS= read -r rec; do
++    printf 'line %d: %s\n' "$((${rec%%$'\t'*} + 1))" "$(trim "${rec#*$'\t'}")"
++  done < <(mutants "${lines[@]}")
++  exit 0
++fi
++
+ root=$(git rev-parse --show-toplevel) || exit 2
+ work=$(mktemp -d)
+ trap 'rm -rf "$work"' EXIT
+@@ -41,7 +76,7 @@ file="$work/$target"
+   exit 2
+ }
+ 
+-run_tests() { (cd "$work" && timeout "$TIMEOUT" "$@" >/dev/null 2>&1); }
++run_tests() { (cd "$work" && timeout "$TIMEOUT" "$@" </dev/null >/dev/null 2>&1); }
+ 
+ if ! run_tests "$@"; then
+   echo "error: the test command fails on the unmutated baseline; fix it first" >&2
+@@ -51,23 +86,19 @@ fi
+ mapfile -t lines <"$file"
+ total=0
+ killed=0
+-for i in "${!lines[@]}"; do
+-  line=${lines[i]}
+-  [[ $line =~ ^[[:space:]]*(#|$) ]] && continue
+-  for k in "${!FROM[@]}"; do
+-    [[ $line == *"${FROM[k]}"* ]] || continue
+-    mutated=${line/"${FROM[k]}"/"${TO[k]}"}
+-    mutant=("${lines[@]}")
+-    mutant[i]=$mutated
+-    printf '%s\n' "${mutant[@]}" >"$file"
+-    total=$((total + 1))
+-    if run_tests "$@"; then
+-      printf 'SURVIVED line %d: %s\n' "$((i + 1))" "${mutated#"${mutated%%[![:space:]]*}"}"
+-    else
+-      killed=$((killed + 1))
+-    fi
+-  done
+-done
++while IFS= read -r rec; do
++  i=${rec%%$'\t'*}
++  mutated=${rec#*$'\t'}
++  mutant=("${lines[@]}")
++  mutant[i]=$mutated
++  printf '%s\n' "${mutant[@]}" >"$file"
++  total=$((total + 1))
++  if run_tests "$@"; then
++    printf 'SURVIVED line %d: %s\n' "$((i + 1))" "$(trim "$mutated")"
++  else
++    killed=$((killed + 1))
++  fi
++done < <(mutants "${lines[@]}")
+ printf '%s\n' "${lines[@]}" >"$file"
+ 
+ pct=100
+diff --git a/scripts/tests/mutate.test.sh b/scripts/tests/mutate.test.sh
+index aeeb6ac..ee61522 100755
+--- a/scripts/tests/mutate.test.sh
++++ b/scripts/tests/mutate.test.sh
+@@ -67,6 +67,15 @@ assert 'weak test lets the mutant survive' says 'score: 0/1 killed (0%)'
+ # shellcheck disable=SC2016 # literal $1/$2: the expected mutated source line.
+ assert 'survivor names the line and the mutation' says 'SURVIVED line 3: if [[ $1 -le $2 ]]'
+ 
++echo "== --list =="
++
++mutate --list max.sh
++assert '--list exits 0' test "$LAST_EXIT" -eq 0
++# shellcheck disable=SC2016 # literal $1/$2: the expected mutated source line.
++assert '--list prints the mutant' says 'line 3: if [[ $1 -le $2 ]]'
++assert '--list runs no tests' lacks 'score:'
++assert '--list skips comments' lacks 'line 2'
++
+ echo "== safety =="
+ 
+ mutate max.sh bash t/broken.sh
