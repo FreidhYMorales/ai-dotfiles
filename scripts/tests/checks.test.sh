@@ -143,6 +143,28 @@ printf '#!/usr/bin/env bash\nexit 1\n' >"$root/plugins/p/hooks/bad.test.sh"
 expect 1 'a failing test file fails' run-tests.sh "$root"
 output_has 'names the failing test file' 'plugins/p/hooks/bad.test.sh'
 
+root=$(fixture tests-failure-output)
+mkdir -p "$root/scripts"
+printf '#!/usr/bin/env bash\necho "why-it-failed"\nexit 1\n' >"$root/scripts/loud.test.sh"
+expect 1 'a failing test file still fails' run-tests.sh "$root"
+output_has 'shows the failing test output' 'why-it-failed'
+
+root=$(fixture tests-parallel)
+mkdir -p "$root/scripts"
+for n in 1 2 3; do
+  printf '#!/usr/bin/env bash\nsleep 2\n' >"$root/scripts/slow$n.test.sh"
+done
+start=$SECONDS
+expect 0 'three slow test files pass' run-tests.sh "$root"
+elapsed=$((SECONDS - start))
+if ((elapsed < 5)); then
+  printf 'PASS  test files run in parallel (%ds for 3 x 2s)\n' "$elapsed"
+else
+  printf 'FAIL  test files run in parallel (%ds for 3 x 2s)\n' "$elapsed"
+  failures=$((failures + 1))
+fi
+output_has 'results are reported in file order' 'slow1.test.sh'
+
 echo "== check-workflows =="
 # workflow ROOT CONTENT: write .github/workflows/ci.yml in ROOT.
 workflow() {
