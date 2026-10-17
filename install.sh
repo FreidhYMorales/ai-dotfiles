@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install AI dotfiles for Claude Code.
-#   - Symlinks claude/CLAUDE.md into ~/.claude (existing file is backed up).
+#   - Symlinks claude/CLAUDE.md and claude/statusline.sh into ~/.claude
+#     (existing files are backed up).
 #   - Merges claude/settings.json into ~/.claude/settings.json (Claude Code
 #     rewrites that file itself, so it is merged, never symlinked).
 #   - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
@@ -166,6 +167,7 @@ main() {
   require rg
   require claude
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
+  link_file "$REPO_DIR/claude/statusline.sh" "$CLAUDE_DIR/statusline.sh"
   link_output_styles
   link_bin
   install_units

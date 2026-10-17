@@ -91,6 +91,8 @@ install "$home"
 assert 'first run succeeds' test "$LAST_EXIT" -eq 0
 assert 'CLAUDE.md is linked to the repo' same "$(readlink "$home/.claude/CLAUDE.md")" "$ROOT/claude/CLAUDE.md"
 assert 'output style is linked' test -L "$home/.claude/output-styles/gentleman.md"
+assert 'status line script is linked' same "$(readlink "$home/.claude/statusline.sh")" "$ROOT/claude/statusline.sh"
+assert 'settings point the status line at it' json_true "$home/.claude/settings.json" '.statusLine.command == "~/.claude/statusline.sh"'
 assert 'settings.json is created' test -f "$home/.claude/settings.json"
 assert 'git hooksPath points to the repo' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"

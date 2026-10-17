@@ -29,5 +29,10 @@
       "Read(~/.docker/config.json)",
       "Read(~/.claude.json)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 0
   }
 }
