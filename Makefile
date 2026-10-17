@@ -1,6 +1,6 @@
 # Verification harness: agent output is accepted when `make check` passes.
 # `check` runs every step and prints a summary; the sub-targets run one area.
-.PHONY: check lint validate test eval
+.PHONY: check lint validate test eval mutate
 
 check:
 	@bash scripts/check.sh
@@ -23,3 +23,9 @@ test:
 PLUGIN ?= flow
 eval:
 	@cd plugins/$(PLUGIN) && claude plugin eval . --scaffold --no-publish --trust-plugin --max-cost-usd 6 $(if $(CASE),--case '$(CASE)')
+
+# Mutation testing for the toolkit hooks (slow; not part of `check`): flips one
+# operator at a time and reports mutants the tests fail to catch.
+HOOKS ?= prefer-modern-cli require-check update-check engram-resume-fallback host-info pause
+mutate:
+	@for h in $(HOOKS); do echo "### $$h"; bash scripts/mutate.sh plugins/toolkit/hooks/$$h.sh bash plugins/toolkit/hooks/tests/$$h.test.sh; done

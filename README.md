@@ -81,7 +81,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
 - [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
 - [x] Verification harness: `make check` + `require-check` Stop hook
-- [ ] Mutation testing for hooks
+- [x] Mutation testing for hooks (`make mutate`, `scripts/mutate.sh`; remaining survivors are equivalent mutants)
 - [x] `claude plugin eval` suite for `flow` (plan, idea, should-not-fire)
 - [x] Eval suite for `toolkit:ship`
 - [ ] Eval suites for the other `toolkit` skills and `sdd`
