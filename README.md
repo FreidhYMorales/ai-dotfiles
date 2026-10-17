@@ -91,7 +91,10 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Off-site engram backup: Google Drive via `rclone` repo, or a private git repo with `engram sync` (plaintext; `age` to encrypt)
 - [x] Pause/resume: `cz` (zellij session survives closing the terminal), `pause` hook (instant checkpoint), atomic settings write in `install.sh`
 - [ ] Lid-closed mode on Arch so work survives closing the laptop (thermal limits)
-- [ ] Local workers: pi + local models (ollama-vulkan) as Claude subagents; benchmark first (needs Wi-Fi for model downloads)
+- [ ] Local workers: pi + local models (ollama-vulkan) as Claude subagents. Done: ollama on the Arc iGPU (`OLLAMA_IGPU_ENABLE=1`), pi managed install, `pi-box` sandbox. Next: benchmark gpt-oss:20b vs qwen3-coder:30b, trial tasks, then decide on a `delegate-local` skill
+- [ ] Worker isolation, step 2: a dedicated system user for the worker (project access via group/ACL) on top of `pi-box`
+- [ ] Worker isolation, step 3: restrict the sandbox network to localhost (ollama only)
+- [ ] NPU: try OpenVINO for small models on the 47 TOPS NPU
 - [x] Backup observability: SessionStart notice when the last engram backup failed or is older than 2 days; weekly `engram-backup --verify`
 - [ ] Fresh-machine recovery test: clone -> install.sh -> restore engram from backup on a clean Arch container in CI
 - [ ] Upstream watch: list the repos we learn from (gentle-ai for sdd/toolkit, engram, gentle-shell (built on pi), Gentleman-Skills, gentle-agent-state, earendil-works/pi) with what we took and the last reviewed release; notify when they change and triage with `/flow:idea`
