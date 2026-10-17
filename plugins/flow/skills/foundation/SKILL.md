@@ -4,7 +4,7 @@ description: "Trigger: new project, greenfield, choose stack, architecture, fold
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.6"
+  version: "1.7"
 ---
 
 ## Activation Contract
@@ -14,7 +14,7 @@ Load during planning of a greenfield project (or one with no established convent
 ## Hard Rules
 
 - Talk to the user in their language; `docs/architecture.md`, ADRs, `AGENTS.md` and engram entries are in English.
-- Ask ONE question at a time, then stop and wait. Cover one decision area at a time, in the order of the Execution Steps.
+- Ask ONE question at a time, then stop and wait. One question = one topic: the constraint list in step 1 is several questions asked in turn, never bundled ("who builds it and by when" is two). Cover one decision area at a time, in the order of the Execution Steps.
 - This skill CHOOSES (unlike detection-only init): always recommend one option, but only show a tradeoff table on real forks. Decide purely technical gaps yourself and state them.
 - Recognition over recall: show 2–3 concrete candidates (stacks, folder trees as ASCII) and let the user pick or mix.
 - Proportionality: match architecture to size, team and lifetime. Say explicitly when something would be over-engineering (e.g. hexagonal for a 3-week CRUD demo).
@@ -23,7 +23,7 @@ Load during planning of a greenfield project (or one with no established convent
 - Three platform sets, never conflated: **target platforms** (where the product runs, from the plan), **dev environments** (every OS a contributor may develop on) and the **host** you run on (one dev environment, not the reference). Tooling, docs and `make check` must work on every supported dev environment, so anyone can reproduce the setup from `docs/development.md` alone.
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
 - Delegate broad reading (4+ files) or library/hosting research to one research subagent (context7 MCP for library docs); cite its findings.
-- Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
+- Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`; one topic per decision, never reused for a different one, since a reused topic overwrites the earlier entry). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
 - Every project gets a `Makefile` with a `check` target (format check, lint, typecheck if the language has one, tests) and at least one passing smoke test, so `make check` is green from day one (`templates/check.md`). Not optional, whatever the stack: wrap the native tools. The toolkit Stop hook blocks agents from finishing while it fails.
 - Never scaffold, move files, create remotes or install dependencies without explicit approval. Bootstrap asks for ONE approval of the full, filled-in plan, then runs it without further stops.
 
@@ -40,6 +40,7 @@ Load during planning of a greenfield project (or one with no established convent
 | No `.git` or no `origin` remote | Include `git init` / `gh repo create` in the bootstrap plan (step 13) |
 | Existing files do not match the chosen structure | Audit mode: propose a migration table, apply with `git mv` on a branch (step 13) |
 | `.claude/settings.json` already exists | Merge: keep existing rules, propose only missing ones |
+| Windows is a supported dev OS | Commit `.gitattributes` with `* text=auto eol=lf`; otherwise Git for Windows checks out CRLF and format checks fail on the first clone |
 | A supported dev OS lacks a required tool (e.g. `make` on Windows) | Document its install for that OS (winget/scoop/choco, or WSL/devcontainer) in `docs/development.md`; never drop `make check` |
 | A personal `allow` (settings.local.json) matches a proposed `ask` | Warn: `ask` wins across all settings files, so it WILL prompt. User picks: keep `ask` or drop it from the project file |
 
@@ -55,7 +56,7 @@ Load during planning of a greenfield project (or one with no established convent
 3. **Architecture style**: 2–3 ASCII folder-tree variants proportional to size (feature-based "screaming" for small apps; hexagonal/clean only when domain complexity or multiple adapters justify it). User picks/mixes.
 4. **Conventions**: naming, formatter/linter (exact tools), conventional commits, branching/PR flow, dependency policy (allowlist: no new deps without approval).
 5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands. Compose the `make check` recipe from the chosen format/lint/typecheck/test commands (`templates/check.md`).
-6. **Config, secrets & dev environment**: `.env.example`, `.gitignore` entries, where CI/deploy secrets live. Pin toolchain versions in files the tools read (`.tool-versions`/mise, `.nvmrc`, `.python-version`, `rust-toolchain.toml`). For each supported dev OS, list prerequisites with exact install commands for its package manager and how to run `make check` there; propose a devcontainer only when dev OSes diverge enough to justify it. Fill in `templates/development.md`.
+6. **Config, secrets & dev environment**: `.env.example`, `.gitignore` entries, where CI/deploy secrets live. Pin toolchain versions in files the tools read (`.tool-versions`/mise, `.nvmrc`, `.python-version`, `rust-toolchain.toml`) and install them through a version manager that honors the pin (nvm-windows, fnm, mise, uv), never a "latest LTS" package that drifts from it. For each supported dev OS, list prerequisites with exact install commands for its package manager and how to run `make check` there; propose a devcontainer only when dev OSes diverge enough to justify it. Fill in `templates/development.md`.
 7. **CI and deploy**: CI runs `make check` on every PR; deploy target.
 8. **Agent permissions**: build the project `.claude/settings.json` from `templates/permissions.md` using the exact test/lint/format/typecheck/build commands decided above. Show the three tiers (allow/ask/deny) and confirm before writing.
 9. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
