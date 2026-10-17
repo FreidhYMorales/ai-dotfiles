@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Back up the engram database to every configured restic repository.
+#   - Takes a consistent copy with `sqlite3 .backup` (safe while engram runs).
+#   - Backs it up to each repository in ENGRAM_BACKUP_REPOS; one failing
+#     repository does not stop the others, but the run exits non-zero.
+#   - Skips the snapshot when nothing changed; keeps 7 daily, 4 weekly and
+#     12 monthly snapshots.
+#
+# Usage: engram-backup [--init | --verify]
+#   --init    create the password file (if missing) and every repository
+#   --verify  check each repository, restore the latest snapshot and check
+#             the restored database
+#
+# Config: ~/.config/restic/engram.env, e.g.
+#   ENGRAM_BACKUP_REPOS="/home/me/Files/backups/restic-engram rclone:gdrive:backups/restic-engram"
+# Password: ~/.config/restic/engram.pass (created by --init; keep a copy in a
+# password manager: without it the backups cannot be restored).
+set -uo pipefail
+
+MODE=backup
+case ${1:-} in
+  "") ;;
+  --init) MODE=init ;;
+  --verify) MODE=verify ;;
+  -h | --help)
+    sed -n '2,17p' "$0" | cut -c3-
+    exit 0
+    ;;
+  *)
+    echo "unknown argument: $1" >&2
+    exit 2
+    ;;
+esac
+
+CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/restic
+CONFIG=${ENGRAM_BACKUP_CONFIG:-$CONFIG_DIR/engram.env}
+DATA_DIR=${ENGRAM_DATA_DIR:-$HOME/.engram}
+STAGING=${XDG_CACHE_HOME:-$HOME/.cache}/engram-backup/snapshot
+STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/engram-backup
+HOST=${HOSTNAME:-$(uname -n)}
+failed=()
+
+for tool in restic sqlite3; do
+  command -v "$tool" >/dev/null || {
+    echo "missing dependency: $tool" >&2
+    exit 1
+  }
+done
+
+if [[ ! -f $CONFIG ]]; then
+  echo "error: $CONFIG not found. Create engram.env with:" >&2
+  echo '  ENGRAM_BACKUP_REPOS="/path/to/repo rclone:<remote>:<path>"' >&2
+  exit 1
+fi
+# shellcheck source=/dev/null
+source "$CONFIG"
+[[ -n ${ENGRAM_BACKUP_REPOS:-} ]] || {
+  echo "error: ENGRAM_BACKUP_REPOS is empty in $CONFIG" >&2
+  exit 1
+}
+export RESTIC_PASSWORD_FILE=${RESTIC_PASSWORD_FILE:-$(dirname "$CONFIG")/engram.pass}
+read -r -a REPOS <<<"$ENGRAM_BACKUP_REPOS"
+
+init() {
+  if [[ ! -s $RESTIC_PASSWORD_FILE ]]; then
+    mkdir -p "$(dirname "$RESTIC_PASSWORD_FILE")"
+    (umask 077 && openssl rand -base64 32 >"$RESTIC_PASSWORD_FILE")
+    echo "created: $RESTIC_PASSWORD_FILE"
+    echo "IMPORTANT: copy this password to your password manager now; without it the backups cannot be restored."
+  fi
+  local repo
+  for repo in "${REPOS[@]}"; do
+    if restic -r "$repo" cat config >/dev/null 2>&1; then
+      echo "ok: $repo"
+    elif restic -r "$repo" init --quiet >/dev/null; then
+      echo "created: $repo"
+    else
+      failed+=("$repo")
+    fi
+  done
+}
+
+backup() {
+  if [[ ! -f $DATA_DIR/engram.db ]]; then
+    echo "error: engram.db not found in $DATA_DIR" >&2
+    exit 1
+  fi
+  rm -rf "$STAGING" && mkdir -p "$STAGING"
+  sqlite3 "$DATA_DIR/engram.db" ".backup '$STAGING/engram.db'" || exit 1
+  [[ -f $DATA_DIR/protocol-mode.json ]] && cp "$DATA_DIR/protocol-mode.json" "$STAGING/"
+  local repo digest state
+  digest=$(cat "$STAGING"/* | sha256sum | cut -d' ' -f1)
+  mkdir -p "$STATE_DIR"
+  for repo in "${REPOS[@]}"; do
+    # Content-based skip: every .backup copy has fresh metadata, so restic's
+    # own --skip-if-unchanged would never skip.
+    state="$STATE_DIR/$(printf '%s' "$repo" | sha256sum | cut -c1-16)"
+    if [[ -f $state && $(<"$state") == "$digest" ]]; then
+      echo "unchanged: $repo"
+    elif restic -r "$repo" backup "$STAGING" --tag engram --host "$HOST" --quiet &&
+      restic -r "$repo" forget --tag engram --keep-daily 7 --keep-weekly 4 --keep-monthly 12 \
+        --prune --quiet >/dev/null; then
+      printf '%s\n' "$digest" >"$state"
+      echo "backed up: $repo"
+    else
+      failed+=("$repo")
+    fi
+  done
+  rm -rf "$STAGING"
+}
+
+verify() {
+  local repo work db count
+  for repo in "${REPOS[@]}"; do
+    work=$(mktemp -d)
+    db=""
+    if restic -r "$repo" check --quiet >/dev/null &&
+      restic -r "$repo" restore latest --tag engram --target "$work" --quiet >/dev/null; then
+      db=$(find "$work" -name engram.db -type f | head -n1)
+    fi
+    if [[ -n $db && $(sqlite3 "$db" 'PRAGMA integrity_check;') == ok ]]; then
+      count=$(sqlite3 "$db" 'SELECT count(*) FROM observations;' 2>/dev/null || echo "?")
+      echo "verified: $repo (integrity ok, $count observation(s))"
+    else
+      failed+=("$repo")
+    fi
+    rm -rf "$work"
+  done
+}
+
+"$MODE"
+
+if ((${#failed[@]})); then
+  printf 'error: %s failed for: %s\n' "$MODE" "${failed[*]}" >&2
+  exit 1
+fi
