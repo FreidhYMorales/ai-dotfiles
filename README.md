@@ -18,7 +18,7 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
 | `Makefile`, `scripts/` | `make check`: shellcheck, JSON/structure/settings validation, skill lint, workflow lint (actionlint), hook tests | Run manually; enforced by `require-check` |
 | `systemd/` | User units: `engram-backup.timer` (daily) and `engram-backup-verify.timer` (weekly), both `Persistent=true` | Symlinked into `~/.config/systemd/user`; enabled once `engram-backup` is configured |
-| `bin/` | `pi-box`: runs pi (or `pi-box -- CMD`) in a bubblewrap sandbox: only the project is writable, the rest of HOME is invisible, `~/.pi/agent` is a throwaway overlay; refuses HOME or `/` as the project. `cz`: runs Claude inside a per-project zellij session, so closing the terminal only detaches (reattach with `cz`; `cz --continue` after a reboot). `engram-backup`: restic backup of `~/.engram` to every repo in `~/.config/restic/engram.env` (consistent `sqlite3 .backup`, content-based skip, 7d/4w/12m retention; `--init`, `--verify`). `ai-update`: updates plugins and the engram binary (checksum, DB + binary backup, rollback, confirm on major; `--check` reports only) | Symlinked into `~/.local/bin` |
+| `bin/` | `pi-box`: runs pi (or `pi-box -- CMD`) in a bubblewrap sandbox: only the project is writable, the rest of HOME is invisible, `~/.pi/agent` is a throwaway overlay; no network except ollama bridged in as `127.0.0.1:11434` (needs `socat`; `PI_BOX_NETWORK=host` for full network); refuses HOME or `/` as the project. `cz`: runs Claude inside a per-project zellij session, so closing the terminal only detaches (reattach with `cz`; `cz --continue` after a reboot). `engram-backup`: restic backup of `~/.engram` to every repo in `~/.config/restic/engram.env` (consistent `sqlite3 .backup`, content-based skip, 7d/4w/12m retention; `--init`, `--verify`). `ai-update`: updates plugins and the engram binary (checksum, DB + binary backup, rollback, confirm on major; `--check` reports only) | Symlinked into `~/.local/bin` |
 | `docs/` | Workflow design notes | - |
 
 ## Workflow
@@ -93,7 +93,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Lid-closed mode on Arch so work survives closing the laptop (thermal limits)
 - [ ] Local workers: pi + local models (ollama-vulkan) as Claude subagents. Done: ollama on the Arc iGPU (`OLLAMA_IGPU_ENABLE=1`), pi managed install, `pi-box` sandbox. Next: benchmark gpt-oss:20b vs qwen3-coder:30b, trial tasks, then decide on a `delegate-local` skill
 - [ ] Worker isolation, step 2: a dedicated system user for the worker (project access via group/ACL) on top of `pi-box`
-- [ ] Worker isolation, step 3: restrict the sandbox network to localhost (ollama only)
+- [x] Worker isolation, step 3: `pi-box` network limited to ollama (socat bridge; no internet, no other local services, no host DNS)
 - [ ] NPU: try OpenVINO for small models on the 47 TOPS NPU
 - [x] Backup observability: SessionStart notice when the last engram backup failed or is older than 2 days; weekly `engram-backup --verify`
 - [ ] Fresh-machine recovery test: clone -> install.sh -> restore engram from backup on a clean Arch container in CI

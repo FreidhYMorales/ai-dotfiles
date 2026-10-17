@@ -6,8 +6,9 @@
 #   - Invisible: the rest of HOME (~/.ssh, ~/.config/gh, restic password,
 #     ~/.claude, sibling projects) and the host /tmp.
 #   - Sessions go to ~/.local/state/pi-box/sessions.
-# The network is shared with the host (pi needs ollama on localhost), so this
-# confines files, not network access.
+#   - Network: none, except ollama bridged in as 127.0.0.1:11434 (needs socat;
+#     PI_BOX_OLLAMA=host:port for another server). PI_BOX_NETWORK=host shares
+#     the full host network instead.
 #
 # Usage: pi-box [pi args...]        run pi
 #        pi-box -- CMD [ARGS...]    run another command (e.g. bash) in the box
@@ -45,7 +46,6 @@ args=(
   --symlink usr/lib /lib64
   --ro-bind /etc /etc
   --ro-bind-try /opt /opt
-  --ro-bind-try /run/systemd/resolve /run/systemd/resolve
   --proc /proc
   --dev /dev
   --tmpfs /tmp
@@ -58,7 +58,6 @@ args=(
   --setenv PATH "$pi_dir/bin:/usr/local/bin:/usr/bin"
   --setenv PI_CODING_AGENT_SESSION_DIR "$state/sessions"
   --unshare-all
-  --share-net
   --die-with-parent
 )
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
@@ -67,4 +66,32 @@ if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
   args+=(--new-session)
 fi
 
-exec bwrap "${args[@]}" "${cmd[@]}"
+network=${PI_BOX_NETWORK:-ollama}
+if [[ $network == host ]]; then
+  exec bwrap "${args[@]}" --share-net --ro-bind-try /run/systemd/resolve /run/systemd/resolve "${cmd[@]}"
+fi
+
+# Default: no network at all, except one bridge to ollama. Outside, socat maps
+# a private Unix socket to ollama; inside, a second socat republishes it as
+# 127.0.0.1:11434, so pi talks to "local ollama" and reaches nothing else.
+# The host DNS resolver (/run/systemd/resolve) stays unmounted: DNS queries
+# would otherwise be a way to send data out.
+command -v socat >/dev/null || {
+  echo "pi-box: socat is needed for the ollama-only network (sudo pacman -S socat), or set PI_BOX_NETWORK=host" >&2
+  exit 1
+}
+ollama=${PI_BOX_OLLAMA:-127.0.0.1:11434}
+net_dir=$(mktemp -d "$state/net.XXXXXX")
+socat "UNIX-LISTEN:$net_dir/ollama.sock,fork,mode=600" "TCP:$ollama" 2>/dev/null &
+bridge=$!
+trap 'kill "$bridge" 2>/dev/null; rm -rf "$net_dir"' EXIT
+for _ in $(seq 50); do
+  [[ -S $net_dir/ollama.sock ]] && break
+  sleep 0.05
+done
+
+# shellcheck disable=SC2016 # expanded by the inner bash, inside the box.
+inner='socat TCP-LISTEN:11434,bind=127.0.0.1,fork,reuseaddr UNIX-CONNECT:/run/pi-box/ollama.sock 2>/dev/null &
+for _ in $(seq 50); do (exec 3<>/dev/tcp/127.0.0.1/11434) 2>/dev/null && break; sleep 0.05; done
+"$@"'
+bwrap "${args[@]}" --bind "$net_dir" /run/pi-box bash -c "$inner" pi-box "${cmd[@]}"

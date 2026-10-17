@@ -22,7 +22,7 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq jq ripgrep shellcheck sqlite3 restic
+          sudo apt-get install -y -qq jq ripgrep shellcheck sqlite3 restic socat
       # Pinned to the maintainer's Arch version: shfmt releases format some
       # constructs differently, so CI and local runs must use the same one.
       - name: Install shfmt

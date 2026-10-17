@@ -35,7 +35,7 @@ LAST_EXIT=0
 box() {
   local dir=$1
   shift
-  LAST_OUTPUT=$(cd "$dir" && env -u XDG_STATE_HOME HOME="$home" bash "$SCRIPT" -- bash -c "$1" 2>&1)
+  LAST_OUTPUT=$(cd "$dir" && env -u XDG_STATE_HOME HOME="$home" PI_BOX_NETWORK="${PI_BOX_NETWORK:-host}" bash "$SCRIPT" -- bash -c "$1" 2>&1)
   LAST_EXIT=$?
 }
 
@@ -97,6 +97,50 @@ plain="$home/plain"
 mkdir -p "$plain"
 box "$plain" 'echo ok >here.txt'
 assert 'outside git the current folder is the project' test -f "$plain/here.txt"
+
+echo "== network: only ollama is reachable =="
+
+if command -v socat >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+  # Two host services: a fake ollama (must be reachable) and any other local
+  # service (must not be), each serving a marker file.
+  www="$TMP_ROOT/www"
+  mkdir -p "$www"
+  printf 'from-ollama\n' >"$www/ollama.txt"
+  printf 'from-other\n' >"$www/other.txt"
+  free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])'; }
+  ollama_port=$(free_port)
+  other_port=$(free_port)
+  python3 -m http.server "$ollama_port" --bind 127.0.0.1 --directory "$www" >/dev/null 2>&1 &
+  ollama_pid=$!
+  python3 -m http.server "$other_port" --bind 127.0.0.1 --directory "$www" >/dev/null 2>&1 &
+  other_pid=$!
+  for _ in $(seq 50); do
+    curl -s "http://127.0.0.1:$other_port/other.txt" >/dev/null && curl -s "http://127.0.0.1:$ollama_port/ollama.txt" >/dev/null && break
+    sleep 0.1
+  done
+
+  netbox() {
+    LAST_OUTPUT=$(cd "$project" && env -u XDG_STATE_HOME HOME="$home" PI_BOX_OLLAMA="127.0.0.1:$ollama_port" "$@" \
+      bash "$SCRIPT" -- bash -c "curl -s --max-time 3 http://127.0.0.1:11434/ollama.txt; curl -s --max-time 3 http://127.0.0.1:$other_port/other.txt; echo end" 2>&1)
+  }
+
+  netbox
+  assert 'ollama is reachable inside as 127.0.0.1:11434' says 'from-ollama'
+  assert 'other host services are unreachable' lacks 'from-other'
+  netbox PI_BOX_NETWORK=host
+  assert 'PI_BOX_NETWORK=host shares the host network' says 'from-other'
+  assert 'no bridge socket is left behind' test -z "$(find "$home/.local/state/pi-box" -name '*.sock' 2>/dev/null)"
+
+  # DNS is a data channel too: the host resolver must not be reachable.
+  LAST_OUTPUT=$(cd "$project" && env -u XDG_STATE_HOME HOME="$home" PI_BOX_OLLAMA="127.0.0.1:$ollama_port" \
+    bash "$SCRIPT" -- bash -c 'getent hosts github.com || echo no-dns' 2>&1)
+  assert 'the host DNS resolver is unreachable' says 'no-dns'
+  assert 'the bridge exits quietly' lacks 'exiting on signal'
+
+  kill "$ollama_pid" "$other_pid" 2>/dev/null
+else
+  echo 'SKIP  socat or python3 missing; network cases not run'
+fi
 
 echo "== refuses projects that would expose HOME =="
 
