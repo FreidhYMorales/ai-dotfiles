@@ -5,7 +5,8 @@
 # Usage: bench/worker/run.sh [MODEL...]   (default: gpt-oss:20b qwen3-coder:30b)
 #   Resumable: finished tasks are skipped, so after a suspend or Ctrl+C just
 #   run it again. Delete ~/.local/state/worker-bench to start over.
-#   Env: WORKER_BENCH_DIR (results), WORKER_BENCH_TIMEOUT (seconds per task).
+#   Env: WORKER_BENCH_DIR (results), WORKER_BENCH_TIMEOUT (seconds per task),
+#        WORKER_BENCH_TASKS (glob on task names, e.g. "1[12]-*").
 #
 # Per task: a fresh repo built from the task's `source` (see lib.sh; checks,
 # reference patches and metadata never reach it), pi gets prompt.md, then the
@@ -17,6 +18,13 @@
 # ~/.local/state/worker-bench. Validate the tasks without a model:
 # bench/worker/validate.sh.
 set -u
+
+# Keep the machine awake for the whole run (released when it ends); a suspend
+# would stall the model mid-task. Set WORKER_BENCH_ALLOW_SLEEP=1 to skip.
+if [[ -z ${WORKER_BENCH_INHIBITED:-} && ${WORKER_BENCH_ALLOW_SLEEP:-} != 1 ]] && command -v systemd-inhibit >/dev/null; then
+  WORKER_BENCH_INHIBITED=1 exec systemd-inhibit --what=sleep:idle --who=worker-bench \
+    --why="local model benchmark running" "$0" "$@"
+fi
 
 # shellcheck source=bench/worker/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -32,10 +40,9 @@ for tool in pi-box pi ollama jq git make; do
   }
 done
 
-secs() {
-  local t=${EPOCHREALTIME/./}
-  echo $((t / 1000000))
-}
+# secs: monotonic seconds. Wall-clock time keeps running while the laptop is
+# suspended (and timeout(1) does not), which once turned 5 minutes into 31.
+secs() { python3 -c 'import time; print(int(time.monotonic()))'; }
 
 for model in "${models[@]}"; do
   # One model on the GPU at a time, so timings are comparable.
@@ -45,6 +52,8 @@ for model in "${models[@]}"; do
   for task_dir in "$BENCH"/tasks/*/; do
     task_dir=${task_dir%/}
     task=$(basename "$task_dir")
+    # shellcheck disable=SC2053 # WORKER_BENCH_TASKS is a glob on purpose.
+    [[ -z ${WORKER_BENCH_TASKS:-} || $task == $WORKER_BENCH_TASKS ]] || continue
     dir="$OUT/${model//[:\/]/_}/$task"
     if [[ -f $dir/result.json ]]; then
       echo "== $model / $task: done, skipping"
