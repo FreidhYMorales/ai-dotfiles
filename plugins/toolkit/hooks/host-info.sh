@@ -66,10 +66,11 @@ done
 
 # Curated, so the line stays short: only tools that change what Claude can do
 # or which command it should pick. Order is the reported order.
-TOOLS=(git gh glab docker podman kubectl make just mise
+TOOLS=(git gh glab docker podman kubectl act make just mise direnv
   node bun deno pnpm python3 uv go cargo java
-  rg fd bat eza sd fzf jq yq sqlite3 psql shellcheck shfmt gitleaks
-  ffmpeg yt-dlp magick pandoc tmux nvim code)
+  rg rga fd bat eza sd fzf jq yq sqlite3 psql hyperfine
+  shellcheck shfmt actionlint gitleaks trivy osv-scanner
+  ffmpeg yt-dlp magick pandoc typst restic ollama tmux zellij nvim code)
 found=()
 for tool in "${TOOLS[@]}"; do
   has "$tool" && found+=("$tool")
