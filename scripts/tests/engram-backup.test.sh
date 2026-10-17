@@ -79,10 +79,22 @@ backup "$home" --init
 assert 'second init succeeds' test "$LAST_EXIT" -eq 0
 assert 'second init keeps the password' same "$(<"$home/.config/restic/engram.pass")" "$password"
 
+# restic init costs ~3 s per repository (key derivation), so the cases below
+# reuse these two empty, initialized repositories instead of creating new ones.
+template=$home
+
+# ready NAME: a sandbox holding copies of the template's repositories and password.
+ready() {
+  local home
+  home=$(sandbox "$1")
+  cp -a "$template/repo-a" "$template/repo-b" "$home/"
+  cp -a "$template/.config/restic/engram.pass" "$home/.config/restic/"
+  printf '%s\n' "$home"
+}
+
 echo "== backup =="
 
-home=$(sandbox run)
-backup "$home" --init
+home=$(ready run)
 backup "$home"
 assert 'backup succeeds' test "$LAST_EXIT" -eq 0
 assert 'first repository has a snapshot' same "$(snapshots "$home" "$home/repo-a")" 1
@@ -102,8 +114,7 @@ assert 'verify reads the restored data' says '2 observation'
 
 echo "== failures =="
 
-home=$(sandbox partial)
-backup "$home" --init
+home=$(ready partial)
 printf 'ENGRAM_BACKUP_REPOS="%s %s"\n' "$home/repo-a" "$home/missing-repo" \
   >"$home/.config/restic/engram.env"
 backup "$home"
@@ -112,7 +123,6 @@ assert 'the failing repository is named' says 'missing-repo'
 assert 'the healthy repository is still backed up' same "$(snapshots "$home" "$home/repo-a")" 1
 
 home=$(sandbox nodb)
-backup "$home" --init
 rm "$home/.engram/engram.db"
 backup "$home"
 assert 'missing database fails' test "$LAST_EXIT" -ne 0
