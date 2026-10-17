@@ -88,4 +88,5 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
 - [x] Local encrypted engram backup (`engram-backup` + daily timer)
 - [ ] Off-site engram backup: Google Drive via `rclone` repo, or a private git repo with `engram sync` (plaintext; `age` to encrypt)
+- [ ] Pause/resume workflow: a way to pause the conversation or running actions (background evals, long commands) and resume later with the state saved (to analyze)
 - [ ] OpenCode and Gemini support
