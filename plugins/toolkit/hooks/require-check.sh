@@ -2,8 +2,8 @@
 # Stop hook: refuse to finish while the project's `make check` fails.
 # Runs from the git root of the cwd when the repo has uncommitted changes and a
 # root Makefile that defines a `check` target. Exit 2 feeds the failure tail
-# back to Claude.
-# Opt out with SKIP_REQUIRE_CHECK=1.
+# back to Claude. A tree identical to the last green run is skipped (cache in
+# ~/.cache/require-check). Opt out with SKIP_REQUIRE_CHECK=1.
 set -u
 
 [[ ${SKIP_REQUIRE_CHECK:-} == 1 ]] && exit 0
@@ -38,9 +38,25 @@ has_check=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
        END { print found ? "yes" : "no" }')
 [[ $has_check == yes ]] || exit 0
 
+# Skip when the tree is exactly the one that last passed: HEAD, every staged
+# and unstaged change, and the content of untracked files. Any edit reruns it;
+# failures are never cached.
+cache_file=${XDG_CACHE_HOME:-$HOME/.cache}/require-check/$(printf '%s' "$dir" | sha256sum | cut -c1-16)
+state=$({
+  git -C "$dir" rev-parse HEAD 2>/dev/null
+  # Staged vs HEAD (or the empty tree before the first commit), then unstaged.
+  git -C "$dir" diff --cached --binary 2>/dev/null
+  git -C "$dir" diff --binary 2>/dev/null
+  (cd "$dir" && git ls-files -o --exclude-standard -z | xargs -0 -r sha256sum 2>/dev/null)
+} | sha256sum | cut -d' ' -f1)
+[[ -f $cache_file && $(<"$cache_file") == "$state" ]] && exit 0
+
 output=$(cd "$dir" && timeout 300 make -f "$makefile" check 2>&1)
 status=$?
-[[ $status -eq 0 ]] && exit 0
+if [[ $status -eq 0 ]]; then
+  mkdir -p "${cache_file%/*}" && printf '%s\n' "$state" >"$cache_file.tmp" && mv -f "$cache_file.tmp" "$cache_file"
+  exit 0
+fi
 
 {
   if [[ $status -eq 124 ]]; then

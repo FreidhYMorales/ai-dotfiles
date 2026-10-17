@@ -10,6 +10,8 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 # Isolate fixture repos from the user's global git config and hooks.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 unset SKIP_REQUIRE_CHECK
+# Isolate the green-state cache from the real ~/.cache.
+export XDG_CACHE_HOME="$TMP_ROOT/cache"
 
 # new_repo NAME: create an empty git repo and print its path.
 new_repo() {
@@ -131,6 +133,42 @@ repo=$(new_repo subdir-pass)
 write_makefile "$repo" 'test -f Makefile'
 mkdir -p "$repo/src"
 expect 0 'repo-root check runs from the repo root' "$(payload "$repo/src")"
+
+echo "== green-state cache =="
+
+# runs FILE: how many times the check recipe ran (it appends to FILE, which
+# lives outside the repo so counting does not change the working tree).
+runs() { wc -l <"$1" 2>/dev/null || echo 0; }
+
+repo=$(new_repo cache-hit)
+counter="$TMP_ROOT/cache-hit.count"
+write_makefile "$repo" "echo run >>$counter"
+printf 'x\n' >"$repo/file.txt"
+expect 0 'first run passes' "$(payload "$repo")"
+expect 0 'unchanged tree passes again' "$(payload "$repo")"
+assert 'unchanged tree since the last green run skips make check' test "$(runs "$counter")" -eq 1
+
+printf 'y\n' >"$repo/file.txt"
+expect 0 'edited tree passes' "$(payload "$repo")"
+assert 'an edited file reruns make check' test "$(runs "$counter")" -eq 2
+
+printf 'z\n' >"$repo/new.txt"
+expect 0 'tree with a new file passes' "$(payload "$repo")"
+assert 'a new untracked file reruns make check' test "$(runs "$counter")" -eq 3
+
+git -C "$repo" add new.txt
+expect 0 'staged tree passes' "$(payload "$repo")"
+printf 'w\n' >"$repo/new.txt"
+git -C "$repo" add new.txt
+expect 0 'restaged tree passes' "$(payload "$repo")"
+assert 'a different staged version reruns make check' test "$(runs "$counter")" -eq 5
+
+repo=$(new_repo cache-fail)
+counter="$TMP_ROOT/cache-fail.count"
+write_makefile "$repo" "echo run >>$counter" 'exit 1'
+expect 2 'failing check blocks' "$(payload "$repo")"
+expect 2 'failing check blocks again' "$(payload "$repo")"
+assert 'a failing run is never cached' test "$(runs "$counter")" -eq 2
 
 echo
 if [[ $failures -gt 0 ]]; then
