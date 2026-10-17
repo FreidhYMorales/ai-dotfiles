@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run Claude Code inside a per-project zellij session.
+# Closing the terminal only detaches: Claude and everything it is running keep
+# going. Run `cz` again from the project to reattach. After a reboot the session
+# is gone (or resurrected by zellij); start with `cz --continue` to resume the
+# conversation.
+#
+# Usage: cz [claude args...]
+#   The session is named claude-<project>, where <project> is the git root (or
+#   current folder) name. Inside zellij already, cz just runs claude.
+set -euo pipefail
+
+if [[ -n ${ZELLIJ:-} ]]; then
+  exec claude "$@"
+fi
+
+root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+name=$(basename "$root" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-')
+name=${name%-}
+
+exec zellij attach --create "claude-$name" -- claude "$@"
