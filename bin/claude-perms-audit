@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Audit Claude Code permission allow rules that accumulate in project settings.
+# Flags:
+#   any command           Bash, Bash(*)
+#   interpreter wildcard  Bash(python3 *), Bash(node:*)...: arbitrary code, so
+#                         effectively Bash(*)
+#   any file              Write, Edit, Write(**)... with no path restriction
+#   never matches         rules holding an unexpanded __TRACKED_VAR__
+#   dead path             rules pointing at a Claude session dir that is gone
+#
+# Usage: claude-perms-audit [--fix] [ROOT...]   (default ROOT: $HOME)
+#   Scans ROOT for .claude/settings.json and .claude/settings.local.json.
+#   --fix  remove flagged rules (backup next to each file, atomic write; only
+#          permissions.allow changes)
+# Exit: 0 nothing flagged (or all fixed), 1 findings left.
+set -u
+
+FIX=0
+if [[ ${1:-} == --fix ]]; then
+  FIX=1
+  shift
+fi
+roots=("$@")
+((${#roots[@]})) || roots=("$HOME")
+
+INTERPRETERS='python|python3|node|bun|bunx|deno|npx|bash|sh|zsh|fish|perl|ruby|php|lua|env|sudo|xargs'
+
+# classify RULE: print the finding kind, or nothing when the rule is fine.
+classify() {
+  local rule=$1 session
+  if [[ $rule =~ ^Bash(\((\*|:\*)?\))?$ ]]; then
+    echo "any command"
+  elif [[ $rule =~ ^Bash\(($INTERPRETERS)(\ |:)\*\)$ ]]; then
+    echo "interpreter wildcard"
+  elif [[ $rule =~ ^(Write|Edit|MultiEdit)(\((\*|\*\*|/\*\*)\))?$ ]]; then
+    echo "any file"
+  elif [[ $rule == *__TRACKED_VAR__* ]]; then
+    echo "never matches"
+  elif [[ $rule =~ (/[^\ \)\"\']*claude-[0-9]+/[^/\ \)\"\']+/[^/\ \)\"\']+) ]]; then
+    session=${BASH_REMATCH[1]}
+    [[ -e $session ]] || echo "dead path"
+  fi
+}
+
+total=0
+while IFS= read -r -d '' file; do
+  mapfile -t rules < <(jq -r '.permissions.allow // [] | .[]' "$file" 2>/dev/null)
+  keep=()
+  found=0
+  for rule in "${rules[@]}"; do
+    kind=$(classify "$rule")
+    if [[ -n $kind ]]; then
+      printf '%s\t[%s]\t%s\n' "$file" "$kind" "$rule"
+      found=$((found + 1))
+    else
+      keep+=("$rule")
+    fi
+  done
+  ((found)) || continue
+  if ((FIX)); then
+    cp -p "$file" "$file.bak-$(date +%Y%m%d-%H%M%S)"
+    tmp=$(mktemp "$file.tmp.XXXXXX")
+    jq --argjson keep "$( ((${#keep[@]})) && printf '%s\n' "${keep[@]}" | jq -R . | jq -sc . || echo '[]')" \
+      '.permissions.allow = $keep' "$file" >"$tmp" && chmod --reference="$file" "$tmp" && mv -f "$tmp" "$file"
+    echo "fixed: $file ($found rule(s) removed, backup kept)"
+  else
+    total=$((total + found))
+  fi
+done < <(fd -H -t f -E node_modules -p '/\.claude/settings(\.local)?\.json$' "${roots[@]}" -0 2>/dev/null)
+
+if ((total)); then
+  echo "$total risky rule(s); review them, or run: claude-perms-audit --fix ${roots[*]}" >&2
+  exit 1
+fi
+((FIX)) || echo "no risky permission rules found"
+exit 0
