@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Run pi (or any command) in a bubblewrap sandbox confined to the project.
+#   - Read-write: only the project (the git root, or the current folder).
+#   - Read-only: the system (/usr, /etc) and the pi install (~/.pi/agent), so
+#     pi cannot rewrite its own config.
+#   - Invisible: the rest of HOME (~/.ssh, ~/.config/gh, restic password,
+#     ~/.claude, sibling projects) and the host /tmp.
+#   - Sessions go to ~/.local/state/pi-box/sessions.
+# The network is shared with the host (pi needs ollama on localhost), so this
+# confines files, not network access.
+#
+# Usage: pi-box [pi args...]        run pi
+#        pi-box -- CMD [ARGS...]    run another command (e.g. bash) in the box
+set -euo pipefail
+
+command -v bwrap >/dev/null || {
+  echo "missing dependency: bwrap (sudo pacman -S bubblewrap)" >&2
+  exit 1
+}
+
+pi_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# The project becomes writable, so it must never be HOME, / or a parent of HOME.
+case "$HOME/" in
+  "${root%/}/"*)
+    echo "pi-box: refusing to open $root: it contains HOME, so nothing would be confined. Run it from a project folder." >&2
+    exit 1
+    ;;
+esac
+state=${XDG_STATE_HOME:-$HOME/.local/state}/pi-box
+mkdir -p "$state/sessions"
+
+if [[ ${1:-} == -- ]]; then
+  shift
+  cmd=("$@")
+else
+  cmd=("$pi_dir/bin/pi" "$@")
+fi
+
+args=(
+  --ro-bind /usr /usr
+  --symlink usr/bin /bin
+  --symlink usr/bin /sbin
+  --symlink usr/lib /lib
+  --symlink usr/lib /lib64
+  --ro-bind /etc /etc
+  --ro-bind-try /opt /opt
+  --ro-bind-try /run/systemd/resolve /run/systemd/resolve
+  --proc /proc
+  --dev /dev
+  --tmpfs /tmp
+  --tmpfs "$HOME"
+  --overlay-src "$pi_dir" --tmp-overlay "$pi_dir"
+  --bind "$state" "$state"
+  --bind "$root" "$root"
+  --chdir "$PWD"
+  --setenv HOME "$HOME"
+  --setenv PATH "$pi_dir/bin:/usr/local/bin:/usr/bin"
+  --setenv PI_CODING_AGENT_SESSION_DIR "$state/sessions"
+  --unshare-all
+  --share-net
+  --die-with-parent
+)
+# Without the kernel's TIOCSTI block, a sandboxed process could inject input
+# into the parent terminal; a new session prevents that (at the cost of job control).
+if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
+  args+=(--new-session)
+fi
+
+exec bwrap "${args[@]}" "${cmd[@]}"
