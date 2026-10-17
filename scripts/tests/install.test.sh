@@ -26,7 +26,11 @@ case "$1 $2 ${3:-}" in
 esac
 exit 0
 EOF
-  chmod +x "$home/bin/claude"
+  cat >"$home/bin/systemctl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$FAKE_CLAUDE_STATE/systemctl"
+EOF
+  chmod +x "$home/bin/claude" "$home/bin/systemctl"
   printf '%s\n' "$home"
 }
 
@@ -36,7 +40,7 @@ LAST_EXIT=0
 install() {
   local home=$1
   shift
-  LAST_OUTPUT=$(env -u XDG_BIN_HOME HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
+  LAST_OUTPUT=$(env -u XDG_BIN_HOME -u XDG_CONFIG_HOME HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
     GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
     FAKE_CLAUDE_STATE="$home/state" PATH="$home/bin:$PATH" \
     bash "$INSTALL" "$@" 2>&1)
@@ -53,7 +57,8 @@ snapshot() {
     else
       printf 'file %s %s\n' "${path#"$home"}" "$(sha256sum <"$path" | cut -d' ' -f1)"
     fi
-  done < <(find "$home/.claude" "$home/.gitconfig" "$home/.local/bin" \( -type f -o -type l \) 2>/dev/null | sort)
+  done < <(find "$home/.claude" "$home/.gitconfig" "$home/.local/bin" "$home/.config/systemd" \
+    \( -type f -o -type l \) 2>/dev/null | sort)
 }
 
 # assert LABEL CONDITION...: run a test command and record PASS/FAIL.
@@ -89,6 +94,12 @@ assert 'output style is linked' test -L "$home/.claude/output-styles/gentleman.m
 assert 'settings.json is created' test -f "$home/.claude/settings.json"
 assert 'git hooksPath points to the repo' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+assert 'backup timer unit is linked' \
+  same "$(readlink "$home/.config/systemd/user/engram-backup.timer")" "$ROOT/systemd/engram-backup.timer"
+assert 'backup service unit is linked' test -L "$home/.config/systemd/user/engram-backup.service"
+assert 'timer is not enabled before engram-backup is configured' \
+  test -z "$(rg 'enable' "$home/state/systemctl" 2>/dev/null)"
+assert 'unconfigured backup explains the next step' rg -q 'engram-backup --init' <<<"$LAST_OUTPUT"
 assert 'ai-update is linked into ~/.local/bin' \
   same "$(readlink "$home/.local/bin/ai-update")" "$ROOT/bin/ai-update"
 assert 'missing ~/.local/bin on PATH is reported' rg -q 'not on PATH' <<<"$LAST_OUTPUT"
@@ -140,6 +151,16 @@ install "$home"
 assert 'foreign hooksPath is left alone' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" /elsewhere
 assert 'foreign hooksPath is reported' rg -q 'skip: global core.hooksPath' <<<"$LAST_OUTPUT"
+
+echo "== configured backup =="
+
+home=$(sandbox backup-ready)
+mkdir -p "$home/.config/restic"
+printf 'ENGRAM_BACKUP_REPOS="/tmp/x"\n' >"$home/.config/restic/engram.env"
+install "$home"
+assert 'configured backup enables the timer' \
+  rg -qxF -- '--user enable --now engram-backup.timer' "$home/state/systemctl"
+assert 'units are reloaded before enabling' rg -qxF -- '--user daemon-reload' "$home/state/systemctl"
 
 echo "== dry run =="
 

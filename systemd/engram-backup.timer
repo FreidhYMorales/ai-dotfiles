@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily engram backup
+
+[Timer]
+OnCalendar=daily
+# Run at the next boot when the machine was off at the scheduled time.
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

@@ -4,7 +4,9 @@
 #   - Merges claude/settings.json into ~/.claude/settings.json (Claude Code
 #     rewrites that file itself, so it is merged, never symlinked).
 #   - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
-#   - Symlinks bin/* (e.g. ai-update) into ~/.local/bin.
+#   - Symlinks bin/* (e.g. ai-update, engram-backup) into ~/.local/bin.
+#   - Symlinks systemd/* user units and enables the engram backup timer once
+#     engram-backup is configured.
 #   - Registers this repo as a plugin marketplace and installs the `flow`,
 #     `sdd` and `toolkit` plugins.
 #
@@ -96,6 +98,24 @@ link_bin() {
   esac
 }
 
+# systemd user units (engram backup timer). The timer is enabled only once
+# engram-backup is configured, so it never fails daily on a fresh machine.
+install_units() {
+  local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
+  local backup_env="${XDG_CONFIG_HOME:-$HOME/.config}/restic/engram.env"
+  for src in "$REPO_DIR"/systemd/*.{service,timer}; do
+    [[ -e "$src" ]] || continue
+    link_file "$src" "$unit_dir/$(basename "$src")"
+  done
+  command -v systemctl >/dev/null || return 0
+  run systemctl --user daemon-reload
+  if [[ -f "$backup_env" ]]; then
+    run systemctl --user enable --now engram-backup.timer
+  else
+    echo "next: create $backup_env, run 'engram-backup --init', then re-run ./install.sh to enable the daily timer"
+  fi
+}
+
 # Global git hooks: gitleaks on pre-commit, then chain to each repo's own hooks.
 GIT_HOOKS=(pre-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push)
 
@@ -140,6 +160,7 @@ main() {
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
   link_output_styles
   link_bin
+  install_units
   merge_settings
   install_git_hooks
   install_plugins

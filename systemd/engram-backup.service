@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up engram memory with restic
+Documentation=file://%h/.local/bin/engram-backup
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/engram-backup
+Nice=10
+IOSchedulingClass=idle
