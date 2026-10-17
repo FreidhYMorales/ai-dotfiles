@@ -18,7 +18,8 @@ test:
 	@bash scripts/run-tests.sh
 
 # Skill evals run real Claude sessions (they use the plan's quota), so they are
-# not part of `check`. Usage: make eval PLUGIN=flow [CASE=<glob>]
+# not part of `check`. --scaffold runs our own cases' scaffold.sh to seed the
+# workspace. Usage: make eval PLUGIN=flow [CASE=<glob>]
 PLUGIN ?= flow
 eval:
-	@cd plugins/$(PLUGIN) && claude plugin eval . --no-publish --trust-plugin --max-cost-usd 6 $(if $(CASE),--case '$(CASE)')
+	@cd plugins/$(PLUGIN) && claude plugin eval . --scaffold --no-publish --trust-plugin --max-cost-usd 6 $(if $(CASE),--case '$(CASE)')
