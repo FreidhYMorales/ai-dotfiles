@@ -6,7 +6,7 @@ here=$(dirname "${BASH_SOURCE[0]}")
 root=${1:-$here/..}
 
 steps=(shell:check-shell.sh json:check-json.sh structure:check-structure.sh
-  settings:check-settings.sh skills:check-skills.sh tests:run-tests.sh)
+  settings:check-settings.sh skills:check-skills.sh workflows:check-workflows.sh tests:run-tests.sh)
 failed=()
 for step in "${steps[@]}"; do
   name=${step%%:*}

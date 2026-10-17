@@ -54,7 +54,7 @@ output_has() {
 }
 
 echo "== baseline =="
-for s in check-shell.sh check-json.sh check-structure.sh check-settings.sh check-skills.sh run-tests.sh; do
+for s in check-shell.sh check-json.sh check-structure.sh check-settings.sh check-skills.sh check-workflows.sh run-tests.sh; do
   expect 0 "valid fixture passes $s" "$s" "$(fixture "ok-$s")"
 done
 
@@ -142,6 +142,49 @@ printf '#!/usr/bin/env bash\nexit 0\n' >"$root/scripts/good.test.sh"
 printf '#!/usr/bin/env bash\nexit 1\n' >"$root/plugins/p/hooks/bad.test.sh"
 expect 1 'a failing test file fails' run-tests.sh "$root"
 output_has 'names the failing test file' 'plugins/p/hooks/bad.test.sh'
+
+echo "== check-workflows =="
+# workflow ROOT CONTENT: write .github/workflows/ci.yml in ROOT.
+workflow() {
+  mkdir -p "$1/.github/workflows"
+  printf '%s\n' "$2" >"$1/.github/workflows/ci.yml"
+}
+good_workflow='on: push
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo ok'
+# shellcheck disable=SC2016 # ${{ }} is GitHub expression syntax, not shell.
+bad_workflow='on: push
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "${{ github.nope }}"'
+
+root=$(fixture wf-none)
+expect 0 'no workflows passes' check-workflows.sh "$root"
+
+root=$(fixture wf-skip)
+workflow "$root" "$bad_workflow"
+export ACTIONLINT=no-such-actionlint
+expect 0 'missing actionlint skips' check-workflows.sh "$root"
+output_has 'skip is reported' 'actionlint not installed'
+unset ACTIONLINT
+
+if command -v actionlint >/dev/null 2>&1; then
+  root=$(fixture wf-good)
+  workflow "$root" "$good_workflow"
+  expect 0 'valid workflow passes' check-workflows.sh "$root"
+
+  root=$(fixture wf-bad)
+  workflow "$root" "$bad_workflow"
+  expect 1 'invalid workflow fails' check-workflows.sh "$root"
+  output_has 'names the bad property' 'nope'
+else
+  echo 'SKIP  actionlint not installed; lint cases not run'
+fi
 
 echo "== check (aggregate) =="
 expect 0 'valid fixture passes all steps' check.sh "$(fixture agg-ok)"

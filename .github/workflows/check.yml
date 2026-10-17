@@ -35,5 +35,17 @@ jobs:
           sudo install -m 755 shfmt /usr/local/bin/shfmt
           rm shfmt
           shfmt --version
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$tarball" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}"
+          echo "${ACTIONLINT_SHA256}  ${tarball}" | sha256sum -c -
+          tar -xzf "$tarball" actionlint
+          sudo install -m 755 actionlint /usr/local/bin/actionlint
+          rm "$tarball" actionlint
+          actionlint --version
       - name: make check
         run: make check
