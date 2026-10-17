@@ -66,6 +66,8 @@ make validate
 make test
 ```
 
+Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check that skills fire when they should, stay quiet when they should not, and change the outcome versus a no-plugin baseline. They run real sessions, so they are not part of `make check`: run `make eval PLUGIN=flow` after changing a skill.
+
 `make check` needs `shellcheck`; `shfmt` is used when installed. CI pins shfmt to the version Arch ships (currently v3.14.1); bump `SHFMT_VERSION` and `SHFMT_SHA256` in the workflow when Arch updates it, since releases format some constructs differently. CI runs `make check` on every push to `main` and every pull request.
 
 ## Roadmap
@@ -78,7 +80,8 @@ make test
 - [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
 - [x] Verification harness: `make check` + `require-check` Stop hook
 - [ ] Mutation testing for hooks
-- [ ] `claude plugin eval` suites for skills
+- [x] `claude plugin eval` suite for `flow` (plan, idea, should-not-fire)
+- [ ] Eval suites for `toolkit` and `sdd`
 - [x] CI running `make check` (`.github/workflows/check.yml`)
 - [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
 - [ ] OpenCode and Gemini support

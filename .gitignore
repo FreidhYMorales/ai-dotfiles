@@ -8,3 +8,4 @@
 *.db-shm
 .engram/
 .atl/
+plugins/*/evals/results/
