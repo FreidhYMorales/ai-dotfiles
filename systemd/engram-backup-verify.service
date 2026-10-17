@@ -1,0 +1,9 @@
+[Unit]
+Description=Verify engram backups (restic check + test restore)
+Documentation=file://%h/.local/bin/engram-backup
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/engram-backup --verify
+Nice=10
+IOSchedulingClass=idle

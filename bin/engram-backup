@@ -40,7 +40,7 @@ STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/engram-backup
 HOST=${HOSTNAME:-$(uname -n)}
 failed=()
 
-for tool in restic sqlite3; do
+for tool in restic sqlite3 jq; do
   command -v "$tool" >/dev/null || {
     echo "missing dependency: $tool" >&2
     exit 1
@@ -83,7 +83,8 @@ init() {
 backup() {
   if [[ ! -f $DATA_DIR/engram.db ]]; then
     echo "error: engram.db not found in $DATA_DIR" >&2
-    exit 1
+    failed+=("$DATA_DIR/engram.db (not found)")
+    return
   fi
   rm -rf "$STAGING" && mkdir -p "$STAGING"
   sqlite3 "$DATA_DIR/engram.db" ".backup '$STAGING/engram.db'" || exit 1
@@ -129,6 +130,16 @@ verify() {
 }
 
 "$MODE"
+
+# Record the outcome for the toolkit backup-status hook (backup.json, verify.json).
+if [[ $MODE != init ]]; then
+  mkdir -p "$STATE_DIR"
+  status_file="$STATE_DIR/$MODE.json"
+  jq -n --arg mode "$MODE" --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --argjson failed "$(printf '%s\n' "${failed[@]}" | jq -R . | jq -sc 'map(select(length > 0))')" \
+    '{mode: $mode, time: $time, ok: ($failed | length == 0), failed: $failed}' \
+    >"$status_file.tmp" && mv -f "$status_file.tmp" "$status_file"
+fi
 
 if ((${#failed[@]})); then
   printf 'error: %s failed for: %s\n' "$MODE" "${failed[*]}" >&2

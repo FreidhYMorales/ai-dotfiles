@@ -118,8 +118,9 @@ install_units() {
   run systemctl --user daemon-reload
   if [[ -f "$backup_env" ]]; then
     run systemctl --user enable --now engram-backup.timer
+    run systemctl --user enable --now engram-backup-verify.timer
   else
-    echo "next: create $backup_env, run 'engram-backup --init', then re-run ./install.sh to enable the daily timer"
+    echo "next: create $backup_env, run 'engram-backup --init', then re-run ./install.sh to enable the daily backup and weekly verify timers"
   fi
 }
 

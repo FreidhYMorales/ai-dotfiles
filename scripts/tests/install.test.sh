@@ -169,6 +169,9 @@ install "$home"
 assert 'configured backup enables the timer' \
   rg -qxF -- '--user enable --now engram-backup.timer' "$home/state/systemctl"
 assert 'units are reloaded before enabling' rg -qxF -- '--user daemon-reload' "$home/state/systemctl"
+assert 'configured backup enables the weekly verify timer' \
+  rg -qxF -- '--user enable --now engram-backup-verify.timer' "$home/state/systemctl"
+assert 'verify timer unit is linked' test -L "$home/.config/systemd/user/engram-backup-verify.timer"
 
 echo "== dry run =="
 

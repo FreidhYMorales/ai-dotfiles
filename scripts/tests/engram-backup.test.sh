@@ -63,6 +63,7 @@ assert() {
 }
 
 says() { [[ $LAST_OUTPUT == *"$1"* ]]; }
+json_ok() { jq -e "$2" "$1" >/dev/null 2>&1; }
 same() { [[ $1 == "$2" ]]; }
 
 echo "== init =="
@@ -104,6 +105,9 @@ assert 'unchanged database adds no snapshot' same "$(snapshots "$home" "$home/re
 sqlite3 "$home/.engram/engram.db" "INSERT INTO observations VALUES ('new');"
 backup "$home"
 assert 'changed database adds a snapshot' same "$(snapshots "$home" "$home/repo-a")" 2
+status_file="$home/.local/state/engram-backup/backup.json"
+assert 'a successful backup records its status' json_ok "$status_file" '.ok == true and .mode == "backup" and (.failed | length) == 0'
+assert 'the status records when it ran' json_ok "$status_file" '(.time | fromdateiso8601) > (now - 300)'
 
 echo "== verify =="
 
@@ -111,6 +115,8 @@ backup "$home" --verify
 assert 'verify succeeds' test "$LAST_EXIT" -eq 0
 assert 'verify checks database integrity' says 'integrity ok'
 assert 'verify reads the restored data' says '2 observation'
+assert 'verify records its own status' \
+  json_ok "$home/.local/state/engram-backup/verify.json" '.ok == true and .mode == "verify"'
 
 echo "== failures =="
 
@@ -121,12 +127,16 @@ backup "$home"
 assert 'a failing repository fails the run' test "$LAST_EXIT" -ne 0
 assert 'the failing repository is named' says 'missing-repo'
 assert 'the healthy repository is still backed up' same "$(snapshots "$home" "$home/repo-a")" 1
+assert 'a failed backup records the failing repository' \
+  json_ok "$home/.local/state/engram-backup/backup.json" '.ok == false and (.failed | any(test("missing-repo")))'
 
 home=$(sandbox nodb)
 rm "$home/.engram/engram.db"
 backup "$home"
 assert 'missing database fails' test "$LAST_EXIT" -ne 0
 assert 'missing database is reported' says 'engram.db not found'
+assert 'missing database is recorded as a failure' \
+  json_ok "$home/.local/state/engram-backup/backup.json" '.ok == false and (.failed | any(test("engram.db")))'
 
 home=$(sandbox noconfig)
 rm "$home/.config/restic/engram.env"
