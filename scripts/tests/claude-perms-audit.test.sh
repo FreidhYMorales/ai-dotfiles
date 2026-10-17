@@ -24,7 +24,7 @@ settings "$home/risky" settings.local.json \
   'Bash(pdfinfo __TRACKED_VAR__/x.pdf)' \
   "Bash(rm -rf $TMP_ROOT/tmp/claude-1000/-proj/dead-session/scratchpad/x)" \
   "Bash(mkdir -p $live_session/scratchpad/y)" \
-  'Bash(eza *)' 'Bash(npm run test)' 'Read(//mnt/backup/**)'
+  'Bash(eza *)' 'Bash(npm run test)' 'Read(//mnt/backup/**)' 'Bash(sudo:*)'
 settings "$home/clean" settings.json 'Bash(npm run lint)' 'Bash(git status)'
 
 # audit [ARGS...]: run the audit; output in $LAST_OUTPUT.
@@ -56,6 +56,7 @@ audit "$home"
 assert 'findings exit 1' test "$LAST_EXIT" -eq 1
 assert 'interpreter wildcard (space form)' flags 'interpreter wildcard' 'Bash(python3 *)'
 assert 'interpreter wildcard (colon form)' flags 'interpreter wildcard' 'Bash(node:*)'
+assert 'interpreter wildcard (colon form with sudo)' flags 'interpreter wildcard' 'Bash(sudo:*)'
 assert 'any command' flags 'any command' 'Bash(*)'
 assert 'unrestricted write' flags 'any file' 'Write'
 assert 'unrestricted edit' flags 'any file' 'Edit(**)'
