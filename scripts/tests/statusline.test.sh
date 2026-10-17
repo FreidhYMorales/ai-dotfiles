@@ -32,7 +32,10 @@ render() {
   local json=$1
   shift
   RAW=$(printf '%s' "$json" | env -u ZELLIJ_SESSION_NAME "$@" bash "$SCRIPT" 2>/dev/null)
-  LINE=$(printf '%s' "$RAW" | sd '\x1b\[[0-9;]*m' '')
+  # Strip ANSI colors in pure bash (no extra tools in CI).
+  LINE=$RAW
+  local ansi=$'\e\[[0-9;]*m'
+  while [[ $LINE =~ $ansi ]]; do LINE=${LINE/"${BASH_REMATCH[0]}"/}; done
 }
 
 # assert LABEL CONDITION...: run a test command and record PASS/FAIL.
