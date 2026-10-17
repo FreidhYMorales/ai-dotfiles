@@ -64,7 +64,11 @@ Strict TDD: write the failing test first.
 
 ## CI / deploy
 
-- Quality gate: `make check` (format check, lint, typecheck, tests); see `Makefile`.
+- Quality gate: `make check`, created by `/flow:bootstrap` from this recipe (in order):
+  1. Format check: `<command>`
+  2. Lint: `<command>`
+  3. Typecheck: `<command or "n/a: compiler covers it">`
+  4. Tests: `<command>`
 - CI on every PR: `make check` (<workflow file>).
 - Deploy target: <platform, trigger>.
 

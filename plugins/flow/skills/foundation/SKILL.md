@@ -1,10 +1,10 @@
 ---
 name: foundation
-description: "Trigger: new project, greenfield, choose stack, architecture, folder structure, conventions, project setup, AGENTS.md, /flow:foundation. Choose stack, architecture style and conventions proportional to the project; write architecture.md, ADRs and AGENTS.md."
+description: "Trigger: new project, greenfield, choose stack, architecture, folder structure, conventions, project setup, AGENTS.md, /flow:foundation. Choose stack, architecture style and conventions proportional to the project; write architecture.md, development.md, ADRs and AGENTS.md. Execution (repo, scaffold, Makefile) is /flow:bootstrap."
 license: MIT
 metadata:
   author: FreidhYMorales
-  version: "1.7"
+  version: "2.0"
 ---
 
 ## Activation Contract
@@ -24,8 +24,8 @@ Load during planning of a greenfield project (or one with no established convent
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
 - Delegate broad reading (4+ files) or library/hosting research to one research subagent (context7 MCP for library docs); cite its findings.
 - Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`; one topic per decision, never reused for a different one, since a reused topic overwrites the earlier entry). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
-- Every project gets a `Makefile` with a `check` target (format check, lint, typecheck if the language has one, tests) and at least one passing smoke test, so `make check` is green from day one (`templates/check.md`). Not optional, whatever the stack: wrap the native tools. The toolkit Stop hook blocks agents from finishing while it fails.
-- Never scaffold, move files, create remotes or install dependencies without explicit approval. Bootstrap asks for ONE approval of the full, filled-in plan, then runs it without further stops.
+- Every project gets a `make check` quality gate (format check, lint, typecheck when the language has one, tests), whatever the stack. Record the exact commands in `docs/architecture.md`; `/flow:bootstrap` creates the Makefile and a smoke test. Read-only and non-interactive: no `--watch`, no auto-fix.
+- This skill writes only the docs and `.claude/settings.json`. Scaffolding, installs, file moves and remotes belong to `/flow:bootstrap`.
 
 ## Decision Gates
 
@@ -37,8 +37,7 @@ Load during planning of a greenfield project (or one with no established convent
 | Required capability (offline, maps, realtime, auth) narrows the stack | Verify library support via research subagent before recommending |
 | Candidate pattern adds layers the domain does not need | Flag it as over-engineering and recommend the simpler option |
 | No UI in the project | Skip step 10 and write "n/a" |
-| No `.git` or no `origin` remote | Include `git init` / `gh repo create` in the bootstrap plan (step 13) |
-| Existing files do not match the chosen structure | Audit mode: propose a migration table, apply with `git mv` on a branch (step 13) |
+| Existing files do not match the chosen structure | Document the target tree; `/flow:bootstrap` proposes the migration |
 | `.claude/settings.json` already exists | Merge: keep existing rules, propose only missing ones |
 | Windows is a supported dev OS | Commit `.gitattributes` with `* text=auto eol=lf`; otherwise Git for Windows checks out CRLF and format checks fail on the first clone |
 | A supported dev OS lacks a required tool (e.g. `make` on Windows) | Document its install for that OS (winget/scoop/choco, or WSL/devcontainer) in `docs/development.md`; never drop `make check` |
@@ -55,7 +54,7 @@ Load during planning of a greenfield project (or one with no established convent
    5. Mixed stacks (e.g. a Python ML service behind a TS app) only when a capability has no viable option in the main stack; state the extra ops cost.
 3. **Architecture style**: 2–3 ASCII folder-tree variants proportional to size (feature-based "screaming" for small apps; hexagonal/clean only when domain complexity or multiple adapters justify it). User picks/mixes.
 4. **Conventions**: naming, formatter/linter (exact tools), conventional commits, branching/PR flow, dependency policy (allowlist: no new deps without approval).
-5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands. Compose the `make check` recipe from the chosen format/lint/typecheck/test commands (`templates/check.md`).
+5. **Testing**: layers and tools; MUST test domain logic, contracts, golden tests from source material; test commands. Compose the `make check` recipe from the chosen format/lint/typecheck/test commands and record it in `docs/architecture.md`.
 6. **Config, secrets & dev environment**: `.env.example`, `.gitignore` entries, where CI/deploy secrets live. Pin toolchain versions in files the tools read (`.tool-versions`/mise, `.nvmrc`, `.python-version`, `rust-toolchain.toml`) and install them through a version manager that honors the pin (nvm-windows, fnm, mise, uv), never a "latest LTS" package that drifts from it. For each supported dev OS, list prerequisites with exact install commands for its package manager and how to run `make check` there; propose a devcontainer only when dev OSes diverge enough to justify it. Fill in `templates/development.md`.
 7. **CI and deploy**: CI runs `make check` on every PR; deploy target.
 8. **Agent permissions**: build the project `.claude/settings.json` from `templates/permissions.md` using the exact test/lint/format/typecheck/build commands decided above. Show the three tiers (allow/ask/deny) and confirm before writing.
@@ -63,15 +62,13 @@ Load during planning of a greenfield project (or one with no established convent
 10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
 11. Write `docs/architecture.md` (`templates/architecture.md`), `docs/development.md` (`templates/development.md`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`templates/adr.md`), `AGENTS.md` (`templates/agents.md`) a `CLAUDE.md` containing only `@AGENTS.md`, and `.claude/settings.json` (step 8); add `.claude/settings.local.json` to `.gitignore`.
 12. Update the plan's `## Foundation` section with links and a 3–5 line summary. Resolve plans exactly like `/flow:plan`: `openspec/changes/*/plan.md`, then `docs/plans/*/plan.md` (no depth limit). Several → ask which; none → say so.
-13. **Bootstrap**: fill in `templates/bootstrap.md` (greenfield: git init, tree, tooling, first commit, `gh repo create`; existing project: migration table + `git mv` on a branch) and present it as one plan. On approval, run it end to end; on any failure, stop and report.
-14. Tell the user next: `/flow:plan-review`, then `/flow:split` inlines these conventions into every work package.
+13. Tell the user next: `/flow:bootstrap` (creates the repo, tree, tooling and green `make check`, or the reorganization PR), then `/flow:plan-review`; `/flow:split` later inlines these conventions into every work package.
 
 ## Output Contract
 
-- `docs/architecture.md`, `docs/development.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`, `Makefile` with a green `check` target.
+- `docs/architecture.md`, `docs/development.md`, `docs/adr/NNNN-<slug>.md` per major decision, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.claude/settings.json`, with the `make check` recipe recorded in `docs/architecture.md`.
 - Updated plan `Foundation` section; engram entry per decision.
-- Repo created and pushed (greenfield) or reorganization PR (existing), when approved.
-- Final message: chosen stack, style, key conventions, files written, repo URL or PR, next step.
+- Final message: chosen stack, style, key conventions, files written, next step `/flow:bootstrap`.
 
 ## References
 
@@ -79,6 +76,4 @@ Load during planning of a greenfield project (or one with no established convent
 - `templates/adr.md` — ADR template.
 - `templates/agents.md` — project AGENTS.md template.
 - `templates/development.md` — reproducible dev setup per supported dev OS.
-- `templates/bootstrap.md` — repo creation and folder reorganization sequences.
-- `templates/check.md` — `make check` recipes per stack.
 - `templates/permissions.md` — project permission tiers and base `.claude/settings.json`.

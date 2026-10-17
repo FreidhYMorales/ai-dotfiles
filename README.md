@@ -10,7 +10,7 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
 | `plugins/flow/` | Workflow plugin | `claude plugin install flow@ai-dotfiles` |
-| `plugins/flow/skills/` | `research`, `idea`, `plan`, `foundation`, `plan-review`, `fill-gaps`, `split`, `handoff`, `next`, `integrate` (templates in `<skill>/templates/`) | via plugin |
+| `plugins/flow/skills/` | `research`, `idea`, `plan`, `foundation`, `bootstrap`, `plan-review`, `fill-gaps`, `split`, `handoff`, `next`, `integrate` (templates in `<skill>/templates/`) | via plugin |
 | `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review` | via plugin |
 | `plugins/sdd/` | Spec-Driven Development: `/sdd:*` commands, lazy `sdd:orchestrator` skill, phase agents `sdd:sdd-*` (engram/openspec persistence, Strict TDD) | `claude plugin install sdd@ai-dotfiles` |
 | `plugins/sdd/upstream/` | Upstream origin of `sdd`/`toolkit` (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
@@ -24,7 +24,7 @@ Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemi
 ## Workflow
 
 ```
-research (optional) -> plan (scope + UX in parallel) -> foundation (new projects) -> plan-review
+research (optional) -> plan (scope + UX in parallel) -> foundation -> bootstrap (both for new projects) -> plan-review
   -> fill-gaps -> plan-review -> split (collaborative only) -> handoff -> implement -> integrate (teammates' packages)
 
 implement (SDD): /sdd:new | /sdd:ff -> /sdd:continue -> /sdd:apply -> /sdd:verify -> /sdd:archive
@@ -37,7 +37,8 @@ idea: enters at any time to triage a new idea (GO / DEFER / DROP / SPIKE)
 | `/flow:research` | Optional pre-planning research brief (prior art, libraries, policies), tagged v1/v2 |
 | `/flow:idea` | Triages an idea at any time: feasibility, effort, value, fit; GO/DEFER/DROP/SPIKE in `docs/ideas.md` |
 | `/flow:plan` | Scope + UX tracks: target platforms and distribution, 3 ASCII variants per screen, backend demands, `plan.md` |
-| `/flow:foundation` | New projects: chooses stack, proportional architecture, conventions; writes `docs/architecture.md`, `docs/development.md` (reproducible setup per supported dev OS), ADRs, `AGENTS.md`, and a `Makefile` with a `check` target plus a passing smoke test |
+| `/flow:foundation` | New projects: chooses stack, proportional architecture, conventions; writes `docs/architecture.md` (with the `make check` recipe), `docs/development.md` (reproducible setup per supported dev OS), ADRs, `AGENTS.md`, `.claude/settings.json` |
+| `/flow:bootstrap` | Executes foundation: git, folder tree, tooling, `Makefile` with a green `check` and a smoke test, first commit, GitHub repo; or a `git mv` reorganization PR. One approval for the whole plan |
 | `/flow:plan-review` | Blind review by the `plan-reviewer` agent: verdict, gaps, MUST/SHOULD/LATER cut |
 | `/flow:fill-gaps` | Resolves findings one question at a time; appends `Plan-review resolutions` |
 | `/flow:split` | Freezes contracts; writes paste-able work packages for teammates using browser AI |
@@ -58,7 +59,7 @@ Requires `jq`, `rg` and `claude`.
 
 ## Verification
 
-Agent output is accepted because it passes checks, not because someone read every line. Every repo (this one and projects created by `/flow:foundation`) exposes `make check`; the toolkit `require-check` Stop hook runs it before Claude can finish. Never weaken or skip a check to make it pass.
+Agent output is accepted because it passes checks, not because someone read every line. Every repo (this one and projects set up by `/flow:foundation` + `/flow:bootstrap`) exposes `make check`; the toolkit `require-check` Stop hook runs it before Claude can finish. Never weaken or skip a check to make it pass.
 
 ```bash
 make check   # all steps, summary of failures

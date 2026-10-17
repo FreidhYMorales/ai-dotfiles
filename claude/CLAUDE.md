@@ -25,7 +25,7 @@ Engram is the only memory system; native auto-memory is disabled.
 
 ## Workflow
 
-New features start with planning, not code: `/flow:research` (optional) -> `/flow:plan` -> `/flow:foundation` (new projects) -> `/flow:plan-review` -> `/flow:fill-gaps` -> `/flow:plan-review` -> `/flow:split` (collaborative only) -> `/flow:handoff`. Merge teammates' work with `/flow:integrate`; finished early? `/flow:next`; new idea? `/flow:idea`.
+New features start with planning, not code: `/flow:research` (optional) -> `/flow:plan` -> `/flow:foundation` -> `/flow:bootstrap` (both for new projects) -> `/flow:plan-review` -> `/flow:fill-gaps` -> `/flow:plan-review` -> `/flow:split` (collaborative only) -> `/flow:handoff`. Merge teammates' work with `/flow:integrate`; finished early? `/flow:next`; new idea? `/flow:idea`.
 
 SDD commands are `/sdd:*`; before any SDD routing load the `sdd:orchestrator` skill. Strict TDD: enabled.
 

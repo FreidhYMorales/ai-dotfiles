@@ -1,4 +1,4 @@
-# Project bootstrap template
+# Bootstrap sequences
 
 Show the full plan below (filled in) and get ONE approval for the whole sequence. Stop at the first failing command and report it; do not improvise around it.
 
@@ -16,7 +16,7 @@ Show the full plan below (filled in) and get ONE approval for the whole sequence
 1. `git init -b main` (skip if `.git` exists).
 2. Write `.gitignore` (stack template + `.env`, `.env.*.local`, `.claude/settings.local.json`) and `.env.example`.
 3. Create the chosen folder tree; add `.gitkeep` only to empty leaf folders.
-4. Write tooling config decided in Conventions (formatter, linter, typecheck, test runner), the project `.claude/settings.json`, and a `Makefile` whose `check` target runs format check, lint, typecheck and tests (`templates/check.md`). Mandatory for every stack.
+4. Write the tooling config recorded in `docs/architecture.md` (formatter, linter, typecheck, test runner) and a `Makefile` whose `check` target runs the quality-gate recipe recorded there (`check.md`). Mandatory for every stack. `.claude/settings.json` and the docs already exist (written by `/flow:foundation`); do not rewrite them.
 5. Install dependencies only if approved in this same plan (listed by name and version).
 6. Write one smoke test (e.g. the entry module loads, or `1 + 1 == 2` against the test runner) and run `make check`: it MUST pass before the first commit. An empty suite does not count.
 7. Commit: `chore: bootstrap project` (docs from Foundation may go in the same commit).
@@ -28,7 +28,7 @@ Show the full plan below (filled in) and get ONE approval for the whole sequence
 Never move files without a migration table the user approved.
 
 1. Verify a clean working tree (`git status --porcelain` empty); otherwise stop and ask the user to commit or stash.
-2. Run tests/build and record the baseline result. If there is no `Makefile` with a `check` target, add one (`templates/check.md`) in its own commit before any move.
+2. Run tests/build and record the baseline result. If there is no `Makefile` with a `check` target, add one (`check.md`) in its own commit before any move.
 3. Present the migration table:
 
    | From | To | Reason |

@@ -9,7 +9,7 @@
     {
       "name": "flow",
       "description": "Planning-first workflow: research, scope + UX planning, review, gap filling and handoff to implementation.",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "source": "./plugins/flow",
       "category": "productivity"
     },
