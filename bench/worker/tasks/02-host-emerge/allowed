@@ -1,0 +1,2 @@
+plugins/toolkit/hooks/host-info.sh
+plugins/toolkit/hooks/tests/host-info.test.sh
