@@ -1,15 +1,15 @@
 ---
 name: cli-tools
-description: "Trigger: shell commands, Bash tool, search files, find files, edit config, JSON/YAML, refactor, benchmarks, legacy-cli hook block. Pick the modern CLI tool for each task and use its flags correctly."
+description: "Trigger: writing or suggesting shell commands (for the Bash tool or for the user to run), Bash tool, search files, find files, edit config, JSON/YAML, refactor, benchmarks, legacy-cli hook block. Pick the modern CLI tool for each task and use its flags correctly."
 license: Apache-2.0
 metadata:
   author: FreidhYMorales
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
 
-Load this skill before running shell commands through the Bash tool, and whenever the `prefer-modern-cli` hook blocks a command.
+Load this skill before running shell commands through the Bash tool, before giving the user commands to run, and whenever the `prefer-modern-cli` hook blocks a command.
 
 - Prefer Claude Code's dedicated tools when they fit: Grep (ripgrep-based) for content search, Glob for file names, Read for viewing files, Edit for targeted changes.
 - This skill governs what goes inside Bash commands.
