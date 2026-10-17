@@ -42,6 +42,17 @@ classify() {
   fi
 }
 
+# settings_files ROOT...: NUL-separated .claude/settings*.json paths. Uses fd
+# when it works, else POSIX find, so the audit also runs where fd is missing.
+settings_files() {
+  if fd --version >/dev/null 2>&1; then
+    fd -H -t f -E node_modules -p '/\.claude/settings(\.local)?\.json$' "$@" -0 2>/dev/null
+  else
+    find "$@" -name node_modules -prune -o -type f \
+      \( -path '*/.claude/settings.json' -o -path '*/.claude/settings.local.json' \) -print0 2>/dev/null # legacy-cli
+  fi
+}
+
 total=0
 while IFS= read -r -d '' file; do
   mapfile -t rules < <(jq -r '.permissions.allow // [] | .[]' "$file" 2>/dev/null)
@@ -66,7 +77,7 @@ while IFS= read -r -d '' file; do
   else
     total=$((total + found))
   fi
-done < <(fd -H -t f -E node_modules -p '/\.claude/settings(\.local)?\.json$' "${roots[@]}" -0 2>/dev/null)
+done < <(settings_files "${roots[@]}")
 
 if ((total)); then
   echo "$total risky rule(s); review them, or run: claude-perms-audit --fix ${roots[*]}" >&2
