@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Opt-in packs of AI tools: add a pack to one project, keep the rest of the
+# machine untouched. Reads packs/packs.json from this repo.
+#
+# Usage: ai-pack hash DIR                       print the pinned tree hash of DIR
+#        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
+#        ai-pack unignore PACK [--cwd DIR]      suggest PACK again
+#
+# State: ~/.local/state/ai-pack/ (override: AI_PACK_STATE).
+set -u
+
+REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+LIB=$REPO_DIR/packs/lib
+STATE_DIR=${AI_PACK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/ai-pack}
+
+# shellcheck source=packs/lib/common.sh
+source "$LIB/common.sh"
+# shellcheck source=packs/lib/state.sh
+source "$LIB/state.sh"
+# shellcheck source=packs/lib/tree.sh
+source "$LIB/tree.sh"
+# shellcheck source=packs/lib/cmd.sh
+source "$LIB/cmd.sh"
+
+case ${1:-} in
+  -h | --help)
+    awk 'NR > 1 && /^#/ {print substr($0, 3)} NR > 1 && !/^#/ {exit}' "$0"
+    exit 0
+    ;;
+esac
+
+check_deps || exit 1
+
+cmd=${1:-}
+[[ $# -gt 0 ]] && shift
+case $cmd in
+  hash) cmd_hash "$@" ;;
+  ignore) cmd_ignore "$@" ;;
+  unignore) cmd_unignore "$@" ;;
+  *) usage_error "unknown command: ${cmd:-<none>}" ;;
+esac
