@@ -93,15 +93,16 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Off-site engram backup: Google Drive via `rclone` repo, or a private git repo with `engram sync` (plaintext; `age` to encrypt)
 - [x] Pause/resume: `cz` (zellij session survives closing the terminal), `pause` hook (instant checkpoint), atomic settings write in `install.sh`
 - [ ] Lid-closed mode on Arch so work survives closing the laptop (thermal limits)
-- [ ] Local workers: pi + local models (ollama-vulkan) as Claude subagents. Done: ollama on the Arc iGPU (`OLLAMA_IGPU_ENABLE=1`), pi managed install, `pi-box` sandbox. Next: benchmark gpt-oss:20b vs qwen3-coder:30b, trial tasks, then decide on a `delegate-local` skill
+- [ ] Local workers (pi + ollama): **parked**, dotfiles stay Claude-first. Built: `pi-box`, `bench/worker`, draft `toolkit:delegate-local`. Results and how to resume: [docs/local-workers.md](docs/local-workers.md)
 - [ ] Worker isolation, step 2: a dedicated system user for the worker (project access via group/ACL) on top of `pi-box`
 - [x] Worker isolation, step 3: `pi-box` network limited to ollama (socat bridge; no internet, no other local services, no host DNS)
 - [ ] NPU: try OpenVINO for small models on the 47 TOPS NPU
 - [x] Backup observability: SessionStart notice when the last engram backup failed or is older than 2 days; weekly `engram-backup --verify`
 - [ ] Fresh-machine recovery test: clone -> install.sh -> restore engram from backup on a clean Arch container in CI
-- [ ] Upstream watch: list the repos we learn from (gentle-ai for sdd/toolkit, engram, gentle-shell (built on pi), Gentleman-Skills, gentle-agent-state, earendil-works/pi) with what we took and the last reviewed release; notify when they change and triage with `/flow:idea`
+- [ ] Upstream watch: list the repos we learn from (gentle-ai for sdd/toolkit, engram, gentle-shell (built on pi), Gentleman-Skills, gentle-agent-state, earendil-works/pi, affaan-m/ECC) with what we took and the last reviewed release; notify when they change and triage with `/flow:idea`
 - [x] Status line (context %, 5-hour quota, branch, zellij session)
 - [ ] Claude Code look and feel: theme, visual tweaks and TUI mods (panes, banners), keeping it functional first
 - [x] Permission hygiene: `claude-perms-audit` (manual; cleaned `python3 *` and dead rules on 2026-10-17)
 - [ ] Secret scan of engram memory: run gitleaks over the engram DB/export so a token saved by mistake does not live on in backups
+- [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets), one variable to disable hooks plus a minimal profile, a cap on SessionStart context (off for local-model setups), `install.sh --profile minimal`. Its Memory Vault overlaps engram: reference only
 - [ ] OpenCode and Gemini support
