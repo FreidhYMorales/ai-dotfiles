@@ -56,10 +56,10 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 2: PR 2a Skill add (spec: Preflight, Self-ignoring whole-dir, Journal after move, Adoption, Rollback, Re-sync)
 
-- [ ] 2.1 RED: `scripts/tests/ai-pack-skill.test.sh` (fixture manifest, tiny vendor dirs, stubs): add new, two-worktree clean `git status`, missing requirement writes nothing, foreign target refused, adopt by hash, edited copy warns and unchanged, re-sync with `mv -T --exchange` and no nesting, second tool fails then rollback, stale stage deleted, notice "run /reload-plugins".
-- [ ] 2.2 GREEN: `tree.sh` (`stage_new`, `clean_stages`) and `plan.sh` (classification, preflight, apply, `undo_push`/`undo_run`, `trap` INT/TERM).
-- [ ] 2.3 GREEN: `cmd_add` for vendored sources and journal commit in `cmd.sh`.
-- [ ] 2.4 REFACTOR: `bash scripts/tests/ai-pack-skill.test.sh` plus `make check`.
+- [x] 2.1 RED: `scripts/tests/ai-pack-skill.test.sh` (fixture manifest, tiny vendor dirs, stubs): add new, two-worktree clean `git status`, missing requirement writes nothing, foreign target refused, adopt by hash, edited copy warns and unchanged, re-sync with `mv -T --exchange` and no nesting, second tool fails then rollback, stale stage deleted, notice "run /reload-plugins".
+- [x] 2.2 GREEN: `tree.sh` (`stage_new`, `clean_stages`) and `plan.sh` (classification, preflight, apply, `undo_push`/`undo_run`, `trap` INT/TERM).
+- [x] 2.3 GREEN: `cmd_add` for vendored sources and journal commit in `cmd.sh`.
+- [x] 2.4 REFACTOR: `bash scripts/tests/ai-pack-skill.test.sh` plus `make check`.
 
 ## Phase 3: PR 2b Fetched, template, shadow, list (spec: Pinned sources, List output, Shadow warning, Machine-wide upgrade view)
 
