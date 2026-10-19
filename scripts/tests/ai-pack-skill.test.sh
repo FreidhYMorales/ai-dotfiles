@@ -107,7 +107,9 @@ mk_manifest() {
              beta: tool(["beta", "beta"]; $hb; []),
              gamma: tool(["gamma", "beta"]; $hb; [{cmd: "no-such-cmd-xyz", hint: "sudo pacman -S foo"}]),
              bad: tool(["bad", "beta"]; "sha256:00"; []),
-             slow: tool(["slow", "slow"]; "sha256:00"; [])}}' >"$FIX/packs.json"
+             slow: tool(["slow", "slow"]; "sha256:00"; [])}}
+    | .tools.alpha.leftovers = [".claude/skills/alpha/out"]
+    | .packs.alone = {tools: ["alpha"], detect: {}}' >"$FIX/packs.json"
 }
 new_proj() {
   P="$TMP_ROOT/proj-$1"
@@ -338,6 +340,126 @@ jq '.tools["a-very-long-tool-name"] = .tools.beta' "$FIX/packs.json" >"$FIX/p4.j
 AI_PACK_MANIFEST="$FIX/p4.json" pack list --cwd "$P"
 assert 'long tool names keep the columns aligned' test "$(awk '/-- tools --/ { f = 1; next }
   f && /^ [^ ]/ { match($0, / (✔|·) /); print RSTART }' <<<"$LAST_OUTPUT" | sort -u | wc -l)" -eq 1
+
+echo "== remove =="
+nostage() { test -z "$(find "$P/.claude" -maxdepth 1 -name '.ai-pack-stage-*' 2>/dev/null)"; }
+new_proj rm
+pack add duo --cwd "$P"
+mkdir -p "$P/.claude/.ai-pack-stage-old"
+pack remove duo --cwd "$P"
+assert 'remove succeeds' exit_is 0
+assert 'remove deletes the first dir' absent "$P/.claude/skills/alpha"
+assert 'remove deletes the second dir' absent "$P/.claude/skills/beta"
+assert 'remove leaves no journal entry' test "$(journal --arg k "$P" '.projects[$k] // "none"')" = none
+assert 'remove cleans stale stages' nostage
+pack remove nope --cwd "$P"
+assert 'remove of an unknown name fails' exit_is 1
+new_proj rmedit
+pack add duo --cwd "$P"
+printf 'edited\n' >"$P/.claude/skills/alpha/SKILL.md"
+pack remove duo --cwd "$P"
+assert 'edited file: remove succeeds' exit_is 0
+assert 'edited file warns' says 'SKILL.md was changed by hand'
+assert 'edited file: tells how to re-add' says 'delete .claude/skills/alpha to re-add'
+assert 'edited file keeps the dir untouched' test "$(cat "$P/.claude/skills/alpha/sub/a")" = a
+assert 'edited file keeps the edit' test "$(cat "$P/.claude/skills/alpha/SKILL.md")" = edited
+assert 'other tool is still removed' absent "$P/.claude/skills/beta"
+assert 'edited tool loses its journal entry' test "$(journal --arg k "$P" '.projects[$k] // "none"')" = none
+new_proj rmextra
+pack add alpha --cwd "$P"
+printf 'mine\n' >"$P/.claude/skills/alpha/notes.md"
+pack remove alpha --cwd "$P"
+assert 'added file warns' says 'notes.md was changed by hand'
+assert 'added file is kept' test "$(cat "$P/.claude/skills/alpha/notes.md")" = mine
+assert 'added file keeps journaled files too' test -f "$P/.claude/skills/alpha/SKILL.md"
+new_proj rmleft
+pack add alpha --cwd "$P"
+mkdir -p "$P/.claude/skills/alpha/out"
+printf 'log\n' >"$P/.claude/skills/alpha/out/log"
+pack remove alpha --cwd "$P"
+assert 'leftover: journaled file removed' absent "$P/.claude/skills/alpha/SKILL.md"
+assert 'leftover: journaled subdir removed' absent "$P/.claude/skills/alpha/sub"
+assert 'leftover is kept' test "$(cat "$P/.claude/skills/alpha/out/log")" = log
+assert 'leftover keeps .gitignore so it stays ignored' has_line '*' "$P/.claude/skills/alpha/.gitignore"
+assert 'leftover is printed' says '.claude/skills/alpha/out'
+assert 'leftover does not warn' lacks 'warning'
+assert 'leftover stays out of git status' test -z "$(git -C "$P" status --porcelain)"
+new_proj rmhand
+pack add duo --cwd "$P"
+rm -rf "$P/.claude/skills/alpha"
+rm "$P/.claude/skills/beta/SKILL.md"
+pack remove duo --cwd "$P"
+assert 'hand-removed dir: remove succeeds' exit_is 0
+assert 'hand-removed dir: no warning' lacks 'warning'
+assert 'hand-removed file: dir is removed' absent "$P/.claude/skills/beta"
+assert 'hand-removed dir: no journal entry' test "$(journal --arg k "$P" '.projects[$k] // "none"')" = none
+
+echo "== remove shared tools =="
+new_proj shared
+pack add duo --cwd "$P"
+pack add alone --cwd "$P"
+pack remove duo --cwd "$P"
+assert 'shared tool stays when another pack needs it' test -f "$P/.claude/skills/alpha/SKILL.md"
+assert 'shared tool says who needs it' says 'alpha is still needed by alone'
+assert 'shared tool via drops the removed pack' test "$(journal --arg k "$P" '.projects[$k].tools.alpha.via | join(",")')" = alone
+assert 'unshared tool is removed' absent "$P/.claude/skills/beta"
+pack remove alone --cwd "$P"
+assert 'last pack removes the shared tool' absent "$P/.claude/skills/alpha"
+new_proj byname
+pack add duo --cwd "$P"
+pack remove alpha --cwd "$P"
+assert 'tool by name kept while a pack needs it' test -f "$P/.claude/skills/alpha/SKILL.md"
+assert 'tool by name says which pack' says 'alpha is still needed by duo'
+pack add alpha --cwd "$P"
+pack remove duo --cwd "$P"
+assert 'pack removal keeps a directly added tool' test -f "$P/.claude/skills/alpha/SKILL.md"
+assert 'direct add is named' says 'alpha is still needed by direct'
+pack remove alpha --cwd "$P"
+assert 'tool by name removes the last reason' absent "$P/.claude/skills/alpha"
+
+echo "== purge =="
+mk_machine() {
+  mkdir -p "$STATE"
+  jq -n --arg a "$1" --arg b "$2" --arg c "$3" \
+    '{schema_version: 1, tools: {alpha: {current: "v1", projects: [$a, $b, $c]}, beta: {current: "v1", projects: [$a]}}}' >"$STATE/machine.json"
+}
+mach() { jq -r "$@" "$STATE/machine.json"; }
+new_proj purge
+Q="$TMP_ROOT/other-live"
+D="$TMP_ROOT/dead-root"
+mkdir -p "$Q"
+mk_machine "$P" "$Q" "$D"
+pack add alpha --cwd "$P"
+exec 8>"$STATE/lock"
+flock -n 8
+AI_PACK_LOCK_WAIT=1 pack remove --purge alpha --cwd "$P"
+exec 8>&-
+assert 'purge needs the lock first' says 'holds the lock'
+assert 'locked purge touches nothing' test "$(mach '.tools.alpha.projects | length')" -eq 3
+pack remove --purge alpha --cwd "$P"
+assert 'purge refuses while another project uses the tool' exit_is 1
+assert 'refusal lists the project' says "still used by $Q; nothing removed"
+assert 'dead root is shown' says "$D"
+assert 'dead root is dropped before the refusal' test "$(mach '.tools.alpha.projects | index($d)' --arg d "$D")" = null
+assert 'refused purge keeps the files' test -f "$P/.claude/skills/alpha/SKILL.md"
+assert 'refused purge keeps the journal' test "$(journal --arg k "$P" '.projects[$k].tools.alpha.version')" = v1
+rm -rf "$Q"
+pack remove --purge alpha --cwd "$P"
+assert 'purge succeeds once the other root is gone' exit_is 0
+assert 'second dead root is shown' says "$Q"
+assert 'purge removes the project dir' absent "$P/.claude/skills/alpha"
+assert 'purge drops the machine entry' test "$(mach '.tools.alpha // "none"')" = none
+assert 'purge leaves other machine tools' test "$(mach '.tools.beta.current')" = v1
+new_proj purge2
+pack add duo --cwd "$P"
+mk_machine "$P" "$TMP_ROOT/none-a" "$TMP_ROOT/none-b"
+pack remove --purge alpha --cwd "$P"
+assert 'purge refuses when another pack here still needs it' exit_is 1
+assert 'that refusal names this project' says "still used by $P; nothing removed"
+assert 'that refusal removed nothing' test -f "$P/.claude/skills/beta/SKILL.md"
+pack remove duo --cwd "$P"
+assert 'plain remove leaves the machine entry' test "$(mach '.tools.alpha.current')" = v1
+assert 'plain remove drops this project from the refcount' test "$(mach '.tools.alpha.projects | index($p)' --arg p "$P")" = null
 
 if [[ $failures -gt 0 ]]; then
   printf '%d failure(s)\n' "$failures" >&2
