@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Watch the upstream repos these dotfiles learn from, listed in upstreams.json
+# with why each is watched and the last release or commit reviewed.
+#
+# Usage: upstream-watch              report what changed since the last review
+#        upstream-watch --refresh    update the state quietly (daily timer)
+#        upstream-watch --mark REPO  record REPO's latest as reviewed (or: all)
+#
+# State for the toolkit update-check hook: ~/.local/state/upstream-watch/state.json
+# (the hook only reads it, so session start never waits on GitHub).
+set -u
+
+REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+FILE=${UPSTREAMS_FILE:-$REPO_DIR/upstreams.json}
+STATE=${UPSTREAM_WATCH_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/upstream-watch/state.json}
+
+MODE=report
+MARK=""
+case ${1:-} in
+  "") ;;
+  --refresh) MODE=refresh ;;
+  --mark)
+    MODE=mark
+    MARK=${2:-}
+    [[ -n $MARK ]] || {
+      echo "usage: upstream-watch --mark REPO|all" >&2
+      exit 2
+    }
+    ;;
+  -h | --help)
+    awk 'NR > 1 && /^#/ {print substr($0, 3)} NR > 1 && !/^#/ {exit}' "$0"
+    exit 0
+    ;;
+  *)
+    echo "unknown argument: $1" >&2
+    exit 2
+    ;;
+esac
+
+for tool in gh jq; do
+  command -v "$tool" >/dev/null || {
+    echo "missing dependency: $tool" >&2
+    exit 1
+  }
+done
+
+# latest REPO WATCH: print "<id>\t<url>" of the newest release or commit.
+latest() {
+  local json
+  if [[ $2 == releases ]]; then
+    json=$(gh api "repos/$1/releases/latest" 2>/dev/null) || return 1
+    jq -r '[.tag_name, .html_url] | @tsv' <<<"$json"
+  else
+    json=$(gh api "repos/$1/commits?per_page=1" 2>/dev/null) || return 1
+    jq -r --arg r "$1" '[.[0].sha, "https://github.com/\($r)/commits"] | @tsv' <<<"$json"
+  fi
+}
+
+if [[ $MODE == mark ]]; then
+  [[ $MARK == all ]] || jq -e --arg r "$MARK" '.upstreams | any(.repo == $r)' "$FILE" >/dev/null || {
+    echo "not watched: $MARK" >&2
+    exit 1
+  }
+  updated=$(<"$FILE")
+  while IFS=$'\t' read -r repo watch; do
+    [[ $MARK == all || $MARK == "$repo" ]] || continue
+    if IFS=$'\t' read -r id _ < <(latest "$repo" "$watch"); then
+      updated=$(jq --arg r "$repo" --arg id "$id" '(.upstreams[] | select(.repo == $r)).reviewed = $id' <<<"$updated")
+      echo "reviewed: $repo @ $id"
+    else
+      echo "warning: $repo: could not check" >&2
+    fi
+  done < <(jq -r '.upstreams[] | [.repo, .watch] | @tsv' "$FILE")
+  tmp=$(mktemp "$FILE.tmp.XXXXXX")
+  printf '%s\n' "$updated" >"$tmp" && mv -f "$tmp" "$FILE"
+  exit 0
+fi
+
+changed='[]'
+lines=()
+while IFS=$'\t' read -r repo watch reviewed why; do
+  if ! IFS=$'\t' read -r id url < <(latest "$repo" "$watch"); then
+    lines+=("$repo: could not check (offline or rate-limited)")
+    continue
+  fi
+  [[ $id == "$reviewed" ]] && continue
+  if [[ $watch == releases ]]; then
+    lines+=("$repo: $reviewed -> $id  ($why)" "    $url")
+  else
+    compare=$(gh api "repos/$repo/compare/$reviewed...$id" 2>/dev/null) || compare='{}'
+    count=$(jq -r '.total_commits // "?"' <<<"$compare")
+    url=$(jq -r --arg u "$url" '.html_url // $u' <<<"$compare")
+    lines+=("$repo: $count new commit(s)  ($why)" "    $url")
+  fi
+  changed=$(jq --arg r "$repo" --arg from "$reviewed" --arg to "$id" --arg url "$url" \
+    '. + [{repo: $r, from: $from, to: $to, url: $url}]' <<<"$changed")
+done < <(jq -r '.upstreams[] | [.repo, .watch, .reviewed, .why] | @tsv' "$FILE")
+
+mkdir -p "$(dirname "$STATE")"
+jq -n --argjson changed "$changed" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{checked_at: $at, changed: $changed}' >"$STATE.tmp" && mv -f "$STATE.tmp" "$STATE"
+
+[[ $MODE == refresh ]] && exit 0
+if ((${#lines[@]})); then
+  printf '%s\n' "${lines[@]}"
+  [[ $changed != '[]' ]] && echo "Review them, then: upstream-watch --mark REPO (or all)"
+else
+  echo "all upstreams reviewed"
+fi

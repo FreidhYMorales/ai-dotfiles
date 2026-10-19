@@ -63,6 +63,14 @@ if command -v engram >/dev/null 2>&1; then
   fi
 fi
 
+# Upstream news: only read what the daily upstream-watch timer recorded, so
+# session start never waits on GitHub.
+UPSTREAM_STATE=${UPSTREAM_WATCH_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/upstream-watch/state.json}
+if [[ -f $UPSTREAM_STATE ]]; then
+  news=$(jq -r '.changed // [] | map(.repo) | join(", ")' "$UPSTREAM_STATE" 2>/dev/null)
+  [[ -n $news ]] && notes+=("upstreams with news: $news (run: upstream-watch)")
+fi
+
 ((${#notes[@]})) || exit 0
 message="Updates available:"
 for note in "${notes[@]}"; do message+=$'\n'"  - $note"; done

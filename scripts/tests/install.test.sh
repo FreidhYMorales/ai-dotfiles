@@ -99,8 +99,11 @@ assert 'git hooksPath points to the repo' \
 assert 'backup timer unit is linked' \
   same "$(readlink "$home/.config/systemd/user/engram-backup.timer")" "$ROOT/systemd/engram-backup.timer"
 assert 'backup service unit is linked' test -L "$home/.config/systemd/user/engram-backup.service"
-assert 'timer is not enabled before engram-backup is configured' \
-  test -z "$(rg 'enable' "$home/state/systemctl" 2>/dev/null)"
+assert 'backup timers are not enabled before engram-backup is configured' \
+  test -z "$(rg 'enable .*engram-backup' "$home/state/systemctl" 2>/dev/null)"
+assert 'upstream-watch timer is linked' test -L "$home/.config/systemd/user/upstream-watch.timer"
+assert 'upstream-watch timer is enabled' \
+  rg -qxF -- '--user enable --now upstream-watch.timer' "$home/state/systemctl"
 assert 'unconfigured backup explains the next step' rg -q 'engram-backup --init' <<<"$LAST_OUTPUT"
 assert 'ai-update is linked into ~/.local/bin' \
   same "$(readlink "$home/.local/bin/ai-update")" "$ROOT/bin/ai-update"

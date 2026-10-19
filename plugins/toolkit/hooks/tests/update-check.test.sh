@@ -39,7 +39,8 @@ run() {
   shift 2 2>/dev/null || shift
   LAST_STDOUT=$(jq -n --arg s "$source" '{hook_event_name: "SessionStart", source: $s}' |
     env PATH="$dir/bin:$PATH" CLAUDE_PLUGINS_DIR="$dir/plugins" \
-      UPDATE_CHECK_CACHE="$dir/cache/engram-latest" "$@" bash "$HOOK" 2>/dev/null)
+      UPDATE_CHECK_CACHE="$dir/cache/engram-latest" UPSTREAM_WATCH_STATE="$dir/upstream-state.json" \
+      "$@" bash "$HOOK" 2>/dev/null)
   LAST_EXIT=$?
 }
 
@@ -106,6 +107,22 @@ rm -rf "$dir/plugins" "$dir/bin/engram"
 run "$dir"
 assert 'missing plugin files and engram is silent' is_empty
 assert 'missing plugin files and engram exits 0' test "$LAST_EXIT" -eq 0
+
+echo "== upstream news (read from upstream-watch state, no network) =="
+
+dir=$(fixture upstreams 0.3.1 0.3.1 3.4.0 3.4.0)
+jq -n '{checked_at: "2026-10-19T00:00:00Z", changed: [{repo: "acme/tool"}, {repo: "acme/skills"}]}' \
+  >"$dir/upstream-state.json"
+run "$dir"
+assert 'changed upstreams are reported' message_has 'upstreams with news: acme/tool, acme/skills'
+assert 'the report says how to review' message_has 'upstream-watch'
+
+jq -n '{checked_at: "2026-10-19T00:00:00Z", changed: []}' >"$dir/upstream-state.json"
+run "$dir"
+assert 'no upstream news is silent' is_empty
+rm -f "$dir/upstream-state.json"
+run "$dir"
+assert 'a missing upstream state is silent' is_empty
 
 echo "== caches the release lookup =="
 

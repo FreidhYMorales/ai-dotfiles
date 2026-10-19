@@ -1,0 +1,46 @@
+{
+  "upstreams": [
+    {
+      "repo": "Gentleman-Programming/gentle-ai",
+      "watch": "commits",
+      "reviewed": "4782f8fd83b3285d68c58f8544e6a6000cc03a0b",
+      "why": "origin of the sdd and toolkit skills we adapted"
+    },
+    {
+      "repo": "Gentleman-Programming/engram",
+      "watch": "releases",
+      "reviewed": "v3.4.0",
+      "why": "our memory; a release after 3.4.0 lets us drop engram-resume-fallback"
+    },
+    {
+      "repo": "Gentleman-Programming/gentle-shell",
+      "watch": "commits",
+      "reviewed": "b274ba40aa433c4afc9a6c63292100cc7000644e",
+      "why": "agent built on pi; reference for local workers"
+    },
+    {
+      "repo": "Gentleman-Programming/Gentleman-Skills",
+      "watch": "commits",
+      "reviewed": "c8036a37893679dc5e942484975405d39689c63b",
+      "why": "community skills to borrow"
+    },
+    {
+      "repo": "Gentleman-Programming/gentle-agent-state",
+      "watch": "commits",
+      "reviewed": "963e85379ebf66f5304797b015327e133e6f4b6a",
+      "why": "agent status in the terminal bar (idea for zellij)"
+    },
+    {
+      "repo": "earendil-works/pi",
+      "watch": "releases",
+      "reviewed": "v1.3.0",
+      "why": "the local-worker harness (parked)"
+    },
+    {
+      "repo": "affaan-m/ECC",
+      "watch": "releases",
+      "reviewed": "v2.2.3",
+      "why": "harness ideas: per-language rules, hook controls, install profiles"
+    }
+  ]
+}

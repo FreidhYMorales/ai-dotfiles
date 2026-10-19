@@ -117,6 +117,7 @@ install_units() {
   done
   command -v systemctl >/dev/null || return 0
   run systemctl --user daemon-reload
+  run systemctl --user enable --now upstream-watch.timer
   if [[ -f "$backup_env" ]]; then
     run systemctl --user enable --now engram-backup.timer
     run systemctl --user enable --now engram-backup-verify.timer
