@@ -6,7 +6,7 @@
 #        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
 #        ai-pack unignore PACK [--cwd DIR]      suggest PACK again
 #
-# State: ~/.local/state/ai-pack/ (override: AI_PACK_STATE).
+# State: $XDG_STATE_HOME/ai-pack, default ~/.local/state/ai-pack (override: AI_PACK_STATE).
 set -u
 
 REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
