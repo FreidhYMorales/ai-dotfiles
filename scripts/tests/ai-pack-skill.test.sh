@@ -461,6 +461,86 @@ pack remove duo --cwd "$P"
 assert 'plain remove leaves the machine entry' test "$(mach '.tools.alpha.current')" = v1
 assert 'plain remove drops this project from the refcount' test "$(mach '.tools.alpha.projects | index($p)' --arg p "$P")" = null
 
+echo "== remove path safety =="
+OUT="$TMP_ROOT/outside"
+mkdir -p "$OUT"
+tamper() {
+  jq "$@" "$STATE/projects.json" >"$STATE/p.new" && mv "$STATE/p.new" "$STATE/projects.json"
+}
+new_proj pathb
+pack add alpha --cwd "$P"
+printf 'victim\n' >"$OUT/b"
+tamper --arg k "$P" --arg h "$(sha256sum "$OUT/b" | cut -d' ' -f1)" \
+  '.projects[$k].tools.alpha.files += [{path: ".claude/skills/alpha/../../../../outside/b", sha256: $h}]'
+pack remove alpha --cwd "$P"
+assert 'dotdot file path never deletes outside the project' test "$(cat "$OUT/b")" = victim
+assert 'dotdot file path keeps the dir' test -f "$P/.claude/skills/alpha/SKILL.md"
+for d in "" . "../outside" "/etc" ".claude/skills/../.."; do
+  new_proj pathc
+  pack add alpha --cwd "$P"
+  mkdir -p "$P/emptyuserdir"
+  printf 'x\n' >"$P/userfile"
+  tamper --arg k "$P" --arg d "$d" '.projects[$k].tools.alpha.dirs += [$d]'
+  pack remove alpha --cwd "$P"
+  assert "bogus journal dir [$d] keeps user dirs" test -d "$P/emptyuserdir" -a -d "$P/.git" -a -f "$P/userfile"
+  assert "bogus journal dir [$d] still removes the real one" absent "$P/.claude/skills/alpha"
+done
+new_proj symdir
+pack add alpha --cwd "$P"
+mkdir -p "$OUT/eskills"
+cp -a "$P/.claude/skills/alpha" "$OUT/eskills/"
+rm -rf "$P/.claude/skills"
+ln -s "$OUT/eskills" "$P/.claude/skills"
+pack remove alpha --cwd "$P"
+assert 'symlinked skills dir: outside copy kept' test -f "$OUT/eskills/alpha/SKILL.md"
+assert 'symlinked skills dir: warns' says 'outside the project'
+new_proj symsub
+pack add alpha --cwd "$P"
+cp -a "$P/.claude/skills/alpha/sub" "$OUT/jsub"
+rm -rf "$P/.claude/skills/alpha/sub"
+ln -s "$OUT/jsub" "$P/.claude/skills/alpha/sub"
+pack remove alpha --cwd "$P"
+assert 'symlinked subdir: outside copy kept' test -f "$OUT/jsub/a"
+new_proj gitig
+pack add alpha --cwd "$P"
+printf '*\n# my note\n' >"$P/.claude/skills/alpha/.gitignore"
+pack remove alpha --cwd "$P"
+assert 'edited .gitignore is kept' test -f "$P/.claude/skills/alpha/.gitignore"
+assert 'edited .gitignore warns' says '.gitignore was changed by hand'
+assert 'edited .gitignore keeps the other files' test -f "$P/.claude/skills/alpha/SKILL.md"
+
+echo "== created parents =="
+new_proj parents
+pack add alpha --cwd "$P"
+pack remove alpha --cwd "$P"
+assert 'dirs add created are removed when empty' absent "$P/.claude"
+new_proj preexist
+mkdir -p "$P/.claude/skills/mine"
+pack add alpha --cwd "$P"
+pack remove alpha --cwd "$P"
+assert 'pre-existing dirs are kept' test -d "$P/.claude/skills/mine"
+new_proj partial
+pack add alpha --cwd "$P"
+mkdir -p "$P/.claude/skills/mine"
+pack remove alpha --cwd "$P"
+assert 'created dir kept when the user put something in it' test -d "$P/.claude/skills/mine"
+
+echo "== add path safety =="
+new_proj addsym
+mkdir -p "$OUT/claude-target"
+ln -s "$OUT/claude-target" "$P/.claude"
+pack add alpha --cwd "$P"
+assert 'add refuses a .claude symlink to outside' exit_is 1
+assert 'add says why' says 'outside the project'
+assert 'nothing was written through the symlink' test -z "$(find "$OUT/claude-target" -mindepth 1)"
+assert 'no state written' absent "$STATE/projects.json"
+new_proj addsym2
+mkdir -p "$P/.claude"
+ln -s "$OUT/claude-target" "$P/.claude/skills"
+pack add alpha --cwd "$P"
+assert 'add refuses a skills symlink to outside' exit_is 1
+assert 'nothing written through the skills symlink' test -z "$(find "$OUT/claude-target" -mindepth 1)"
+
 if [[ $failures -gt 0 ]]; then
   printf '%d failure(s)\n' "$failures" >&2
   exit 1
