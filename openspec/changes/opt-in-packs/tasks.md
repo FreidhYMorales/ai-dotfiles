@@ -70,9 +70,9 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 4: PR 3 Remove and purge (spec: Remove behavior, Refcounts, Purge rules)
 
-- [ ] 4.1 RED: extend `ai-pack-skill.test.sh`: hand-edited file warns and prints "delete <path> to re-add", leftover kept and printed, hand-removed dir tolerated, shared tool kept via `via`, purge refusal "still used by", dead roots dropped, purge ordering (lock, dead roots, refuse).
-- [ ] 4.2 GREEN: `cmd_remove` and `--purge` in `cmd.sh`, `clean_stages` under lock.
-- [ ] 4.3 REFACTOR: `ai-pack-skill.test.sh` plus `make check`.
+- [x] 4.1 RED: extend `ai-pack-skill.test.sh`: hand-edited file warns and prints "delete <path> to re-add", leftover kept and printed, hand-removed dir tolerated, shared tool kept via `via`, purge refusal "still used by", dead roots dropped, purge ordering (lock, dead roots, refuse).
+- [x] 4.2 GREEN: `cmd_remove` and `--purge` in `cmd.sh`, `clean_stages` under lock.
+- [x] 4.3 REFACTOR: `ai-pack-skill.test.sh` plus `make check`.
 
 ## Phase 5: PR 4 npm kind (spec: npm machine layer, Machine-wide upgrade)
 
