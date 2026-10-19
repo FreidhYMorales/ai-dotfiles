@@ -164,6 +164,13 @@ classify() {
   fi
 }
 
+# inside_project REL: succeed when PROJ/REL, with symlinks resolved, stays in the project.
+inside_project() {
+  local r
+  r=$(realpath -m -- "$PROJ/$1") || return 1
+  [[ $r == "$PROJ" || $r == "$PROJ"/* ]]
+}
+
 # load_plan: classify every project dir of TOOLS into PLAN (tool rel src pin action).
 load_plan() {
   local t rel from pin tpl action src data
@@ -181,6 +188,7 @@ load_plan() {
       [[ $tpl == - || ($data != - && $tpl != /* && $tpl != *..*) ]] || die "$t: invalid template $tpl"
       src=$VENDOR_DIR/${from#vendor:}
       [[ -d $src ]] || die "$t: vendor dir missing: $src"
+      inside_project "$rel" || die "refusing: $rel resolves outside the project (nothing was written)"
       action=$(classify "$t" "$rel" "$pin") || exit 1
       [[ $action != refuse ]] || die "refusing: $rel exists and is not an ai-pack copy (nothing was written)"
       [[ $action != skip ]] || warn "$rel was edited by hand; leaving it unchanged (delete it to re-sync)"
@@ -234,6 +242,10 @@ commit_journal() {
       --argjson dirs "$dirs" --argjson files "$files" \
       '.projects[$k].tools[$t] = {version: $v, dirs: $dirs, files: $files, at: $at,
          via: (((.projects[$k].tools[$t].via // []) + [$via]) | unique)}' <<<"$cur")
+  done
+  for t in "${CREATED[@]}"; do
+    cur=$(jq -c --arg k "$KEY" --arg d "${t#"$PROJ"/}" \
+      '.projects[$k].created = (((.projects[$k].created // []) + [$d]) | unique)' <<<"$cur")
   done
   state_write "$STATE_DIR/projects.json" "$cur"
 }
