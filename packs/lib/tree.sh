@@ -49,6 +49,19 @@ stage_new() {
   printf '%s\n' "$stage"
 }
 
+# render_template FILE NAME DATA: replace each line equal to {{FETCHED:NAME}} in
+# FILE with the contents of DATA, verbatim. The result depends only on the inputs.
+render_template() {
+  local file=$1 name=$2 data=$3 out rc
+  out=$(mktemp "$file.XXXXXX") || return 1
+  awk -v m="{{FETCHED:$name}}" -v f="$data" \
+    '$0 == m { while ((getline l < f) > 0) print l; close(f); next } { print }' "$file" >"$out"
+  rc=$?
+  ((rc == 0)) && cat "$out" >"$file"
+  rm -f "$out"
+  return "$rc"
+}
+
 # clean_stages PROJECT: delete stale stages (call under the lock).
 clean_stages() {
   find "$1/.claude" -maxdepth 1 -name '.ai-pack-stage-*' -exec rm -rf {} + 2>/dev/null
