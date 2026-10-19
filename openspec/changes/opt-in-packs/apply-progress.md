@@ -90,3 +90,23 @@ Branch: `feat/ai-pack-sources-list`. Completed: 3.1, 3.2, 3.3, 3.4. Remaining: P
 - `list` tool-name column is sized to the longest tool name (cap 24); the test checks that the mark column is aligned with a 21-character tool name.
 - Test width checks now measure characters with `LC_ALL=C.UTF-8` so they hold under the C locale too.
 - Evidence: targeted test 88 PASS, 0 FAIL, three runs each in the default locale and `LC_ALL=C`; `make check` 7/7.
+
+## Batch 4: PR 3 remove and purge for skills (unit 3)
+
+Branch: `feat/ai-pack-remove`. Completed: 4.1, 4.2, 4.3. Remaining: Phases 0, 5-9.
+
+### TDD Cycle Evidence
+
+| Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.1 | `scripts/tests/ai-pack-skill.test.sh` | Integration (fixture manifest with a leftover and an extra pack, machine.json fixture) | 88/88 | committed failing (4684c0d): 37 FAIL | n/a | n/a | n/a |
+| 4.2 | same | Integration | n/a | covered by 4.1 | `packs/lib/remove.sh` (`cmd_remove`, `remove_dir`), `remove` wired in `bin/ai-pack` | clean remove, edited file, user-added file, leftover, hand-removed dir/file, shared by pack, by name, direct, lock held, refusal, dead roots, plain remove refcount | SC1007 fix |
+| 4.3 | same | `make check` | all pass | n/a | targeted 3 runs pass (default x2, `LC_ALL=C` x1), 7/7 steps | n/a | n/a |
+
+### Deviations from design
+
+- New file `packs/lib/remove.sh` instead of growing `cmd.sh`.
+- "delete <path> to re-add" prints the dir (re-adding needs the dir gone); the warning names the offending file.
+- `--purge` also refuses when another pack in this project still needs the tool (this project then counts as a user). In this PR purge only deletes the `machine.json` entry; prefix and bin-link removal lands with npm in PR 4.
+- A journaled file already missing is treated as removed, so a rerun after a crash is quiet.
+- Empty parents (`.claude/skills`, `.claude`) are not removed.
