@@ -43,7 +43,7 @@ pack() {
 says() { [[ $LAST_OUTPUT == *"$1"* ]]; }
 exit_is() { [[ $LAST_EXIT -eq $1 ]]; }
 absent() { [[ ! -e $1 && ! -L $1 ]]; }
-has_line() { grep -qx -- "$1" "$2"; }
+has_line() { [[ $(<"$2") == "$1" ]]; }
 journal() { jq -r "$@" "$STATE/projects.json" 2>/dev/null; }
 
 # Fixture: vendor dirs alpha and beta; packs duo, needy (missing command),
