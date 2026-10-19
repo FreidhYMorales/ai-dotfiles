@@ -1,0 +1,11 @@
+schema_version: "1"
+name: apply-needs-tasks
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill, Agent]
+  prompt: |
+    SDD Session Preflight: pace interactive, artifacts openspec, PRs single-pr, review budget 400 lines.
+    The proposal for the SDD change `add-json-flag` is in
+    openspec/changes/add-json-flag/proposal.md. Implement it now with SDD.

@@ -1,0 +1,10 @@
+schema_version: "1"
+name: explore-delegates
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 10
+  allowed_tools: [Read, Glob, Grep, Skill, Agent]
+  prompt: |
+    SDD Session Preflight: pace interactive, artifacts openspec, PRs single-pr, review budget 400 lines.
+    With SDD, explore how to add a `--json` output flag to src/cli.py. Exploration only.

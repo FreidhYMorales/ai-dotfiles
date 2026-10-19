@@ -81,7 +81,7 @@ make validate
 make test
 ```
 
-Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check that skills fire when they should, stay quiet when they should not, and change the outcome versus a no-plugin baseline. They run real sessions, so they are not part of `make check`: run `make eval PLUGIN=flow` after changing a skill.
+Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check that skills fire when they should, stay quiet when they should not, and change the outcome versus a no-plugin baseline. They run real sessions, so they are not part of `make check`: run `make eval PLUGIN=flow` (or `toolkit`, `sdd`) after changing a skill.
 
 `make check` needs `shellcheck`; `shfmt` is used when installed. CI pins shfmt (v3.14.1) and actionlint (1.7.12) to the versions Arch ships; bump the `*_VERSION` and `*_SHA256` pairs in the workflow when Arch updates it, since releases format some constructs differently. CI runs `make check` on every push to `main` and every pull request.
 
@@ -97,7 +97,8 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Mutation testing for hooks (`make mutate`, `scripts/mutate.sh`; remaining survivors are equivalent mutants)
 - [x] `claude plugin eval` suite for `flow` (plan, idea, should-not-fire)
 - [x] Eval suite for `toolkit:ship`
-- [ ] Eval suites for the other `toolkit` skills and `sdd`
+- [x] Eval suite for `sdd` routing (preflight gate, explore delegation with its model, no apply without tasks, should-not-fire)
+- [ ] Eval suites for the other `toolkit` skills
 - [x] CI running `make check` (`.github/workflows/check.yml`)
 - [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
 - [x] Local encrypted engram backup (`engram-backup` + daily timer)
