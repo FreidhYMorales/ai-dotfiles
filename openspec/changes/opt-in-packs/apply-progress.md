@@ -62,3 +62,23 @@ Branch: `feat/ai-pack-skill-add`. Completed: 2.1, 2.2, 2.3, 2.4. Remaining: Phas
 - LOW fixed: new TERM test runs `add` in its own process group against a vendor dir holding a fifo (hashing the staged copy blocks), sends TERM mid-run, and asserts non-zero exit, no `.claude`, no state.
 - Cosmetic: usage column alignment in `bin/ai-pack`.
 - Evidence: RED commit ad96847 (7 FAIL); GREEN 45 PASS, 0 FAIL; `make check` 7/7.
+
+## Batch 3: PR 2b fetched sources, template, shadow, list (unit 2b)
+
+Branch: `feat/ai-pack-sources-list`. Completed: 3.1, 3.2, 3.3, 3.4. Remaining: Phases 0, 4-9.
+
+### TDD Cycle Evidence
+
+| Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 3.1 | `scripts/tests/ai-pack-skill.test.sh` | Integration (curl stub on PATH, fixture manifest) | 45/45 | committed failing (a8cfd4d): 17 FAIL | n/a | n/a | n/a |
+| 3.2 | same | Integration | n/a | covered by 3.1 | `sources.sh` `fetch_verified`, `tree.sh` `render_template` | checksum mismatch, curl exit 6, two projects render identically | n/a |
+| 3.3 | same | Integration | n/a | covered by 3.1 | `plan.sh` shadow scan, `cmd_list` | dir name, frontmatter name, nested personal skill, depth-6 plugin cache, drift, machine version, via, missing, adoptable, 70 columns, no state change | n/a |
+| 3.4 | same | `make check` | all pass | n/a | 75/75 pass x3, 7/7 steps | n/a | `tool_dirs` shared by `load_plan` and `list` |
+
+### Deviations from design
+
+- `list` shows the current project only, so "skip projects whose root is gone" is satisfied trivially: other projects are never read; the test seeds a dead-root entry and asserts it is neither shown nor dropped.
+- Shadow match uses the dir name and the frontmatter name of the vendored SKILL.md (copy) against both the dir name and frontmatter name of each candidate.
+- Fetch happens in `load_plan` (before any project write) into a `mktemp -d` removed by the EXIT trap; the fetched file is named after the tool, the marker uses `source.name`.
+- `list` output uses the plan glyphs (check, dot, warning) and truncates every line to 70 characters.
