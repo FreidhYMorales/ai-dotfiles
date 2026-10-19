@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_HOST_INFO:-} == 1 ]] && exit 0
 
-input=$(</dev/stdin)
+IFS= read -r -d '' input || true
 case $(jq -r '.source // empty' <<<"$input" 2>/dev/null) in
   startup | clear | compact) ;;
   *) exit 0 ;;
