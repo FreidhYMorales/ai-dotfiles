@@ -14,41 +14,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Arch is the only target platform, so the gate runs where the code runs
+  # (e.g. `mv --exchange` needs coreutils >= 9.5; Ubuntu 24.04 ships 9.4).
+  # Arch's shfmt and actionlint are the versions used locally.
   check:
     runs-on: ubuntu-24.04
+    container: archlinux:latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install tools
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq jq ripgrep shellcheck sqlite3 restic socat
-      # Pinned to the maintainer's Arch version: shfmt releases format some
-      # constructs differently, so CI and local runs must use the same one.
-      - name: Install shfmt
-        env:
-          SHFMT_VERSION: v3.14.1
-          SHFMT_SHA256: 76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf
-        run: |
-          curl -fsSL -o shfmt "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
-          echo "${SHFMT_SHA256}  shfmt" | sha256sum -c -
-          sudo install -m 755 shfmt /usr/local/bin/shfmt
-          rm shfmt
+          pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint \
+            sqlite restic socat python util-linux openssl procps-ng
           shfmt --version
-      - name: Install actionlint
-        env:
-          ACTIONLINT_VERSION: 1.7.12
-          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-        run: |
-          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL -o "$tarball" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}"
-          echo "${ACTIONLINT_SHA256}  ${tarball}" | sha256sum -c -
-          tar -xzf "$tarball" actionlint
-          sudo install -m 755 actionlint /usr/local/bin/actionlint
-          rm "$tarball" actionlint
           actionlint --version
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: make check
-        run: make check
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make check
 
   # Recovery drill on a clean Arch: install the dotfiles, back up a memory,
   # lose the machine, rebuild it and restore the memory.
