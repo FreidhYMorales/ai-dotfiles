@@ -5,7 +5,8 @@
 # DEST is removed and the run dies on a network error or a mismatch.
 fetch_verified() {
   local url=$1 sha=$2 dest=$3
-  curl -fsSL --max-time 60 -o "$dest" -- "$url" || {
+  [[ $url == https://* ]] || die "$url: only https:// sources are allowed (nothing was written)"
+  curl -fsSL --proto '=https' --proto-redir '=https' --max-time 60 -o "$dest" -- "$url" || {
     rm -f "$dest"
     die "$url: download failed (nothing was written)"
   }
