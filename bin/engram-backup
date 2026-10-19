@@ -6,7 +6,7 @@
 #   - Skips the snapshot when nothing changed; keeps 7 daily, 4 weekly and
 #     12 monthly snapshots.
 #
-# Usage: engram-backup [--init | --verify]
+# Usage: engram-backup [--init | --verify | --restore [--force]]
 #   --init    create the password file (if missing) and every repository
 #   --verify  check each repository, restore the latest snapshot and check
 #             the restored database
