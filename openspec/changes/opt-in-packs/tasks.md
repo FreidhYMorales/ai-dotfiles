@@ -63,10 +63,10 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 3: PR 2b Fetched, template, shadow, list (spec: Pinned sources, List output, Shadow warning, Machine-wide upgrade view)
 
-- [ ] 3.1 RED: extend `ai-pack-skill.test.sh`: curl stub (checksum mismatch and exit 6 write nothing), `{{FETCHED:name}}` template determinism, shadow (nested personal skill plus depth-6 plugin cache), `list` (70 columns, adoptable, drift, via, dead roots skipped, no state write).
-- [ ] 3.2 GREEN: `sources.sh` (`fetch_verified`), `tree.sh` (`render_template`).
-- [ ] 3.3 GREEN: shadow scan in `plan.sh` and `cmd_list` in `cmd.sh`.
-- [ ] 3.4 REFACTOR: dedupe helpers, run `ai-pack-skill.test.sh` and `make check`.
+- [x] 3.1 RED: extend `ai-pack-skill.test.sh`: curl stub (checksum mismatch and exit 6 write nothing), `{{FETCHED:name}}` template determinism, shadow (nested personal skill plus depth-6 plugin cache), `list` (70 columns, adoptable, drift, via, dead roots skipped, no state write).
+- [x] 3.2 GREEN: `sources.sh` (`fetch_verified`), `tree.sh` (`render_template`).
+- [x] 3.3 GREEN: shadow scan in `plan.sh` and `cmd_list` in `cmd.sh`.
+- [x] 3.4 REFACTOR: dedupe helpers, run `ai-pack-skill.test.sh` and `make check`.
 
 ## Phase 4: PR 3 Remove and purge (spec: Remove behavior, Refcounts, Purge rules)
 
