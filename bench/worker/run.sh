@@ -30,6 +30,18 @@ fi
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 OUT=${WORKER_BENCH_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/worker-bench}
 TIMEOUT=${WORKER_BENCH_TIMEOUT:-1200}
+# Variants (kept in separate result dirs so runs stay comparable):
+#   WORKER_BENCH_ATTEMPTS=N  retry up to N times, feeding back the gate output
+#   WORKER_BENCH_FORMAT=1    shfmt the changed shell files after each attempt
+ATTEMPTS=${WORKER_BENCH_ATTEMPTS:-1}
+FORMAT=${WORKER_BENCH_FORMAT:-0}
+#   WORKER_BENCH_CHEATSHEETS=1  append the delegate-local cheat sheets (common + task language)
+CHEATSHEETS=${WORKER_BENCH_CHEATSHEETS:-0}
+CHEATSHEET_DIR="$REPO/plugins/toolkit/skills/delegate-local/cheatsheets"
+VARIANT=""
+((ATTEMPTS > 1)) && VARIANT+="+fb$ATTEMPTS"
+((FORMAT)) && VARIANT+="+fmt"
+((CHEATSHEETS)) && VARIANT+="+cs"
 models=("$@")
 ((${#models[@]})) || models=(gpt-oss:20b qwen3-coder:30b)
 
@@ -54,7 +66,7 @@ for model in "${models[@]}"; do
     task=$(basename "$task_dir")
     # shellcheck disable=SC2053 # WORKER_BENCH_TASKS is a glob on purpose.
     [[ -z ${WORKER_BENCH_TASKS:-} || $task == $WORKER_BENCH_TASKS ]] || continue
-    dir="$OUT/${model//[:\/]/_}/$task"
+    dir="$OUT/${model//[:\/]/_}$VARIANT/$task"
     if [[ -f $dir/result.json ]]; then
       echo "== $model / $task: done, skipping"
       continue
@@ -66,10 +78,35 @@ for model in "${models[@]}"; do
       continue
     fi
 
+    prompt=$(<"$task_dir/prompt.md")
+    # Passed as text: files outside the project are invisible inside pi-box.
+    extra=()
+    if ((CHEATSHEETS)); then
+      sheet=$(<"$CHEATSHEET_DIR/common.md")
+      lang_sheet="$CHEATSHEET_DIR/$(meta "$task_dir" lang).md"
+      [[ -f $lang_sheet ]] && sheet+=$'\n\n'$(<"$lang_sheet")
+      extra=(--append-system-prompt "$sheet")
+    fi
+    attempt=0
     start=$(secs)
-    (cd "$dir/repo" && timeout "$TIMEOUT" pi-box --provider ollama --model "$model" --no-session \
-      -p "$(<"$task_dir/prompt.md")") >"$dir/pi.log" 2>&1
-    worker_exit=$?
+    while :; do
+      attempt=$((attempt + 1))
+      echo "--- attempt $attempt" >>"$dir/pi.log"
+      (cd "$dir/repo" && timeout "$TIMEOUT" pi-box --provider ollama --model "$model" --no-session \
+        "${extra[@]}" -p "$prompt") >>"$dir/pi.log" 2>&1
+      worker_exit=$?
+      ((FORMAT)) && format_changed "$dir/repo" "$base"
+      ((attempt < ATTEMPTS)) || break
+      # Feedback uses only the project's visible gate, never the hidden check.
+      run_gate "$task_dir" "$dir/repo" "$dir/feedback$attempt.log" && break
+      prompt="$(<"$task_dir/prompt.md")
+
+Your previous attempt is already in this repository, but the project check still fails.
+Output of \`$(gate_cmd "$task_dir")\` (last 60 lines):
+$(tail -n 60 "$dir/feedback$attempt.log")
+
+Fix the cause, stay within the files named above, and make that check pass."
+    done
     seconds=$(($(secs) - start))
 
     mapfile -t changed < <(changed_files "$dir/repo" "$base")
@@ -84,7 +121,8 @@ for model in "${models[@]}"; do
       --argjson seconds "$seconds" --argjson worker_exit "$worker_exit" --argjson hidden "$hidden" \
       --argjson gate "$gate" --argjson scope "$scope" --argjson lines "$lines" \
       --argjson files "$(printf '%s\n' "${changed[@]}" | jq -R . | jq -sc 'map(select(length > 0))')" \
-      '{model: $model, task: $task, lang: $lang, level: $level, source: $source,
+      --arg variant "$VARIANT" --argjson attempts "$attempt" \
+      '{model: ($model + $variant), variant: $variant, attempts: $attempts, task: $task, lang: $lang, level: $level, source: $source,
         seconds: $seconds, worker_exit: $worker_exit, hidden: $hidden, gate: $gate,
         scope: $scope, lines: $lines, files: $files}' >"$dir/result.json"
     jq -r '"   hidden=\(.hidden) gate=\(.gate) scope=\(.scope) lines=\(.lines) \(.seconds)s"' "$dir/result.json"

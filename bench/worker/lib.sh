@@ -118,3 +118,16 @@ run_gate() {
   [[ -z $gate ]] && return 0
   (cd "$2" && tool_env "$2.cache" && BENCH=$BENCH timeout 900 bash -c "$gate") </dev/null >"$3" 2>&1
 }
+
+# format_changed REPO BASE: shfmt the shell files the worker changed. Format is
+# the harness's job, not the model's (one run failed on formatting alone).
+format_changed() {
+  command -v shfmt >/dev/null || return 0
+  local f
+  while IFS= read -r f; do
+    [[ -f $1/$f ]] || continue
+    if [[ $f == *.sh ]] || head -n1 "$1/$f" | rg -q '^#!.*\b(ba)?sh\b'; then
+      shfmt -w -i 2 -ci "$1/$f" 2>/dev/null || true
+    fi
+  done < <(changed_files "$1" "$2")
+}
