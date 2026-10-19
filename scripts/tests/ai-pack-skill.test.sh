@@ -30,6 +30,22 @@ assert() {
   fi
 }
 
+# curl stub: serves $FAKE_CURL/<basename of the URL>; a missing file exits 6.
+mkdir -p "$TMP_ROOT/stubs" "$TMP_ROOT/served"
+cat >"$TMP_ROOT/stubs/curl" <<'STUB'
+#!/usr/bin/env bash
+out=""
+while [[ $# -gt 1 ]]; do
+  [[ $1 == -o ]] && out=$2
+  shift
+done
+src="$FAKE_CURL/$(basename "$1")"
+[[ -f $src ]] || exit 6
+cp "$src" "$out"
+STUB
+chmod +x "$TMP_ROOT/stubs/curl"
+export PATH="$TMP_ROOT/stubs:$PATH" FAKE_CURL="$TMP_ROOT/served"
+
 FIX="$TMP_ROOT/fix"
 STATE="$TMP_ROOT/state"
 export AI_PACK_MANIFEST="$FIX/packs.json" AI_PACK_STATE="$STATE"
@@ -41,6 +57,7 @@ pack() {
   LAST_EXIT=$?
 }
 says() { [[ $LAST_OUTPUT == *"$1"* ]]; }
+lacks() { [[ $LAST_OUTPUT != *"$1"* ]]; }
 exit_is() { [[ $LAST_EXIT -eq $1 ]]; }
 absent() { [[ ! -e $1 && ! -L $1 ]]; }
 has_line() { [[ $(<"$2") == "$1" ]]; }
@@ -53,24 +70,39 @@ mk_vendor() {
   printf 'alpha %s\n' "$1" >"$FIX/vendor/alpha/SKILL.md"
   printf 'a\n' >"$FIX/vendor/alpha/sub/a"
   printf 'beta\n' >"$FIX/vendor/beta/SKILL.md"
+  # tpl: a template tool; its rules are fetched. expect/tpl is the rendered result.
+  mkdir -p "$FIX/vendor/tpl" "$TMP_ROOT/expect/tpl"
+  printf 'head\n{{FETCHED:rules}}\ntail\n' >"$FIX/vendor/tpl/SKILL.md"
+  printf 'rule one\nrule two\n' >"$FAKE_CURL/rules.md"
+  printf 'head\nrule one\nrule two\ntail\n' >"$TMP_ROOT/expect/tpl/SKILL.md"
   # A fifo makes hashing the staged copy block, so a run can be signaled mid-flight.
   mkdir -p "$FIX/vendor/slow"
   [[ -p $FIX/vendor/slow/p ]] || mkfifo "$FIX/vendor/slow/p"
 }
 mk_manifest() {
-  local ha hb
+  local ha hb ht sr
   ha=$(bash "$SCRIPT" hash "$FIX/vendor/alpha")
   hb=$(bash "$SCRIPT" hash "$FIX/vendor/beta")
-  jq -n --arg ha "$ha" --arg hb "$hb" '
+  ht=$(bash "$SCRIPT" hash "$TMP_ROOT/expect/tpl")
+  sr=$(sha256sum "$FAKE_CURL/rules.md" | cut -d' ' -f1)
+  jq -n --arg ha "$ha" --arg hb "$hb" --arg ht "$ht" --arg sr "$sr" '
     def tool($v; $h; $r): {kind: "skill", layers: ["project"], requires: $r,
       source: {type: "vendored", tag: "v1"},
       project_dirs: {(".claude/skills/" + $v[0]): {from: ("vendor:" + $v[1]), hash: $h}}};
+    def fetched($sha; $file): {kind: "skill", layers: ["project"], requires: [],
+      source: {type: "fetched", name: "rules", url: ("https://example.invalid/pins/" + $file), sha256: $sha},
+      project_dirs: {".claude/skills/tpl": {from: "vendor:tpl", template: "SKILL.md", hash: $ht}}};
     {schema_version: 1,
-     packs: {duo: {tools: ["alpha", "beta"], detect: {}},
+     packs: {fetchy: {tools: ["tpl"], detect: {}},
+             fetchbad: {tools: ["alpha", "tplbad"], detect: {}},
+             fetchmiss: {tools: ["alpha", "tplmiss"], detect: {}},
+             duo: {tools: ["alpha", "beta"], detect: {}},
              needy: {tools: ["alpha", "gamma"], detect: {}},
              broken: {tools: ["alpha", "bad"], detect: {}},
              hang: {tools: ["alpha", "slow"], detect: {}}},
-     tools: {alpha: tool(["alpha", "alpha"]; $ha; []),
+     tools: {tpl: fetched($sr; "rules.md"), tplbad: fetched("0"; "rules.md"),
+             tplmiss: fetched($sr; "missing.md"),
+             alpha: tool(["alpha", "alpha"]; $ha; []),
              beta: tool(["beta", "beta"]; $hb; []),
              gamma: tool(["gamma", "beta"]; $hb; [{cmd: "no-such-cmd-xyz", hint: "sudo pacman -S foo"}]),
              bad: tool(["bad", "beta"]; "sha256:00"; []),
@@ -201,6 +233,83 @@ mkdir -p "$P/.claude/.ai-pack-stage-old"
 printf 'x\n' >"$P/.claude/.ai-pack-stage-old/f"
 pack add beta --cwd "$P"
 assert 'stale stage deleted' absent "$P/.claude/.ai-pack-stage-old"
+
+echo "== fetched and templated =="
+new_proj fetch
+pack add fetchy --cwd "$P"
+assert 'fetched add succeeds' exit_is 0
+assert 'rules templated into SKILL.md' cmp -s "$P/.claude/skills/tpl/SKILL.md" "$TMP_ROOT/expect/tpl/SKILL.md"
+P1=$P
+new_proj fetch2
+pack add fetchy --cwd "$P"
+assert 'template is deterministic across projects' cmp -s "$P/.claude/skills/tpl/SKILL.md" "$P1/.claude/skills/tpl/SKILL.md"
+new_proj badsum
+pack add fetchbad --cwd "$P"
+assert 'checksum mismatch fails' exit_is 1
+assert 'checksum mismatch says so' says 'sha256 mismatch'
+assert 'checksum mismatch writes no project dir' absent "$P/.claude"
+assert 'checksum mismatch writes no state' absent "$STATE/projects.json"
+new_proj netfail
+pack add fetchmiss --cwd "$P"
+assert 'network error fails' exit_is 1
+assert 'network error writes no project dir' absent "$P/.claude"
+assert 'network error writes no state' absent "$STATE/projects.json"
+
+echo "== shadow =="
+SK="$HOME/.claude/skills/synced/id1/alpha"
+mkdir -p "$SK" "$HOME/.claude/skills/synced/id2/other" "$HOME/.claude/plugins/cache/mk/pl/1.0/skills/tpl"
+printf 'x\n' >"$SK/SKILL.md"
+printf -- '---\nname: "beta"\n---\n' >"$HOME/.claude/skills/synced/id2/other/SKILL.md"
+printf 'y\n' >"$HOME/.claude/plugins/cache/mk/pl/1.0/skills/tpl/SKILL.md"
+new_proj shadow
+pack add duo --cwd "$P"
+assert 'add still succeeds when shadowed' exit_is 0
+assert 'nested personal skill shadows by dir name' says 'alpha is shadowed by ~/.claude/skills/synced/id1/alpha'
+assert 'frontmatter name shadows' says 'beta is shadowed by ~/.claude/skills/synced/id2/other'
+pack add fetchy --cwd "$P"
+assert 'depth-6 plugin cache skill shadows' says 'tpl is shadowed by ~/.claude/plugins/cache/mk/pl/1.0/skills/tpl'
+
+echo "== list =="
+rm -rf "$HOME/.claude"
+new_proj list
+pack list --cwd "$P"
+assert 'list works without any state' exit_is 0
+assert 'list writes no state dir' absent "$STATE"
+assert 'inactive tool is shown' says 'alpha   '
+assert 'pack row lists its tools' says 'duo'
+pack add duo --cwd "$P"
+snap() { find "$STATE" -type f -printf '%p %T@ %s\n' | LC_ALL=C sort; }
+before=$(snap)
+pack list --cwd "$P"
+assert 'list marks active with via' says '(via duo)'
+assert 'list shows the journal version' says 'v1'
+assert 'list changes no state file' test "$(snap)" = "$before"
+jq '.tools.alpha.source.tag = "v2"' "$FIX/packs.json" >"$FIX/p2.json"
+AI_PACK_MANIFEST="$FIX/p2.json" pack list --cwd "$P"
+assert 'list shows drift' says 'v1 -> v2 available'
+printf '{"schema_version":1,"tools":{"alpha":{"current":"v9"}}}\n' >"$STATE/machine.json"
+pack list --cwd "$P"
+assert 'list shows machine version' says '(machine v9)'
+jq --arg d "$TMP_ROOT/gone-root" '.projects[$d] = {tools: {alpha: {version: "v1", dirs: [], files: []}}}' \
+  "$STATE/projects.json" >"$STATE/p.tmp" && mv "$STATE/p.tmp" "$STATE/projects.json"
+before=$(snap)
+pack list --cwd "$P"
+assert 'dead roots are not listed' lacks gone-root
+assert 'dead roots are not dropped by list' test "$(snap)" = "$before"
+rm -rf "$P/.claude/skills/beta"
+pack list --cwd "$P"
+assert 'dir removed by hand is reported' says 'missing'
+new_proj adoptable
+mkdir -p "$P/.claude/skills"
+cp -a "$FIX/vendor/alpha" "$P/.claude/skills/alpha"
+pack list --cwd "$P"
+assert 'unjournaled matching dir is adoptable' says 'adoptable'
+assert 'adoptable view writes no state' absent "$STATE"
+mkdir -p "$HOME/.claude/skills/synced/$(printf 'long%.0s' {1..20})/alpha"
+printf 'x\n' >"$HOME/.claude/skills/synced/$(printf 'long%.0s' {1..20})/alpha/SKILL.md"
+pack list --cwd "$P"
+assert 'shadow shown by list' says 'shadowed by ~/.claude/skills/synced/long'
+assert 'no line exceeds 70 columns' test "$(awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' <<<"$LAST_OUTPUT")" -le 70
 
 if [[ $failures -gt 0 ]]; then
   printf '%d failure(s)\n' "$failures" >&2
