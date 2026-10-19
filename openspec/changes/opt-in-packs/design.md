@@ -100,7 +100,7 @@ ignored.json  {projects: {<key>: [<pack>]}}
 hints.json    {projects: {<key>: {<pack>: <epoch>}}}
 ```
 
-Tree hash: inside the dir, every entry except `./.gitignore`, NUL-sorted, one line `type\0x\0path\0sha256` (`type` f/d/l, `x` = user exec bit, sha256 of content or link target), the whole stream through `sha256sum`. `normalize_modes` runs first (dirs 755, files 644 or 755).
+Tree hash: inside the dir, every entry except `./.gitignore`, NUL-sorted, one line `type\0x\0path\0sha256` (`path` keeps the `./` prefix, e.g. `./sub/a`; `type` f/d/l, `x` = user exec bit, sha256 of content or link target), the whole stream through `sha256sum`. `normalize_modes` runs first (dirs 755, files 644 or 755).
 
 ## Data Flow and Algorithms
 

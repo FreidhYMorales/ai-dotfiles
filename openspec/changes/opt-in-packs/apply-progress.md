@@ -29,4 +29,8 @@ Completed: 1.1, 1.2, 1.3, 1.4, 1.5. Remaining: Phases 0, 2-9 (not in this batch)
 - `cmd.sh` carries only `hash`, `ignore`, `unignore` here (as tasks.md 1.4 says); the other commands land in later PRs.
 - `AI_PACK_LOCK_WAIT` (default 30) is an extra test seam so the held-lock test does not wait 30 s.
 - `tree_hash` does not call `normalize_modes` (the hash uses only the owner exec bit, so it is mode independent; normalization stays for the staging step in PR 2a).
+- `project_key` also unsets `GIT_COMMON_DIR` (besides `GIT_DIR` and `GIT_WORK_TREE`).
+- The default state dir honors `XDG_STATE_HOME` (documented in the `bin/ai-pack` help text).
+- Tree hash lines keep the `./` path prefix; design.md now says so.
+- Corrective round: `tree_hash` reads the owner exec bit from the mode (`stat -c %a`) instead of `[[ -x ]]`; the test now isolates git (temp HOME, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM=1`). The 654 vs 644 case cannot fail as a non-root user (RED not observable here); it guards root and foreign-owner runs.
 - `tasks.md` header: chain strategy set to stacked-to-main, PR 5 `size:exception` marked resolved.
