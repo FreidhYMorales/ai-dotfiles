@@ -89,4 +89,4 @@ Branch: `feat/ai-pack-sources-list`. Completed: 3.1, 3.2, 3.3, 3.4. Remaining: P
 - `list` truncation is character-safe in any locale (`cut70`: substring cut under `LC_ALL=C.UTF-8`, then trailing partial bytes dropped if the locale is missing). RED: invalid UTF-8 under `LC_ALL=C` with a non-ASCII shadow path (fixture needs an odd byte offset to trigger the cut mid-character).
 - `list` tool-name column is sized to the longest tool name (cap 24); the test checks that the mark column is aligned with a 21-character tool name.
 - Test width checks now measure characters with `LC_ALL=C.UTF-8` so they hold under the C locale too.
-- Evidence: targeted test 87 PASS, 0 FAIL, three runs each in the default locale and `LC_ALL=C`; `make check` 7/7.
+- Evidence: targeted test 88 PASS, 0 FAIL, three runs each in the default locale and `LC_ALL=C`; `make check` 7/7.
