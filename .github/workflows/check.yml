@@ -49,3 +49,16 @@ jobs:
           actionlint --version
       - name: make check
         run: make check
+
+  # Recovery drill on a clean Arch: install the dotfiles, back up a memory,
+  # lose the machine, rebuild it and restore the memory.
+  recovery:
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    timeout-minutes: 10
+    steps:
+      - name: Install the packages a new machine needs
+        run: pacman -Sy --noconfirm --needed git jq ripgrep restic sqlite openssl procps-ng
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Recovery drill
+        run: bash scripts/recovery-e2e.sh
