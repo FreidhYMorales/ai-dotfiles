@@ -8,15 +8,15 @@
 | 400-line budget risk | High |
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 -> 2a -> 2b -> 3 -> 4 -> 5 -> 6 -> 7 (per-PR: 350 / 380 / 370 / 350 / 400 / 200+vendor / 300 / 200) |
-| Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Delivery strategy | ask-on-risk (resolved: chained PRs) |
+| Chain strategy | stacked-to-main |
 
-Decision needed before apply: Yes
+Decision needed before apply: No (resolved: chained PRs, stacked-to-main)
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: stacked-to-main
 400-line budget risk: High
 
-Open decisions: (a) chain strategy (stacked-to-main vs feature-branch-chain); (b) PR 5 vendored bytes need a maintainer `size:exception`, otherwise PR 5 splits by tool (5a taste+archify, 5b playwright+web-design-guidelines). PR 4 sits at the 400 limit: split `link_switch` out if it overruns.
+Resolved decisions: (a) chain strategy is stacked-to-main (PR 1 targets main; each later PR targets the previous PR branch); (b) PR 5 vendored third-party bytes get a maintainer `size:exception` (resolved; authored lines stay within budget). Open: PR 4 sits at the 400 limit: split `link_switch` out if it overruns.
 
 ### Suggested Work Units
 
@@ -32,7 +32,7 @@ Open decisions: (a) chain strategy (stacked-to-main vs feature-branch-chain); (b
 | 6 | Hint + hook | PR 6 | `bash plugins/toolkit/hooks/tests/pack-hint.test.sh` | hook run from a vite fixture | hook, hooks.json, version bump |
 | 7 | Docs | PR 7 | `make check` | N/A: docs only | docs files |
 
-Chain bases (if feature-branch-chain): PR 1 base = tracker branch; each later PR base = the previous PR branch.
+Chain bases (stacked-to-main): PR 1 base = `main`; each later PR base = the previous PR branch.
 
 ## Phase 0: Early manual check (no PR; blocks marked tasks)
 
@@ -48,11 +48,11 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 1: PR 1 Core (spec: Commands and project key, Startup dependency check, State files and locking, Ignore and unignore)
 
-- [ ] 1.1 RED: create `scripts/tests/ai-pack-core.test.sh`: project key cases (relative `--cwd`, absolute, symlink, subdir, second worktree, non-git, `GIT_DIR` set), missing `jq` prints pacman line and writes nothing, newer/older schema, deterministic tree hash under two umasks, `version_ge`, ignore round trip. Check: fails, then passes at 1.5.
-- [ ] 1.2 GREEN: `bin/ai-pack` (deps check, env seams, dispatch) and `packs/lib/common.sh`.
-- [ ] 1.3 GREEN: `packs/lib/state.sh` (read/write via temp + `mv -f`, `lock_wait`, `lock_try`, schema rules).
-- [ ] 1.4 GREEN: `packs/lib/tree.sh` (`tree_hash`, `normalize_modes`) and `packs/lib/cmd.sh` (`hash`, `ignore`, `unignore`).
-- [ ] 1.5 REFACTOR: run `bash scripts/tests/ai-pack-core.test.sh`, then `make check` (shellcheck via `check-shell.sh`).
+- [x] 1.1 RED: create `scripts/tests/ai-pack-core.test.sh`: project key cases (relative `--cwd`, absolute, symlink, subdir, second worktree, non-git, `GIT_DIR` set), missing `jq` prints pacman line and writes nothing, newer/older schema, deterministic tree hash under two umasks, `version_ge`, ignore round trip. Check: fails, then passes at 1.5.
+- [x] 1.2 GREEN: `bin/ai-pack` (deps check, env seams, dispatch) and `packs/lib/common.sh`.
+- [x] 1.3 GREEN: `packs/lib/state.sh` (read/write via temp + `mv -f`, `lock_wait`, `lock_try`, schema rules).
+- [x] 1.4 GREEN: `packs/lib/tree.sh` (`tree_hash`, `normalize_modes`) and `packs/lib/cmd.sh` (`hash`, `ignore`, `unignore`).
+- [x] 1.5 REFACTOR: run `bash scripts/tests/ai-pack-core.test.sh`, then `make check` (shellcheck via `check-shell.sh`).
 
 ## Phase 2: PR 2a Skill add (spec: Preflight, Self-ignoring whole-dir, Journal after move, Adoption, Rollback, Re-sync)
 
