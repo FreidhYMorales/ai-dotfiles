@@ -54,7 +54,10 @@ add_cleanup() {
   local st=$?
   undo_run
   clean_stages "$PROJ"
-  ((st == 0)) || warn "rolled back; nothing was written"
+  ((st == 0)) || {
+    remove_created
+    warn "rolled back; nothing was written"
+  }
   return "$st"
 }
 
