@@ -21,16 +21,29 @@ machine_drop_dead() {
   done < <(jq -r --arg t "$1" '.tools[$t].projects[]?' <<<"$MACHINE")
 }
 
+# safe_rel REL: succeed when REL is a plain relative path that really lives at
+# PROJ/REL (no empty, ".", "..", absolute path or symlinked component).
+safe_rel() {
+  local r=${1%/}
+  [[ -n $r && $r != . && $r != /* && $r != ./* && $r != *..* ]] || return 1
+  [[ $(realpath -m -- "$PROJ/$r") == "$PROJ/$r" ]]
+}
+
+# declared_dir REL: succeed when some tool in the manifest declares REL as a project dir.
+declared_dir() {
+  jq -e --arg d "$1" '[.tools[].project_dirs // {} | keys[]] | index($d)' "$MANIFEST" >/dev/null
+}
+
 # remove_dir TOOL REL: delete the journaled files of REL that still match, then
 # REL itself if nothing but .gitignore is left. Hand edits and added files keep
 # the whole dir; declared leftovers are printed and kept with their .gitignore.
 remove_dir() {
   local t=$1 rel=$2 dir=$PROJ/$2 sha path p bad='' lo n=1 order=() left=() prune=()
   local -A listed=()
-  [[ $rel != /* && $rel != *..* ]] || {
-    warn "ignoring unsafe journal path: $rel"
+  if ! safe_rel "$rel" || ! declared_dir "${rel%/}"; then
+    warn "$rel is not a declared dir or resolves outside the project; leaving it"
     return 0
-  }
+  fi
   [[ -e $dir || -L $dir ]] || return 0
   [[ -d $dir && ! -L $dir ]] || {
     warn "$rel is not a directory; keeping it"
@@ -42,6 +55,13 @@ remove_dir() {
   done < <(jq -r --arg k "$KEY" --arg t "$t" --arg d "$rel/" \
     '.projects[$k].tools[$t].files[]? | select(.path | startswith($d)) | [.sha256, .path] | @tsv' <<<"$PJ")
   mapfile -t left < <(jq -r --arg t "$t" --arg d "$rel/" '.tools[$t].leftovers[]? | select(startswith($d))' "$MANIFEST")
+  for path in "${order[@]}"; do
+    [[ $path == "$rel"/* && $path != *..* ]] && p=$(realpath -m -- "$(dirname "$PROJ/$path")") &&
+      [[ $p == "$dir" || $p == "$dir"/* ]] || {
+      warn "unsafe path $path in the journal; leaving $rel"
+      return 0
+    }
+  done
   for path in "${order[@]}"; do
     [[ -e $PROJ/$path || -L $PROJ/$path ]] || continue
     [[ $(sha256sum -- "$PROJ/$path" | cut -d' ' -f1) == "${listed[$path]}" ]] || {
@@ -56,6 +76,9 @@ remove_dir() {
       bad=$p
       break
     done < <(cd "$PROJ" && find "$rel" \( -type f -o -type l \) ! -path "$rel/.gitignore" -print0)
+  fi
+  if [[ -z $bad && (-e $dir/.gitignore || -L $dir/.gitignore) ]]; then
+    [[ -f $dir/.gitignore && ! -L $dir/.gitignore && $(<"$dir/.gitignore") == '*' ]] || bad=$rel/.gitignore
   fi
   if [[ -n $bad ]]; then
     warn "${bad##*/} was changed by hand ($bad); keeping $rel"
@@ -75,6 +98,15 @@ remove_dir() {
   else
     for lo in "${left[@]}"; do [[ -e $PROJ/$lo ]] && say "left in place: $lo/ (runtime output; delete it yourself)"; done
   fi
+  return 0
+}
+
+# remove_created: rmdir the parent dirs `add` created, if still empty, then forget them.
+remove_created_dirs() {
+  local d
+  while IFS= read -r d; do
+    safe_rel "$d" && [[ $d == .claude || $d == .claude/* ]] && rmdir -- "$PROJ/$d" 2>/dev/null
+  done < <(jq -r --arg k "$KEY" '.projects[$k].created[]?' <<<"$PJ" | LC_ALL=C sort -r)
   return 0
 }
 
@@ -114,10 +146,13 @@ cmd_remove() {
   for t in "${drop[@]}"; do
     while IFS= read -r p; do remove_dir "$t" "$p"; done \
       < <(jq -r --arg k "$KEY" --arg t "$t" '.projects[$k].tools[$t].dirs[]?' <<<"$PJ")
-    PJ=$(jq -c --arg k "$KEY" --arg t "$t" 'del(.projects[$k].tools[$t])
-      | if (.projects[$k].tools | length) == 0 then del(.projects[$k]) else . end' <<<"$PJ")
+    PJ=$(jq -c --arg k "$KEY" --arg t "$t" 'del(.projects[$k].tools[$t])' <<<"$PJ")
     MACHINE=$(jq -c --arg k "$KEY" --arg t "$t" 'del(.tools[$t].projects[]? | select(. == $k))' <<<"$MACHINE")
   done
+  if [[ $(jq -r --arg k "$KEY" '(.projects[$k].tools // {}) | length' <<<"$PJ") == 0 ]]; then
+    remove_created_dirs
+    PJ=$(jq -c --arg k "$KEY" 'del(.projects[$k])' <<<"$PJ")
+  fi
   for t in "${keep[@]}"; do
     PJ=$(jq -c --arg k "$KEY" --arg t "$t" --arg v "$VIA" \
       '.projects[$k].tools[$t].via -= [$v]' <<<"$PJ")

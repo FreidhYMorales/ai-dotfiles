@@ -110,3 +110,12 @@ Branch: `feat/ai-pack-remove`. Completed: 4.1, 4.2, 4.3. Remaining: Phases 0, 5-
 - `--purge` also refuses when another pack in this project still needs the tool (this project then counts as a user). In this PR purge only deletes the `machine.json` entry; prefix and bin-link removal lands with npm in PR 4.
 - A journaled file already missing is treated as removed, so a rerun after a crash is quiet.
 - Empty parents (`.claude/skills`, `.claude`) are not removed.
+
+### Batch 4 corrective round (gatekeeper findings)
+
+- Medium B fixed: journaled file paths must start with the tool dir, contain no `..`, and their resolved parent must stay under the dir; otherwise warn and keep the dir.
+- Medium E fixed: `remove` requires `realpath "$PROJ/$rel" == "$PROJ/$rel"` (no symlinked component). `add` now refuses (`inside_project`, before any write) when a target dir resolves outside the project, e.g. a stow-managed `.claude` or `.claude/skills`.
+- Low fixed: journal dirs must be non-empty, not `.`, relative, and declared in the manifest `project_dirs`; others are ignored with a warning.
+- Low fixed: a `.gitignore` that is not exactly `*` (or is a symlink) counts as a hand edit and keeps the dir.
+- Low fixed (deviation 6 withdrawn): `add` journals the parent dirs it created (`projects.<key>.created`); the last `remove` rmdirs them only if still empty.
+- Evidence: RED commit shows 15 FAIL (symlinked-subdir case already held because the extra-file scan catches it). GREEN: 170 PASS, 0 FAIL, three runs (default x2, `LC_ALL=C` x1); `make check` 7/7.
