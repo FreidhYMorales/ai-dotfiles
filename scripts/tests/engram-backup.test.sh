@@ -39,7 +39,7 @@ backup() {
   shift
   LAST_OUTPUT=$(env -u RESTIC_REPOSITORY -u RESTIC_PASSWORD -u RESTIC_PASSWORD_FILE \
     -u ENGRAM_BACKUP_REPOS -u XDG_CONFIG_HOME -u XDG_CACHE_HOME -u XDG_STATE_HOME \
-    HOME="$home" ENGRAM_DATA_DIR="$home/.engram" RESTIC_CACHE_DIR="$home/.cache/restic" \
+    ENGRAM_BACKUP_ALLOW_RUNNING=1 HOME="$home" ENGRAM_DATA_DIR="$home/.engram" RESTIC_CACHE_DIR="$home/.cache/restic" \
     bash "$SCRIPT" "$@" 2>&1)
   LAST_EXIT=$?
 }
@@ -117,6 +117,49 @@ assert 'verify checks database integrity' says 'integrity ok'
 assert 'verify reads the restored data' says '2 observation'
 assert 'verify records its own status' \
   json_ok "$home/.local/state/engram-backup/verify.json" '.ok == true and .mode == "verify"'
+
+echo "== restore =="
+
+# A new machine: the same repos and password, but no engram data at all.
+fresh=$(ready restore-fresh)
+backup "$home" --init
+rm -rf "$fresh/repo-a" "$fresh/repo-b"
+cp -a "$home/repo-a" "$home/repo-b" "$fresh/"
+cp -a "$home/.config/restic/engram.pass" "$fresh/.config/restic/"
+rm -rf "$fresh/.engram"
+backup "$fresh" --restore
+assert 'restore on a new machine succeeds' test "$LAST_EXIT" -eq 0
+assert 'restore brings the database back' \
+  test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations' 2>/dev/null)" == 2
+assert 'restore brings protocol-mode.json back' test -f "$fresh/.engram/protocol-mode.json"
+assert 'restore reports where it came from' says 'restored'
+
+echo "existing" >"$fresh/.engram/marker"
+sqlite3 "$fresh/.engram/engram.db" "INSERT INTO observations VALUES ('local only');"
+backup "$fresh" --restore
+assert 'restore refuses to overwrite existing data' test "$LAST_EXIT" -ne 0
+assert 'the refusal points to --force' says '--force'
+assert 'refused restore leaves the data alone' \
+  test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations')" == 3
+
+backup "$fresh" --restore --force
+assert 'forced restore succeeds' test "$LAST_EXIT" -eq 0
+assert 'forced restore replaces the database' \
+  test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations')" == 2
+assert 'forced restore keeps the old data aside' test -n "$(compgen -G "$fresh/.engram.before-restore-*")"
+
+# A running engram (stub pgrep) must block a restore.
+mkdir -p "$TMP_ROOT/running-bin"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$TMP_ROOT/running-bin/pgrep"
+chmod +x "$TMP_ROOT/running-bin/pgrep"
+rm -rf "$fresh/.engram"
+LAST_OUTPUT=$(env -u XDG_CONFIG_HOME -u XDG_CACHE_HOME -u XDG_STATE_HOME PATH="$TMP_ROOT/running-bin:$PATH" \
+  HOME="$fresh" ENGRAM_DATA_DIR="$fresh/.engram" RESTIC_CACHE_DIR="$fresh/.cache/restic" \
+  bash "$SCRIPT" --restore 2>&1)
+LAST_EXIT=$?
+assert 'restore refuses while engram is running' test "$LAST_EXIT" -ne 0
+assert 'the refusal says to close Claude Code' says 'close every Claude Code session'
+assert 'nothing is restored while engram runs' test ! -e "$fresh/.engram/engram.db"
 
 echo "== failures =="
 

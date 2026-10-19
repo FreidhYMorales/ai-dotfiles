@@ -10,6 +10,9 @@
 #   --init    create the password file (if missing) and every repository
 #   --verify  check each repository, restore the latest snapshot and check
 #             the restored database
+#   --restore [--force]  put the latest snapshot back into the engram data
+#             dir (new machine); --force replaces existing data, keeping it
+#             aside as <data dir>.before-restore-<time>
 #
 # Config: ~/.config/restic/engram.env, e.g.
 #   ENGRAM_BACKUP_REPOS="/home/me/Files/backups/restic-engram rclone:gdrive:backups/restic-engram"
@@ -22,8 +25,12 @@ case ${1:-} in
   "") ;;
   --init) MODE=init ;;
   --verify) MODE=verify ;;
+  --restore)
+    MODE=restore
+    [[ ${2:-} == --force ]] && FORCE=1
+    ;;
   -h | --help)
-    sed -n '2,17p' "$0" | cut -c3-
+    sed -n '2,20p' "$0" | cut -c3-
     exit 0
     ;;
   *)
@@ -126,6 +133,40 @@ verify() {
       failed+=("$repo")
     fi
     rm -rf "$work"
+  done
+}
+
+restore() {
+  local repo work db stamp
+  if [[ -e $DATA_DIR/engram.db && ${FORCE:-0} != 1 ]]; then
+    echo "error: $DATA_DIR/engram.db already exists; rerun with --restore --force to replace it (the old data is kept aside)" >&2
+    failed+=("$DATA_DIR (exists)")
+    return
+  fi
+  if [[ ${ENGRAM_BACKUP_ALLOW_RUNNING:-} != 1 ]] && pgrep -f 'engram (serve|mcp)' >/dev/null 2>&1; then
+    echo "error: engram is running; close every Claude Code session (and stop 'engram serve') before restoring" >&2
+    failed+=("engram running")
+    return
+  fi
+  for repo in "${REPOS[@]}"; do
+    work=$(mktemp -d)
+    if restic -r "$repo" restore latest --tag engram --target "$work" --quiet >/dev/null 2>&1; then
+      db=$(find "$work" -name engram.db -type f | head -n1)
+      if [[ -n $db && $(sqlite3 "$db" 'PRAGMA integrity_check;') == ok ]]; then
+        if [[ -e $DATA_DIR ]]; then
+          stamp=$(date +%Y%m%d-%H%M%S)
+          mv "$DATA_DIR" "${DATA_DIR%/}.before-restore-$stamp"
+          echo "kept the old data at ${DATA_DIR%/}.before-restore-$stamp"
+        fi
+        mkdir -p "$DATA_DIR"
+        cp -a "$(dirname "$db")/." "$DATA_DIR/"
+        echo "restored: $repo -> $DATA_DIR ($(sqlite3 "$DATA_DIR/engram.db" 'SELECT count(*) FROM observations;' 2>/dev/null || echo '?') observation(s))"
+        rm -rf "$work"
+        return
+      fi
+    fi
+    rm -rf "$work"
+    failed+=("$repo")
   done
 }
 
