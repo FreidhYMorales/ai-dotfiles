@@ -34,6 +34,7 @@ assert() {
 mkdir -p "$TMP_ROOT/stubs" "$TMP_ROOT/served"
 cat >"$TMP_ROOT/stubs/curl" <<'STUB'
 #!/usr/bin/env bash
+echo called >>"$CURL_LOG"
 out=""
 while [[ $# -gt 1 ]]; do
   [[ $1 == -o ]] && out=$2
@@ -44,7 +45,7 @@ src="$FAKE_CURL/$(basename "$1")"
 cp "$src" "$out"
 STUB
 chmod +x "$TMP_ROOT/stubs/curl"
-export PATH="$TMP_ROOT/stubs:$PATH" FAKE_CURL="$TMP_ROOT/served"
+export PATH="$TMP_ROOT/stubs:$PATH" FAKE_CURL="$TMP_ROOT/served" CURL_LOG="$TMP_ROOT/curl.log"
 
 FIX="$TMP_ROOT/fix"
 STATE="$TMP_ROOT/state"
@@ -255,6 +256,18 @@ assert 'network error fails' exit_is 1
 assert 'network error writes no project dir' absent "$P/.claude"
 assert 'network error writes no state' absent "$STATE/projects.json"
 
+echo "== fetch protocol =="
+for u in http://example.invalid/pins/rules.md file:///etc/hostname; do
+  jq --arg u "$u" '.tools.tpl.source.url = $u' "$FIX/packs.json" >"$FIX/p3.json"
+  new_proj proto
+  : >"$CURL_LOG"
+  AI_PACK_MANIFEST="$FIX/p3.json" pack add fetchy --cwd "$P"
+  assert "non-https url refused: $u" exit_is 1
+  assert "refusal mentions https: $u" says 'https'
+  assert "curl was not called: $u" test ! -s "$CURL_LOG"
+  assert "refusal writes nothing: $u" absent "$P/.claude"
+done
+
 echo "== shadow =="
 SK="$HOME/.claude/skills/synced/id1/alpha"
 mkdir -p "$SK" "$HOME/.claude/skills/synced/id2/other" "$HOME/.claude/plugins/cache/mk/pl/1.0/skills/tpl"
@@ -309,7 +322,22 @@ mkdir -p "$HOME/.claude/skills/synced/$(printf 'long%.0s' {1..20})/alpha"
 printf 'x\n' >"$HOME/.claude/skills/synced/$(printf 'long%.0s' {1..20})/alpha/SKILL.md"
 pack list --cwd "$P"
 assert 'shadow shown by list' says 'shadowed by ~/.claude/skills/synced/long'
+maxlen() { LC_ALL=C.UTF-8 awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' <<<"$LAST_OUTPUT"; }
 assert 'no line exceeds 70 columns' test "$(awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' <<<"$LAST_OUTPUT")" -le 70
+rm -rf "$HOME/.claude/skills/synced"
+valid_utf8() { iconv -f UTF-8 -t UTF-8 <<<"$LAST_OUTPUT" >/dev/null 2>&1; }
+U8="$HOME/.claude/skills/synced/xy$(printf 'é%.0s' {1..80})"
+mkdir -p "$U8/alpha"
+printf 'x\n' >"$U8/alpha/SKILL.md"
+for loc in C default; do
+  if [[ $loc == C ]]; then LC_ALL=C pack list --cwd "$P"; else pack list --cwd "$P"; fi
+  assert "truncated output is valid UTF-8 ($loc)" valid_utf8
+  assert "truncated output is <= 70 characters ($loc)" test "$(maxlen)" -le 70
+done
+jq '.tools["a-very-long-tool-name"] = .tools.beta' "$FIX/packs.json" >"$FIX/p4.json"
+AI_PACK_MANIFEST="$FIX/p4.json" pack list --cwd "$P"
+assert 'long tool names keep the columns aligned' test "$(awk '/-- tools --/ { f = 1; next }
+  f && /^ [^ ]/ { match($0, / (✔|·) /); print RSTART }' <<<"$LAST_OUTPUT" | sort -u | wc -l)" -eq 1
 
 if [[ $failures -gt 0 ]]; then
   printf '%d failure(s)\n' "$failures" >&2
