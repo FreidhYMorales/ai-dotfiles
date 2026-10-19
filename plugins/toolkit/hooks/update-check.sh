@@ -6,6 +6,8 @@
 #   once a day and never for longer than 3 seconds.
 # Any failure stays silent. Opt out with SKIP_UPDATE_CHECK=1.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_UPDATE_CHECK:-} == 1 ]] && exit 0
 

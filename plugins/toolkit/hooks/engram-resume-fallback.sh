@@ -6,6 +6,8 @@
 # Silent on fixed versions, other sources, or when engram is not installed,
 # so the hook retires itself once engram is updated.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 LAST_AFFECTED=3.4.0
 

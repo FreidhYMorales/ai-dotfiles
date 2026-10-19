@@ -5,6 +5,8 @@
 # the last verify is older than 8 days, or nothing was ever recorded.
 # Silent when engram-backup is not configured. Opt out with SKIP_BACKUP_STATUS=1.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_BACKUP_STATUS:-} == 1 ]] && exit 0
 

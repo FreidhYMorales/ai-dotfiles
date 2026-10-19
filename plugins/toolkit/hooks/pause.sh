@@ -6,6 +6,8 @@
 # running and whether it is safe to stop, reply in a few lines.
 # Opt out with SKIP_PAUSE_HOOK=1.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_PAUSE_HOOK:-} == 1 ]] && exit 0
 

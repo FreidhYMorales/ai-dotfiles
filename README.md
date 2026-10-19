@@ -59,6 +59,17 @@ Memory: [engram](https://github.com/Gentleman-Programming/engram) is the only me
 
 Requires `jq`, `rg` and `claude`.
 
+## Turning hooks off
+
+Every toolkit hook honors `AI_HOOKS_OFF`: a comma-separated list of hook names (file name without `.sh`) or `all`. The per-hook `SKIP_*` variables keep working.
+
+```bash
+AI_HOOKS_OFF=host-info,pause claude   # these two stay quiet this session
+AI_HOOKS_OFF=all claude               # minimal session, no toolkit hooks
+```
+
+Measured cost (2026-10-19): toolkit hooks add ~160 tokens at startup (~300 on resume) and none takes more than ~110 ms; skill descriptions add ~1.5k tokens and engram's hooks ~1.3k.
+
 ## Verification
 
 Agent output is accepted because it passes checks, not because someone read every line. Every repo (this one and projects set up by `/flow:foundation` + `/flow:bootstrap`) exposes `make check`; the toolkit `require-check` Stop hook runs it before Claude can finish. Never weaken or skip a check to make it pass.

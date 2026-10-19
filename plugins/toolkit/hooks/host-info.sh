@@ -5,6 +5,8 @@
 # other contributors' machines. Runs on startup, clear and compact (resume
 # keeps the earlier context). Opt out with SKIP_HOST_INFO=1.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_HOST_INFO:-} == 1 ]] && exit 0
 

@@ -3,6 +3,9 @@
 # Exit 0 = allow, exit 2 = block (stderr is shown to Claude).
 # Fails open: missing jq, invalid input or a non-Bash tool always exits 0.
 
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
+
 command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)

@@ -5,6 +5,8 @@
 # back to Claude. A tree identical to the last green run is skipped (cache in
 # ~/.cache/require-check). Opt out with SKIP_REQUIRE_CHECK=1.
 set -u
+# shellcheck source=plugins/toolkit/hooks/lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_REQUIRE_CHECK:-} == 1 ]] && exit 0
 
