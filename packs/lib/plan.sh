@@ -5,6 +5,7 @@
 # shellcheck disable=SC2016
 
 UNDO=()
+CREATED=()
 PLAN=()
 TOOLS=()
 
@@ -16,6 +17,24 @@ undo_run() {
   local i
   for ((i = ${#UNDO[@]} - 1; i >= 0; i--)); do eval "${UNDO[i]}" || true; done
   UNDO=()
+}
+
+# mkdir_tracked DIR: mkdir -p, remembering the dirs it creates in CREATED.
+mkdir_tracked() {
+  local d=$1 missing=()
+  while [[ ! -d $d ]]; do
+    missing=("$d" "${missing[@]}")
+    d=$(dirname "$d")
+  done
+  mkdir -p "$1" || exit 1
+  CREATED+=("${missing[@]}")
+}
+
+# remove_created: rmdir the dirs this run created, newest first, if still empty.
+remove_created() {
+  local i
+  for ((i = ${#CREATED[@]} - 1; i >= 0; i--)); do rmdir -- "${CREATED[i]}" 2>/dev/null || true; done
+  CREATED=()
 }
 
 # resolve_targets NAME: set TOOLS (tool names) and VIA (pack name or "direct").
@@ -67,7 +86,7 @@ journal_files() {
 
 # classify TOOL REL PINNED: print new|noop|replace|adopt|skip|refuse.
 classify() {
-  local tool=$1 rel=$2 pinned=$3 target=$PROJ/$2 cur sha path
+  local tool=$1 rel=$2 pinned=$3 target=$PROJ/$2 cur sha path actual listed
   [[ -e $target || -L $target ]] || {
     echo new
     return
@@ -86,6 +105,14 @@ classify() {
       }
     done < <(jq -r --arg k "$KEY" --arg t "$tool" --arg d "$rel/" \
       '.projects[$k].tools[$t].files[]? | select(.path | startswith($d)) | [.sha256, .path] | @tsv' <<<"$PJ")
+    # A file the user added is a hand edit too: it would be lost on a swap.
+    actual=$(cd "$PROJ" && find "$rel" \( -type f -o -type l \) ! -path "$rel/.gitignore" | LC_ALL=C sort)
+    listed=$(jq -r --arg k "$KEY" --arg t "$tool" --arg d "$rel/" \
+      '.projects[$k].tools[$t].files[]? | select(.path | startswith($d)) | .path' <<<"$PJ" | LC_ALL=C sort)
+    [[ $actual == "$listed" ]] || {
+      echo skip
+      return
+    }
     [[ $cur == "$pinned" ]] && echo noop || echo replace
   else
     [[ $cur == "$pinned" ]] && echo adopt || echo refuse
@@ -116,11 +143,12 @@ apply_plan() {
   for entry in "${PLAN[@]}"; do
     IFS=$'\t' read -r t rel src pin action <<<"$entry"
     [[ $action == new || $action == replace ]] || continue
+    mkdir_tracked "$PROJ/.claude"
     stage=$(stage_new "$PROJ" "$src") || exit 1
     h=$(tree_hash "$stage") || exit 1
     [[ $h == "$pin" ]] || die "$t: staged $rel does not match its pinned hash"
     if [[ $action == new ]]; then
-      mkdir -p "$(dirname "$PROJ/$rel")" || exit 1
+      mkdir_tracked "$(dirname "$PROJ/$rel")"
       mv -T "$stage" "$PROJ/$rel" || exit 1
       undo_push rm -rf "$PROJ/$rel"
     else

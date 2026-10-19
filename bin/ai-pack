@@ -2,7 +2,7 @@
 # Opt-in packs of AI tools: add a pack to one project, keep the rest of the
 # machine untouched. Reads packs/packs.json from this repo.
 #
-# Usage: ai-pack add PACK|TOOL [--cwd DIR]  add a pack or tool to this project
+# Usage: ai-pack add PACK|TOOL [--cwd DIR]      add a pack or tool to this project
 #        ai-pack hash DIR                       print the pinned tree hash of DIR
 #        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
 #        ai-pack unignore PACK [--cwd DIR]      suggest PACK again

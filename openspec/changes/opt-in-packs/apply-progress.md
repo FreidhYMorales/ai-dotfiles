@@ -54,3 +54,11 @@ Branch: `feat/ai-pack-skill-add`. Completed: 2.1, 2.2, 2.3, 2.4. Remaining: Phas
 - Vendor dir is `$(dirname $AI_PACK_MANIFEST)/vendor`; `vendor:` sources only, no template, `kind: skill` only (others die with "supported yet"; PR 2b/4 extend `load_plan`).
 - Required commands and their min versions are checked before the lock; stale-stage cleanup and classification run under it.
 - An edited journaled dir keeps its old journal entry and is skipped; the rest of the pack still installs.
+
+### Batch 2 corrective round (gatekeeper findings)
+
+- HIGH fixed: `classify` now treats any file in an installed dir that is not in the journal (besides the top-level `.gitignore`) as a hand edit: warn and skip, so a user-added file is never swapped out. RED: extra-file tests failed (same-version re-add and version bump) before the fix.
+- LOW fixed: dirs created by the run (`.claude`, `.claude/skills`, ...) are tracked (`mkdir_tracked`) and removed on failure if still empty, after stages are cleaned. Rollback test now asserts `.claude` is gone.
+- LOW fixed: new TERM test runs `add` in its own process group against a vendor dir holding a fifo (hashing the staged copy blocks), sends TERM mid-run, and asserts non-zero exit, no `.claude`, no state.
+- Cosmetic: usage column alignment in `bin/ai-pack`.
+- Evidence: RED commit ad96847 (7 FAIL); GREEN 45 PASS, 0 FAIL; `make check` 7/7.
