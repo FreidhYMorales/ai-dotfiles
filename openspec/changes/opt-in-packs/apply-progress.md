@@ -82,3 +82,11 @@ Branch: `feat/ai-pack-sources-list`. Completed: 3.1, 3.2, 3.3, 3.4. Remaining: P
 - Shadow match uses the dir name and the frontmatter name of the vendored SKILL.md (copy) against both the dir name and frontmatter name of each candidate.
 - Fetch happens in `load_plan` (before any project write) into a `mktemp -d` removed by the EXIT trap; the fetched file is named after the tool, the marker uses `source.name`.
 - `list` output uses the plan glyphs (check, dot, warning) and truncates every line to 70 characters.
+
+### Batch 3 corrective round (gatekeeper findings)
+
+- Security: `fetch_verified` refuses any URL not starting with `https://` before calling curl and passes `--proto '=https' --proto-redir '=https'`. RED: http:// and file:// manifests were fetched (test commit "cover https-only fetch...", 8 FAIL then 9 with the UTF-8 case).
+- `list` truncation is character-safe in any locale (`cut70`: substring cut under `LC_ALL=C.UTF-8`, then trailing partial bytes dropped if the locale is missing). RED: invalid UTF-8 under `LC_ALL=C` with a non-ASCII shadow path (fixture needs an odd byte offset to trigger the cut mid-character).
+- `list` tool-name column is sized to the longest tool name (cap 24); the test checks that the mark column is aligned with a 21-character tool name.
+- Test width checks now measure characters with `LC_ALL=C.UTF-8` so they hold under the C locale too.
+- Evidence: targeted test 87 PASS, 0 FAIL, three runs each in the default locale and `LC_ALL=C`; `make check` 7/7.

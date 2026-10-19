@@ -323,7 +323,7 @@ printf 'x\n' >"$HOME/.claude/skills/synced/$(printf 'long%.0s' {1..20})/alpha/SK
 pack list --cwd "$P"
 assert 'shadow shown by list' says 'shadowed by ~/.claude/skills/synced/long'
 maxlen() { LC_ALL=C.UTF-8 awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' <<<"$LAST_OUTPUT"; }
-assert 'no line exceeds 70 columns' test "$(awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' <<<"$LAST_OUTPUT")" -le 70
+assert 'no line exceeds 70 columns' test "$(maxlen)" -le 70
 rm -rf "$HOME/.claude/skills/synced"
 valid_utf8() { iconv -f UTF-8 -t UTF-8 <<<"$LAST_OUTPUT" >/dev/null 2>&1; }
 U8="$HOME/.claude/skills/synced/xy$(printf 'é%.0s' {1..80})"

@@ -87,6 +87,18 @@ cmd_add() {
   say "run /reload-plugins to load the new skills"
 }
 
+# cut70 LINE: print LINE cut to 70 characters, whatever the caller's locale.
+cut70() {
+  local out
+  out=$(
+    LC_ALL=C.UTF-8
+    printf '%s' "${1:0:70}"
+  )
+  # Without a UTF-8 locale the cut is by bytes: drop a partial trailing character.
+  while ! iconv -f UTF-8 -t UTF-8 <<<"$out" >/dev/null 2>&1; do out=${out%?}; done
+  printf '%s\n' "$out"
+}
+
 # list_tool TOOL: append the display lines of TOOL to LINES; mark it in ACTIVE.
 list_tool() {
   local t=$1 rel from pin tpl dirs=0 present=0 adopt=0 jver mver cur via sh mark=· detail="not added"
@@ -110,7 +122,7 @@ list_tool() {
   elif ((dirs > 0 && adopt == dirs)); then
     detail="adoptable (ai-pack add $t)"
   fi
-  LINES+=("$(printf ' %-12s %s %s' "$t" "$mark" "$detail")")
+  LINES+=("$(printf ' %-*s %s %s' "$NAMEW" "$t" "$mark" "$detail")")
   [[ -z ${sh:-} ]] || LINES+=("   ⚠ shadowed by $sh")
 }
 
@@ -121,6 +133,7 @@ cmd_list() {
   local t p line mark
   local -A ACTIVE=()
   LINES=()
+  NAMEW=$(jq -r '[.tools | keys[] | length] | (max // 1) | if . > 24 then 24 else . end' "$MANIFEST")
   PJ=$(state_read "$STATE_DIR/projects.json") || exit 1
   MACHINE=$(state_read "$STATE_DIR/machine.json") || exit 1
   while read -r t; do list_tool "$t"; done < <(jq -r '.tools | keys[]' "$MANIFEST")
@@ -128,8 +141,8 @@ cmd_list() {
     mark=·
     while read -r t; do [[ -z ${ACTIVE[$t]:-} ]] || mark=✔; done < <(jq -r --arg p "$p" '.packs[$p].tools[]' "$MANIFEST")
     line=$(printf ' %-9s %s  %s' "$p" "$mark" "$(jq -r --arg p "$p" '.packs[$p].tools | join(", ")' "$MANIFEST")")
-    say "${line:0:70}"
+    cut70 "$line"
   done < <(jq -r '.packs | keys[]' "$MANIFEST")
   say " -- tools --"
-  for line in "${LINES[@]}"; do say "${line:0:70}"; done
+  for line in "${LINES[@]}"; do cut70 "$line"; done
 }
