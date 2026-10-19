@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_BACKUP_STATUS:-} == 1 ]] && exit 0
 
-input=$(</dev/stdin)
+IFS= read -r -d '' input || true
 [[ $(jq -r '.source // empty' <<<"$input" 2>/dev/null) == startup ]] || exit 0
 
 CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/restic/engram.env

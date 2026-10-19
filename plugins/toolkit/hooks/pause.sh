@@ -11,7 +11,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 [[ ${SKIP_PAUSE_HOOK:-} == 1 ]] && exit 0
 
-input=$(</dev/stdin)
+IFS= read -r -d '' input || true
 prompt=$(jq -r '.prompt // empty' <<<"$input" 2>/dev/null)
 cwd=$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)
 prompt=${prompt,,}
