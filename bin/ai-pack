@@ -4,6 +4,8 @@
 #
 # Usage: ai-pack list [--cwd DIR]               show packs and tools in this project
 #        ai-pack add PACK|TOOL [--cwd DIR]      add a pack or tool to this project
+#        ai-pack remove PACK|TOOL [--purge] [--cwd DIR]
+#                                               remove it; --purge also drops the machine install
 #        ai-pack hash DIR                       print the pinned tree hash of DIR
 #        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
 #        ai-pack unignore PACK [--cwd DIR]      suggest PACK again
@@ -27,6 +29,8 @@ source "$LIB/tree.sh"
 source "$LIB/sources.sh"
 # shellcheck source=packs/lib/plan.sh
 source "$LIB/plan.sh"
+# shellcheck source=packs/lib/remove.sh
+source "$LIB/remove.sh"
 # shellcheck source=packs/lib/cmd.sh
 source "$LIB/cmd.sh"
 
@@ -43,6 +47,7 @@ cmd=${1:-}
 [[ $# -gt 0 ]] && shift
 case $cmd in
   add) cmd_add "$@" ;;
+  remove) cmd_remove "$@" ;;
   list) cmd_list "$@" ;;
   hash) cmd_hash "$@" ;;
   ignore) cmd_ignore "$@" ;;
