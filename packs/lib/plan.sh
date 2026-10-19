@@ -7,6 +7,7 @@
 UNDO=()
 CREATED=()
 PLAN=()
+FETCH_DIR=
 TOOLS=()
 
 # undo_push CMD [ARGS...]: remember how to revert the step just done.
@@ -72,6 +73,50 @@ check_requires() {
   ((bad == 0)) || die "requirements missing (nothing was written)"
 }
 
+# frontmatter_name FILE: print the `name:` of the YAML frontmatter, if any.
+frontmatter_name() {
+  awk '/^---[[:space:]]*$/ { n++; next }
+    n == 1 && /^name:/ { sub(/^name:[[:space:]]*/, ""); gsub(/["\047\r]/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+    n > 1 { exit }' "$1" 2>/dev/null
+}
+
+# shadow_find DIRBASE SRC: print the dir of the first personal or plugin skill
+# that has the same dir name or frontmatter name as the project copy.
+shadow_find() {
+  local names=("$1") f d fn n
+  fn=$(frontmatter_name "$2/SKILL.md")
+  [[ -z $fn ]] || names+=("$fn")
+  while IFS= read -r f; do
+    d=$(dirname "$f")
+    fn=$(frontmatter_name "$f")
+    for n in "${names[@]}"; do
+      if [[ ${d##*/} == "$n" || $fn == "$n" ]]; then
+        printf '%s\n' "${d/#$HOME/\~}"
+        return 0
+      fi
+    done
+  done < <({
+    find "$HOME/.claude/skills" -maxdepth 4 -name SKILL.md 2>/dev/null
+    compgen -G "$HOME/.claude/plugins/cache/*/*/*/skills/*/SKILL.md"
+  } | LC_ALL=C sort)
+  return 1
+}
+
+# tool_dirs TOOL: one line per project dir: rel, from, hash, template (- if none).
+tool_dirs() {
+  jq -r --arg t "$1" '.tools[$t].project_dirs | to_entries[]
+    | [.key, .value.from, .value.hash, (.value.template // "-")] | @tsv' "$MANIFEST"
+}
+
+# warn_shadows: warn for every planned dir that a personal or plugin skill shadows.
+warn_shadows() {
+  local entry t rel src sh
+  for entry in "${PLAN[@]}"; do
+    IFS=$'\t' read -r t rel src _ <<<"$entry"
+    sh=$(shadow_find "${rel##*/}" "$src") && warn "$t is shadowed by $sh"
+  done
+}
+
 # journal_files DIR_REL: JSON array of {path, sha256} for the files under DIR_REL.
 journal_files() {
   local p
@@ -121,30 +166,40 @@ classify() {
 
 # load_plan: classify every project dir of TOOLS into PLAN (tool rel src pin action).
 load_plan() {
-  local t rel from pin tpl action src
+  local t rel from pin tpl action src data
   for t in "${TOOLS[@]}"; do
+    data=-
+    if [[ $(jq -r --arg t "$t" '.tools[$t].source.type' "$MANIFEST") == fetched ]]; then
+      [[ -n $FETCH_DIR ]] || FETCH_DIR=$(mktemp -d) || exit 1
+      data=$FETCH_DIR/$t
+      fetch_verified "$(jq -r --arg t "$t" '.tools[$t].source.url' "$MANIFEST")" \
+        "$(jq -r --arg t "$t" '.tools[$t].source.sha256' "$MANIFEST")" "$data"
+    fi
     [[ $(jq -r --arg t "$t" '.tools[$t].kind' "$MANIFEST") == skill ]] || die "$t: only skill tools are supported yet"
     while IFS=$'\t' read -r rel from pin tpl; do
-      [[ $from == vendor:* && $tpl == - ]] || die "$t: only plain vendored sources are supported yet"
+      [[ $from == vendor:* ]] || die "$t: only vendored project dirs are supported yet"
+      [[ $tpl == - || ($data != - && $tpl != /* && $tpl != *..*) ]] || die "$t: invalid template $tpl"
       src=$VENDOR_DIR/${from#vendor:}
       [[ -d $src ]] || die "$t: vendor dir missing: $src"
       action=$(classify "$t" "$rel" "$pin") || exit 1
       [[ $action != refuse ]] || die "refusing: $rel exists and is not an ai-pack copy (nothing was written)"
       [[ $action != skip ]] || warn "$rel was edited by hand; leaving it unchanged (delete it to re-sync)"
-      PLAN+=("$t"$'\t'"$rel"$'\t'"$src"$'\t'"$pin"$'\t'"$action")
-    done < <(jq -r --arg t "$t" '.tools[$t].project_dirs | to_entries[]
-      | [.key, .value.from, .value.hash, (.value.template // "-")] | @tsv' "$MANIFEST")
+      PLAN+=("$t"$'\t'"$rel"$'\t'"$src"$'\t'"$pin"$'\t'"$action"$'\t'"$tpl"$'\t'"$data")
+    done < <(tool_dirs "$t")
   done
 }
 
 # apply_plan: stage, verify the pin, then move each dir into place.
 apply_plan() {
-  local entry t rel src pin action stage h
+  local entry t rel src pin action tpl data stage h
   for entry in "${PLAN[@]}"; do
-    IFS=$'\t' read -r t rel src pin action <<<"$entry"
+    IFS=$'\t' read -r t rel src pin action tpl data <<<"$entry"
     [[ $action == new || $action == replace ]] || continue
     mkdir_tracked "$PROJ/.claude"
     stage=$(stage_new "$PROJ" "$src") || exit 1
+    if [[ $tpl != - ]]; then
+      render_template "$stage/$tpl" "$(jq -r --arg t "$t" '.tools[$t].source.name' "$MANIFEST")" "$data" || exit 1
+    fi
     h=$(tree_hash "$stage") || exit 1
     [[ $h == "$pin" ]] || die "$t: staged $rel does not match its pinned hash"
     if [[ $action == new ]]; then
@@ -164,7 +219,7 @@ commit_journal() {
   for t in "${TOOLS[@]}"; do
     files='[]' dirs='[]'
     for entry in "${PLAN[@]}"; do
-      IFS=$'\t' read -r tool rel _ _ action <<<"$entry"
+      IFS=$'\t' read -r tool rel _ _ action _ <<<"$entry"
       [[ $tool == "$t" ]] || continue
       dirs=$(jq -c --arg d "$rel" '. + [$d]' <<<"$dirs")
       if [[ $action == skip ]]; then

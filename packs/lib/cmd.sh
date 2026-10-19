@@ -14,6 +14,11 @@ parse_pack_args() {
   PACK=${1:-}
   [[ -n $PACK ]] || usage_error "a pack name is required"
   shift
+  parse_cwd_args "$@"
+}
+
+# parse_cwd_args [--cwd DIR]: set KEY (the project key).
+parse_cwd_args() {
   local cwd=$PWD
   while [[ $# -gt 0 ]]; do
     case $1 in
@@ -54,6 +59,7 @@ add_cleanup() {
   local st=$?
   undo_run
   clean_stages "$PROJ"
+  [[ -z $FETCH_DIR ]] || rm -rf "$FETCH_DIR"
   ((st == 0)) || {
     remove_created
     warn "rolled back; nothing was written"
@@ -72,10 +78,58 @@ cmd_add() {
   clean_stages "$PROJ"
   PJ=$(state_read "$STATE_DIR/projects.json") || exit 1
   load_plan
+  warn_shadows
   apply_plan
   commit_journal
   UNDO=()
   clean_stages "$PROJ"
   say "ok: active ${TOOLS[*]} in $KEY"
   say "run /reload-plugins to load the new skills"
+}
+
+# list_tool TOOL: append the display lines of TOOL to LINES; mark it in ACTIVE.
+list_tool() {
+  local t=$1 rel from pin tpl dirs=0 present=0 adopt=0 jver mver cur via sh mark=· detail="not added"
+  while IFS=$'\t' read -r rel from pin tpl; do
+    dirs=$((dirs + 1))
+    [[ -d $PROJ/$rel ]] && present=$((present + 1))
+    [[ $(classify "$t" "$rel" "$pin") == adopt ]] && adopt=$((adopt + 1))
+    [[ $rel == .claude/skills/* && -z ${sh:-} ]] && sh=$(shadow_find "${rel##*/}" "$VENDOR_DIR/${from#vendor:}")
+  done < <(tool_dirs "$t")
+  jver=$(jq -r --arg k "$KEY" --arg t "$t" '.projects[$k].tools[$t].version // empty' <<<"$PJ")
+  if [[ -n $jver && $present -eq $dirs ]]; then
+    ACTIVE[$t]=1 mark=✔
+    via=$(jq -r --arg k "$KEY" --arg t "$t" '.projects[$k].tools[$t].via // [] | join(",")' <<<"$PJ")
+    detail="(via $via) $jver"
+    mver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // "-"' "$MANIFEST")
+    [[ $mver == - || $mver == "$jver" ]] || detail+=" -> $mver available"
+    cur=$(jq -r --arg t "$t" '.tools[$t].current // empty' <<<"$MACHINE")
+    [[ -z $cur || $cur == "$jver" ]] || detail+=" (machine $cur)"
+  elif [[ -n $jver ]]; then
+    detail="missing (ai-pack add $t)"
+  elif ((dirs > 0 && adopt == dirs)); then
+    detail="adoptable (ai-pack add $t)"
+  fi
+  LINES+=("$(printf ' %-12s %s %s' "$t" "$mark" "$detail")")
+  [[ -z ${sh:-} ]] || LINES+=("   ⚠ shadowed by $sh")
+}
+
+# cmd_list [--cwd DIR]: read-only view of packs and tools; takes no lock and writes nothing.
+cmd_list() {
+  parse_cwd_args "$@"
+  PROJ=$KEY
+  local t p line mark
+  local -A ACTIVE=()
+  LINES=()
+  PJ=$(state_read "$STATE_DIR/projects.json") || exit 1
+  MACHINE=$(state_read "$STATE_DIR/machine.json") || exit 1
+  while read -r t; do list_tool "$t"; done < <(jq -r '.tools | keys[]' "$MANIFEST")
+  while read -r p; do
+    mark=·
+    while read -r t; do [[ -z ${ACTIVE[$t]:-} ]] || mark=✔; done < <(jq -r --arg p "$p" '.packs[$p].tools[]' "$MANIFEST")
+    line=$(printf ' %-9s %s  %s' "$p" "$mark" "$(jq -r --arg p "$p" '.packs[$p].tools | join(", ")' "$MANIFEST")")
+    say "${line:0:70}"
+  done < <(jq -r '.packs | keys[]' "$MANIFEST")
+  say " -- tools --"
+  for line in "${LINES[@]}"; do say "${line:0:70}"; done
 }
