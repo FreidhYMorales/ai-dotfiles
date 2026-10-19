@@ -25,7 +25,7 @@ jobs:
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint \
-            sqlite restic socat python util-linux openssl procps-ng
+            sqlite restic socat python util-linux openssl procps-ng diffutils
           shfmt --version
           actionlint --version
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
