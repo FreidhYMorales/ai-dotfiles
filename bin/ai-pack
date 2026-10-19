@@ -2,7 +2,8 @@
 # Opt-in packs of AI tools: add a pack to one project, keep the rest of the
 # machine untouched. Reads packs/packs.json from this repo.
 #
-# Usage: ai-pack hash DIR                       print the pinned tree hash of DIR
+# Usage: ai-pack add PACK|TOOL [--cwd DIR]  add a pack or tool to this project
+#        ai-pack hash DIR                       print the pinned tree hash of DIR
 #        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
 #        ai-pack unignore PACK [--cwd DIR]      suggest PACK again
 #
@@ -12,6 +13,8 @@ set -u
 REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
 LIB=$REPO_DIR/packs/lib
 STATE_DIR=${AI_PACK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/ai-pack}
+MANIFEST=${AI_PACK_MANIFEST:-$REPO_DIR/packs/packs.json}
+VENDOR_DIR=$(dirname "$MANIFEST")/vendor
 
 # shellcheck source=packs/lib/common.sh
 source "$LIB/common.sh"
@@ -19,6 +22,8 @@ source "$LIB/common.sh"
 source "$LIB/state.sh"
 # shellcheck source=packs/lib/tree.sh
 source "$LIB/tree.sh"
+# shellcheck source=packs/lib/plan.sh
+source "$LIB/plan.sh"
 # shellcheck source=packs/lib/cmd.sh
 source "$LIB/cmd.sh"
 
@@ -34,6 +39,7 @@ check_deps || exit 1
 cmd=${1:-}
 [[ $# -gt 0 ]] && shift
 case $cmd in
+  add) cmd_add "$@" ;;
   hash) cmd_hash "$@" ;;
   ignore) cmd_ignore "$@" ;;
   unignore) cmd_unignore "$@" ;;

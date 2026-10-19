@@ -34,3 +34,23 @@ Completed: 1.1, 1.2, 1.3, 1.4, 1.5. Remaining: Phases 0, 2-9 (not in this batch)
 - Tree hash lines keep the `./` path prefix; design.md now says so.
 - Corrective round: `tree_hash` reads the owner exec bit from the mode (`stat -c %a`) instead of `[[ -x ]]`; the test now isolates git (temp HOME, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM=1`). The 654 vs 644 case cannot fail as a non-root user (RED not observable here); it guards root and foreign-owner runs.
 - `tasks.md` header: chain strategy set to stacked-to-main, PR 5 `size:exception` marked resolved.
+
+## Batch 2: PR 2a skill add from vendored sources (unit 2a)
+
+Branch: `feat/ai-pack-skill-add`. Completed: 2.1, 2.2, 2.3, 2.4. Remaining: Phases 0, 3-9.
+
+### TDD Cycle Evidence
+
+| Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2.1 | `scripts/tests/ai-pack-skill.test.sh` | Integration (black box, fixture manifest + tiny vendor dirs) | core test 48/48 | committed failing: 22 FAIL | n/a | n/a | n/a |
+| 2.2 | same | Integration | n/a | covered by 2.1 | `tree.sh` stage_new/clean_stages, `plan.sh` | new/noop/replace/adopt/skip/refuse, rollback of a replace via exchange | shellcheck SC2034 fix |
+| 2.3 | same | Integration | n/a | covered by 2.1 | `cmd_add`, EXIT/INT/TERM traps, journal after move | two worktrees, preflight, foreign, adoption, re-sync, edited, rollback, stale stage | clean |
+| 2.4 | same | `make check` | all pass | n/a | 36/36 pass, 7/7 steps | n/a | n/a |
+
+### Deviations from design
+
+- Rollback is an EXIT trap (plus `trap 'exit 130' INT TERM` so signals run it) instead of `trap undo_run INT TERM`; one path covers `die`, signals and normal failure. The signal path is not covered by a test.
+- Vendor dir is `$(dirname $AI_PACK_MANIFEST)/vendor`; `vendor:` sources only, no template, `kind: skill` only (others die with "supported yet"; PR 2b/4 extend `load_plan`).
+- Required commands and their min versions are checked before the lock; stale-stage cleanup and classification run under it.
+- An edited journaled dir keeps its old journal entry and is skipped; the rest of the pack still installs.

@@ -35,3 +35,22 @@ tree_hash() {
   ) || die "cannot hash $1"
   printf 'sha256:%s\n' "$digest"
 }
+
+# stage_new PROJECT SRC: copy SRC into a fresh <project>/.claude/.ai-pack-stage-*
+# dir, add a self-ignoring .gitignore, normalize modes; print the stage path.
+stage_new() {
+  local stage
+  mkdir -p "$1/.claude" || return 1
+  stage=$(mktemp -d "$1/.claude/.ai-pack-stage-XXXXXX") || return 1
+  printf '*\n' >"$stage/.gitignore"
+  cp -a "$2/." "$stage/" || return 1
+  printf '*\n' >"$stage/.gitignore"
+  normalize_modes "$stage"
+  printf '%s\n' "$stage"
+}
+
+# clean_stages PROJECT: delete stale stages (call under the lock).
+clean_stages() {
+  find "$1/.claude" -maxdepth 1 -name '.ai-pack-stage-*' -exec rm -rf {} + 2>/dev/null
+  return 0
+}
