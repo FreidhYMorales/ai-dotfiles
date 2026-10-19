@@ -12,6 +12,13 @@ failures=0
 TMP_ROOT=$(realpath "$(mktemp -d)")
 trap 'chmod -R u+rwx "$TMP_ROOT" 2>/dev/null; rm -rf "$TMP_ROOT"' EXIT
 
+# Isolate git from the user's config and hooks.
+mkdir -p "$TMP_ROOT/home"
+export HOME="$TMP_ROOT/home" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$TMP_ROOT/home/gitconfig"
+git config --file "$GIT_CONFIG_GLOBAL" user.name t
+git config --file "$GIT_CONFIG_GLOBAL" user.email t@t
+git config --file "$GIT_CONFIG_GLOBAL" commit.gpgsign false
+
 assert() {
   local label=$1
   shift
@@ -40,7 +47,7 @@ json_ok() {
 exit_is() { [[ $LAST_EXIT -eq $1 ]]; }
 fresh_state() { STATE="$TMP_ROOT/state-$1"; }
 
-git_q() { git -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+git_q() { git "$@"; }
 
 echo "== project key =="
 
@@ -186,6 +193,12 @@ ln -sfn sub/b.txt "$TMP_ROOT/t022/link"
 assert 'link target alters the hash' test "$(hash_of "$TMP_ROOT/t022")" != "$base"
 ln -sfn a.txt "$TMP_ROOT/t022/link"
 assert 'restoring the tree restores the hash' test "$(hash_of "$TMP_ROOT/t022")" = "$base"
+
+chmod 654 "$TMP_ROOT/t022/a.txt"
+assert 'group/other exec bits do not alter the hash' test "$(hash_of "$TMP_ROOT/t022")" = "$base"
+chmod 744 "$TMP_ROOT/t022/a.txt"
+assert 'owner exec bit alters the hash' test "$(hash_of "$TMP_ROOT/t022")" != "$base"
+chmod 644 "$TMP_ROOT/t022/a.txt"
 
 pack hash "$TMP_ROOT/missing"
 assert 'hash of a missing dir fails' exit_is 1

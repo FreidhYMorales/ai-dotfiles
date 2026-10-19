@@ -28,7 +28,7 @@ tree_hash() {
         else
           t=f
           h=$(sha256sum -- "$p" | cut -d' ' -f1)
-          [[ -x $p ]] && x=1
+          (((8#$(stat -c %a -- "$p")) & 8#100)) && x=1
         fi
         printf '%s\0%s\0%s\0%s\n' "$t" "$x" "$p" "$h"
       done | sha256sum | cut -d' ' -f1
