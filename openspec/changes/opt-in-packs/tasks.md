@@ -90,10 +90,10 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 7: PR 6 Hint and hook (spec: pack-hint all; Makefile; version bump)
 
-- [ ] 7.1 RED: `plugins/toolkit/hooks/tests/pack-hint.test.sh` (vite hint plus `hints.json`, 31 vs 5 days via `AI_PACK_NOW`, silent: ignored, active, partly active, corrupt `package.json`, newer schema, timeout, missing binary, unknown prefix, `flock` held, two parallel runs give one hint, real repo root silent; `systemMessage` only; PATH fallback); `AI_HOOKS_OFF=pack-hint` case in `hooks-off.test.sh`.
-- [ ] 7.2 GREEN: `cmd_hint` in `cmd.sh`; `plugins/toolkit/hooks/pack-hint.sh`; `hooks.json` startup entry `"timeout": 2`.
-- [ ] 7.3 GREEN: Makefile `HOOKS` += `pack-hint`; toolkit 0.10.1 to 0.11.0 in `plugins/toolkit/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
-- [ ] 7.4 REFACTOR: `make check` and `make mutate`.
+- [x] 7.1 RED: `plugins/toolkit/hooks/tests/pack-hint.test.sh` (vite hint plus `hints.json`, 31 vs 5 days via `AI_PACK_NOW`, silent: ignored, active, partly active, corrupt `package.json`, newer schema, timeout, missing binary, unknown prefix, `flock` held, two parallel runs give one hint, real repo root silent; `systemMessage` only; PATH fallback); `AI_HOOKS_OFF=pack-hint` case in `hooks-off.test.sh`.
+- [x] 7.2 GREEN: `cmd_hint` in `cmd.sh`; `plugins/toolkit/hooks/pack-hint.sh`; `hooks.json` startup entry `"timeout": 2`.
+- [x] 7.3 GREEN: Makefile `HOOKS` += `pack-hint`; toolkit 0.10.2 to 0.11.0 in `plugins/toolkit/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
+- [x] 7.4 REFACTOR: `make check` and `make mutate`.
 
 ## Phase 8: PR 7 Docs
 
