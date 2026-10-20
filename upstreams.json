@@ -9,8 +9,8 @@
     {
       "repo": "Gentleman-Programming/engram",
       "watch": "releases",
-      "reviewed": "v3.4.0",
-      "why": "our memory; a release after 3.4.0 lets us drop engram-resume-fallback"
+      "reviewed": "v3.5.1",
+      "why": "our memory (3.5.1 fixed resumed-session writes, #1624)"
     },
     {
       "repo": "Gentleman-Programming/gentle-shell",

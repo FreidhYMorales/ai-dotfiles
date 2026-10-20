@@ -68,7 +68,6 @@ cases=(
   "update-check|{\"source\":\"startup\"}"
   "backup-status|{\"source\":\"startup\"}"
   "pack-hint|{\"source\":\"startup\",\"cwd\":\"$vite\"}"
-  "engram-resume-fallback|{\"source\":\"resume\"}"
   "pause|{\"prompt\":\"pausa\",\"cwd\":\"$repo\"}"
   "prefer-modern-cli|{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"grep x f\"}}"
   "require-check|{\"cwd\":\"$repo\",\"stop_hook_active\":false}"
