@@ -68,7 +68,8 @@ check_requires() {
           bad=1
         }
       fi
-    done < <(jq -r --arg t "$t" '.tools[$t].requires[]? | [.cmd, (.min // "-"), (.hint // "-")] | @tsv' "$MANIFEST")
+    done < <(jq -r --arg t "$t" '.tools[$t] | ((.requires // []) + (if .kind == "npm" and ((.requires // []) | map(.cmd) | index("npm") | not)
+      then [{cmd: "npm", hint: "sudo pacman -S npm"}] else [] end))[] | [.cmd, (.min // "-"), (.hint // "-")] | @tsv' "$MANIFEST")
   done
   ((bad == 0)) || die "requirements missing (nothing was written)"
 }
@@ -173,7 +174,7 @@ inside_project() {
 
 # load_plan: classify every project dir of TOOLS into PLAN (tool rel src pin action).
 load_plan() {
-  local t rel from pin tpl action src data
+  local t rel from pin tpl action src data kind
   for t in "${TOOLS[@]}"; do
     data=-
     if [[ $(jq -r --arg t "$t" '.tools[$t].source.type' "$MANIFEST") == fetched ]]; then
@@ -182,12 +183,18 @@ load_plan() {
       fetch_verified "$(jq -r --arg t "$t" '.tools[$t].source.url' "$MANIFEST")" \
         "$(jq -r --arg t "$t" '.tools[$t].source.sha256' "$MANIFEST")" "$data"
     fi
-    [[ $(jq -r --arg t "$t" '.tools[$t].kind' "$MANIFEST") == skill ]] || die "$t: only skill tools are supported yet"
+    kind=$(jq -r --arg t "$t" '.tools[$t].kind' "$MANIFEST")
+    [[ $kind == skill || $kind == npm ]] || die "$t: unsupported kind $kind"
+    [[ $kind == skill ]] || npm_preflight "$t"
     while IFS=$'\t' read -r rel from pin tpl; do
-      [[ $from == vendor:* ]] || die "$t: only vendored project dirs are supported yet"
+      [[ $from == vendor:* || ($kind == npm && $from == npm:* && $from != *..* && $from != npm:/*) ]] || die "$t: unsupported project dir source $from"
       [[ $tpl == - || ($data != - && $tpl != /* && $tpl != *..*) ]] || die "$t: invalid template $tpl"
-      src=$VENDOR_DIR/${from#vendor:}
-      [[ -d $src ]] || die "$t: vendor dir missing: $src"
+      if [[ $from == npm:* ]]; then
+        src=$(npm_prefix "$t")/node_modules/$(jq -r --arg t "$t" '.tools[$t].source.package' "$MANIFEST")/${from#npm:}
+      else
+        src=$VENDOR_DIR/${from#vendor:}
+        [[ -d $src ]] || die "$t: vendor dir missing: $src"
+      fi
       inside_project "$rel" || die "refusing: $rel resolves outside the project (nothing was written)"
       action=$(classify "$t" "$rel" "$pin") || exit 1
       [[ $action != refuse ]] || die "refusing: $rel exists and is not an ai-pack copy (nothing was written)"
@@ -203,6 +210,7 @@ apply_plan() {
   for entry in "${PLAN[@]}"; do
     IFS=$'\t' read -r t rel src pin action tpl data <<<"$entry"
     [[ $action == new || $action == replace ]] || continue
+    [[ -d $src ]] || die "$t: $rel source missing: $src"
     mkdir_tracked "$PROJ/.claude"
     stage=$(stage_new "$PROJ" "$src") || exit 1
     if [[ $tpl != - ]]; then
@@ -237,7 +245,7 @@ commit_journal() {
         files=$(jq -c --argjson n "$(journal_files "$rel")" '. + $n' <<<"$files")
       fi
     done
-    ver=$(jq -r --arg t "$t" '.tools[$t].source.tag // "-"' "$MANIFEST")
+    ver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // "-"' "$MANIFEST")
     cur=$(jq -c --arg k "$KEY" --arg t "$t" --arg v "$ver" --arg via "$VIA" --argjson at "$now" \
       --argjson dirs "$dirs" --argjson files "$files" \
       '.projects[$k].tools[$t] = {version: $v, dirs: $dirs, files: $files, at: $at,
