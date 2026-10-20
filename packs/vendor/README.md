@@ -10,7 +10,7 @@ This README sits outside the hashed directories on purpose.
 | `taste-skill/` | github.com/Leonxlnx/taste-skill, `skills/taste-skill/` | v2.1.2 (commit b9ca2fd) | MIT (repo root `LICENSE`) | `d6adddbb1b3f5782702299be1918bcfb048ca20809d318703a8bf2f8bd197ff5` |
 | `archify/` | github.com/tt-a1i/archify, `archify/` | v3.2.0 (commit 208acba) | MIT (`archify/LICENSE`) | `b9490be6e01c9cf1f6a2163f44c22feeb4b3435e254eea99ea0b3dfa08b07480` |
 | `playwright/` | in-house | n/a | n/a | n/a |
-| `web-design-guidelines/` | in-house template | n/a | n/a | rules are fetched, never committed |
+| `web-design-guidelines/` | github.com/vercel-labs/web-interface-guidelines, `command.md` as `rules.md` (+ in-house `SKILL.md`) | commit 4ecfb9f | MIT (`web-design-guidelines/LICENSE`) | `rules.md`: `d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234` |
 
 Tarball URL: `https://github.com/<repo>/archive/refs/tags/<tag>.tar.gz`.
 
@@ -49,10 +49,13 @@ downloads a browser. Verified pair: Chromium 154, node 26, playwright-cli 0.1.22
 
 ## web-design-guidelines
 
-`SKILL.md` is written in-house with one `{{FETCHED:rules}}` line. At add time
-`ai-pack` fetches `command.md` from github.com/vercel-labs/web-interface-guidelines
-at the commit pinned in the manifest, checks its sha256 and renders the skill.
-The rules are never committed.
+`SKILL.md` is written in-house and points at `rules.md`, which is `command.md`
+from github.com/vercel-labs/web-interface-guidelines (MIT since 2025-09; its
+`LICENSE` is copied next to it) at commit
+`4ecfb9fb8d1d3b7009674869b3aaee2f904042e1`, verbatim
+(sha256 `d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234`).
+Keeping it as a separate file avoids a second frontmatter block inside
+`SKILL.md`, and `add web` needs no network for it.
 
 ## Update and re-pin
 

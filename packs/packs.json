@@ -44,17 +44,11 @@
     "web-design-guidelines": {
       "kind": "skill",
       "layers": ["project"],
-      "source": {
-        "type": "fetched",
-        "name": "rules",
-        "url": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/4ecfb9fb8d1d3b7009674869b3aaee2f904042e1/command.md",
-        "sha256": "d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234"
-      },
+      "source": {"type": "vendored", "commit": "4ecfb9fb8d1d3b7009674869b3aaee2f904042e1"},
       "project_dirs": {
         ".claude/skills/web-design-guidelines": {
           "from": "vendor:web-design-guidelines",
-          "template": "SKILL.md",
-          "hash": "sha256:52fe38fc568fa6a4e9c8fafea226e8d039554535d9aff0c15c7161d0768b3745"
+          "hash": "sha256:d3ca77b3cbdbee69d87836d0dc462b48734668a2b8e9ff3ab45866a13ef60022"
         }
       }
     },
