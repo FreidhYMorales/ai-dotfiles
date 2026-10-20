@@ -1,6 +1,6 @@
 # Plan: opt-in packs
 
-- Status: approved (reviews 1-4 resolved; remaining detail goes to TDD in implementation)
+- Status: shipped (archived as openspec/changes/archive/2026-10-19-opt-in-packs)
 - Deadline: none
 - Mode: solo
 - Supersedes: README roadmap idea "install.sh --profile minimal" (packs replace profiles: the base install stays as it is, extras are per project)
