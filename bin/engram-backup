@@ -129,7 +129,7 @@ stage() {
 # when gitleaks is missing (error by default). Returns 0 when clean, 1 when
 # secrets were found, 2 when the scan could not run.
 secret_scan() {
-  local findings=0 rc=0 report line row where rule
+  local findings=0 rc=0 status=0 report line row where rule var unset_env=()
   if ! command -v "$GITLEAKS" >/dev/null; then
     echo "${1:-error}: gitleaks not installed (sudo pacman -S gitleaks); cannot scan for secrets" >&2
     rc=2
@@ -142,10 +142,19 @@ secret_scan() {
       echo "error: could not dump the database for the secret scan" >&2
       rc=2
     else
-      "$GITLEAKS" detect --no-git --redact --no-banner --source "$SCAN_DIR/src" \
-        --report-format json --report-path "$report" >"$SCAN_DIR/gitleaks.log" 2>&1
-      if ! findings=$(jq -er 'length' "$report" 2>/dev/null); then
-        echo "error: gitleaks failed:" >&2
+      # Built-in rules only: drop GITLEAKS_* overrides from the environment,
+      # ignore .gitleaksignore files outside the scan dir and gitleaks:allow
+      # markers (a memory could contain one).
+      for var in $(compgen -e); do
+        [[ $var == GITLEAKS_* ]] && unset_env+=(-u "$var")
+      done
+      env "${unset_env[@]}" "$GITLEAKS" detect --no-git --redact --no-banner --ignore-gitleaks-allow \
+        --gitleaks-ignore-path "$SCAN_DIR" --source "$SCAN_DIR/src" \
+        --report-format json --report-path "$report" >"$SCAN_DIR/gitleaks.log" 2>&1 || status=$?
+      # Trust only "exit 0, no findings" and "exit 1, findings".
+      if ! findings=$(jq -er 'length' "$report" 2>/dev/null) ||
+        ! { ((status == 0 && findings == 0)) || ((status == 1 && findings > 0)); }; then
+        echo "error: the secret scan could not run (gitleaks exit $status):" >&2
         sed 's/^/  /' "$SCAN_DIR/gitleaks.log" >&2
         findings=0 rc=2
       elif ((findings)); then
