@@ -291,6 +291,15 @@ new_proj list
 pack list --cwd "$P"
 assert 'list works without any state' exit_is 0
 assert 'list writes no state dir' absent "$STATE"
+mkdir -p "$STATE"
+printf '{"schema_version":0}\n' >"$STATE/projects.json"
+old_sum=$(sha256sum "$STATE/projects.json")
+pack list --cwd "$P"
+assert 'list with an older-schema state file succeeds' exit_is 0
+assert 'older-schema list uses defaults (tool shown as not added)' says 'not added'
+assert 'older-schema list leaves the file alone' test "$(sha256sum "$STATE/projects.json")" = "$old_sum"
+assert 'older-schema list writes nothing else' test "$(find "$STATE" -type f | wc -l)" -eq 1
+rm -rf "$STATE"
 assert 'inactive tool is shown' says 'alpha   '
 assert 'pack row lists its tools' says 'duo'
 pack add duo --cwd "$P"

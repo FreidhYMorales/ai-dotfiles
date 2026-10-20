@@ -93,6 +93,16 @@ while IFS=$'\t' read -r tool rel from pin; do
 done < <(jq -r '.tools | to_entries[] | .key as $t | .value.project_dirs | to_entries[]
   | [$t, .key, .value.from, .value.hash] | @tsv' "$M")
 
+echo "== playwright config =="
+cfg="$V/playwright/cli.config.json"
+cq() { jq -e "$1" "$cfg" >/dev/null; }
+assert 'cli.config.json points at /usr/bin/chromium' \
+  cq '.browser.launchOptions.executablePath == "/usr/bin/chromium"'
+assert 'cli.config.json writes output under .playwright/output' \
+  cq '.outputDir == ".playwright/output"'
+assert 'cli.config.json allows unrestricted file access' \
+  cq '.allowUnrestrictedFileAccess == true'
+
 echo "== web-design-guidelines =="
 wdg="$V/web-design-guidelines"
 assert 'vendor dir holds SKILL.md, rules.md and the upstream LICENSE' \

@@ -340,6 +340,16 @@ for missing in curl sha256sum jq; do
   fi
 done
 
+echo "== registration"
+HJ="$ROOT/plugins/toolkit/hooks/hooks.json"
+hq() { jq -e "$1" "$HJ" >/dev/null; }
+assert 'hooks.json registers pack-hint under SessionStart startup with timeout 2' \
+  hq '[.hooks.SessionStart[] | select(.matcher == "startup") | .hooks[]
+    | select(.command | endswith("/hooks/pack-hint.sh")) | .timeout] == [2]'
+pv=$(jq -r .version "$ROOT/plugins/toolkit/.claude-plugin/plugin.json")
+mv=$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")
+assert 'plugin.json and marketplace.json carry the same toolkit version' test -n "$pv" -a "$pv" = "$mv"
+
 echo "== opt-out"
 fresh off
 use_real
