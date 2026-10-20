@@ -216,3 +216,11 @@ Survivor: line 12 `IFS= read -r -d '' input || true` mutated to `&& true`; equiv
 
 - Low fixed: `bin/ai-pack` ran `check_deps` before dispatch, so `hint` could exit 1 with stderr output when curl or sha256sum was missing. `hint` now skips `check_deps` and needs only `jq` and `flock`; when either is missing it exits 0 silently. RED (test commit "cover ai-pack hint staying silent when dependencies are missing"): 8 FAIL; GREEN: pack-hint 78 PASS, 0 FAIL (default x3 incl. `LC_ALL=C`), hooks-off and stdin-socket pass, `make check` 7/7. Tests use a PATH holding every system executable except curl, sha256sum or jq.
 - Clarification (not a deviation): `hint` prints one line per suggested pack, so several lines are possible when several packs match, as the plan says ("at most one line per suggested pack"). The hook joins the `v1` lines into one `systemMessage`.
+
+## Batch 8: PR 7 docs (unit 7)
+
+Branch: `docs/packs`. Completed: 8.1. Remaining: 9.1 (Ponytail eval, SHOULD); Phase 0 manual checks 0.5 and 0.6 still open.
+
+- Wrote `docs/packs.md` (why, v1 contents and detection, usage and written paths, `list` marks, safety guarantees, startup hint, requirements and Arch notes, known limits, updating pins). Every command, message and flag was checked against `bin/ai-pack --help`, `packs/packs.json`, `packs/lib/*.sh`, `plugins/toolkit/hooks/pack-hint.sh` and `packs/vendor/README.md`.
+- README: `bin/ai-pack` row, `pack-hint` hook in the toolkit row (opt-out and timeout), roadmap: packs done (replaces the `install.sh --profile minimal` idea) plus a v2 item.
+- Doc-only change; no code touched.

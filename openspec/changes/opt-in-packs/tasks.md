@@ -97,7 +97,7 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 8: PR 7 Docs
 
-- [ ] 8.1 Create `docs/packs.md` (usage, Chromium/playwright-cli pair, subdirectory behavior from 0.7); README rows and roadmap line. Check: `make check`.
+- [x] 8.1 Create `docs/packs.md` (usage, Chromium/playwright-cli pair, subdirectory behavior from 0.7); README rows and roadmap line. Check: `make check`.
 
 ## Phase 9: SHOULD
 
