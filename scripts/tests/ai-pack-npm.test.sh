@@ -188,6 +188,19 @@ assert 'prefix rolled back' absent "$NPMROOT/fixweb@0.1.22"
 assert 'link rolled back' absent "$BIN/fixcli"
 assert 'machine.json absent' absent "$STATE/machine.json"
 
+echo "== journal write fails after the machine layer =="
+mk_manifest 0.1.22
+reset_machine
+new_proj jfail
+mkdir -p "$STATE"
+printf '{"schema_version":99}\n' >"$STATE/projects.json"
+pack add webx --cwd "$P"
+assert 'unwritable journal fails the run' exit_is 1
+assert 'machine.json not written' absent "$STATE/machine.json"
+assert 'prefix rolled back' absent "$NPMROOT/fixweb@0.1.22"
+assert 'link rolled back' absent "$BIN/fixcli"
+assert 'project dirs rolled back' absent "$P/.fixcli"
+
 echo "== bin collision =="
 mk_manifest 0.1.22
 reset_machine
