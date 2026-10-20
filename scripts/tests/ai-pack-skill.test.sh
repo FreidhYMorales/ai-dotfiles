@@ -298,10 +298,17 @@ before=$(snap)
 pack list --cwd "$P"
 assert 'list marks active with via' says '(via duo)'
 assert 'list shows the journal version' says 'v1'
+assert 'a pack with every tool active is marked ✔' says ' duo       ✔  '
+assert 'a partly active pack is marked ◐' says ' needy     ◐  '
+assert 'a pack with no active tool is marked ·' says ' fetchy    ·  '
 assert 'list changes no state file' test "$(snap)" = "$before"
 jq '.tools.alpha.source.tag = "v2"' "$FIX/packs.json" >"$FIX/p2.json"
 AI_PACK_MANIFEST="$FIX/p2.json" pack list --cwd "$P"
 assert 'list shows drift' says 'v1 -> v2 available'
+jq '.tools.alpha.source = {type: "vendored", commit: "4ecfb9fb8d1d3b7009674869b3aaee2f904042e1"}' \
+  "$FIX/packs.json" >"$FIX/pc.json"
+AI_PACK_MANIFEST="$FIX/pc.json" pack list --cwd "$P"
+assert 'a commit-pinned source shows its short commit' says 'v1 -> 4ecfb9f available'
 printf '{"schema_version":1,"tools":{"alpha":{"current":"v9"}}}\n' >"$STATE/machine.json"
 pack list --cwd "$P"
 assert 'list shows machine version' says '(machine v9)'
