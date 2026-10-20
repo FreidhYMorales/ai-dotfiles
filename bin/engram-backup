@@ -6,10 +6,12 @@
 #   - Skips the snapshot when nothing changed; keeps 7 daily, 4 weekly and
 #     12 monthly snapshots.
 #
-# Usage: engram-backup [--init | --verify | --restore [--force]]
+# Usage: engram-backup [--init | --verify | --scan | --restore [--force]]
 #   --init    create the password file (if missing) and every repository
 #   --verify  check each repository, restore the latest snapshot and check
 #             the restored database
+#   --scan    run gitleaks over a dump of the database; prints a redacted
+#             summary and exits 1 when it finds secrets
 #   --restore [--force]  put the latest snapshot back into the engram data
 #             dir (new machine); --force replaces existing data, keeping it
 #             aside as <data dir>.before-restore-<time>
@@ -25,12 +27,14 @@ case ${1:-} in
   "") ;;
   --init) MODE=init ;;
   --verify) MODE=verify ;;
+  --scan) MODE=scan ;;
   --restore)
     MODE=restore
     [[ ${2:-} == --force ]] && FORCE=1
     ;;
   -h | --help)
-    sed -n '2,20p' "$0" | cut -c3-
+    # The leading comment block, up to the first non-comment line.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"
     exit 0
     ;;
   *)
@@ -45,7 +49,14 @@ DATA_DIR=${ENGRAM_DATA_DIR:-$HOME/.engram}
 STAGING=${XDG_CACHE_HOME:-$HOME/.cache}/engram-backup/snapshot
 STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/engram-backup
 HOST=${HOSTNAME:-$(uname -n)}
+GITLEAKS=${ENGRAM_BACKUP_GITLEAKS:-gitleaks}
 failed=()
+SCAN_DIR=""
+# The plaintext dump must never outlive the run.
+trap 'rm -rf "$SCAN_DIR"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 for tool in restic sqlite3 jq; do
   command -v "$tool" >/dev/null || {
@@ -87,15 +98,83 @@ init() {
   done
 }
 
-backup() {
+# stage: take a consistent copy of the engram data into $STAGING.
+stage() {
   if [[ ! -f $DATA_DIR/engram.db ]]; then
     echo "error: engram.db not found in $DATA_DIR" >&2
     failed+=("$DATA_DIR/engram.db (not found)")
-    return
+    return 1
   fi
   rm -rf "$STAGING" && mkdir -p "$STAGING"
   sqlite3 "$DATA_DIR/engram.db" ".backup '$STAGING/engram.db'" || exit 1
   [[ -f $DATA_DIR/protocol-mode.json ]] && cp "$DATA_DIR/protocol-mode.json" "$STAGING/"
+  return 0
+}
+
+# secret_scan: run gitleaks over a text dump of the staged database, print a
+# redacted summary and record scan.json. Returns 0 when clean, 1 when secrets
+# were found, 2 when the scan could not run.
+secret_scan() {
+  local findings=0 rc=0 report line row where rule
+  if ! command -v "$GITLEAKS" >/dev/null; then
+    echo "error: gitleaks not installed (sudo pacman -S gitleaks); cannot scan for secrets" >&2
+    rc=2
+  else
+    SCAN_DIR=$(mktemp -d) || exit 1
+    chmod 700 "$SCAN_DIR"
+    mkdir "$SCAN_DIR/src"
+    report="$SCAN_DIR/report.json"
+    if ! sqlite3 "$STAGING/engram.db" .dump >"$SCAN_DIR/src/engram.sql"; then
+      echo "error: could not dump the database for the secret scan" >&2
+      rc=2
+    else
+      "$GITLEAKS" detect --no-git --redact --no-banner --source "$SCAN_DIR/src" \
+        --report-format json --report-path "$report" >"$SCAN_DIR/gitleaks.log" 2>&1
+      if ! findings=$(jq -er 'length' "$report" 2>/dev/null); then
+        echo "error: gitleaks failed:" >&2
+        sed 's/^/  /' "$SCAN_DIR/gitleaks.log" >&2
+        findings=0 rc=2
+      elif ((findings)); then
+        rc=1
+        echo "secrets found in the engram database: $findings finding(s)"
+        while IFS=$'\t' read -r rule line; do
+          # Name the row by table and numeric id only: never echo the content.
+          row=$(sed -n "${line}p" "$SCAN_DIR/src/engram.sql")
+          where="line $line of the dump"
+          if [[ $row =~ ^INSERT\ INTO\ \"?([A-Za-z0-9_]+)\"?\ VALUES\(([0-9]+), ]]; then
+            where="${BASH_REMATCH[1]} id=${BASH_REMATCH[2]}"
+          fi
+          echo "  $rule in $where"
+        done < <(jq -r '.[] | [.RuleID, .StartLine] | @tsv' "$report")
+        echo "remove or redact those observations, then run: engram-backup --scan"
+      else
+        echo "no secrets found in the engram database"
+      fi
+    fi
+    rm -rf "$SCAN_DIR"
+    SCAN_DIR=""
+  fi
+  mkdir -p "$STATE_DIR"
+  jq -n --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson findings "$findings" --argjson rc "$rc" \
+    '{mode: "scan", time: $time, ok: ($rc == 0), findings: $findings}
+      + (if $rc == 2 then {error: "scan could not run"} else {} end)' \
+    >"$STATE_DIR/scan.json.tmp" && mv -f "$STATE_DIR/scan.json.tmp" "$STATE_DIR/scan.json"
+  return "$rc"
+}
+
+scan() {
+  stage || return
+  local rc=0
+  secret_scan || rc=$?
+  rm -rf "$STAGING"
+  case $rc in
+    1) failed+=("secrets found") ;;
+    2) failed+=("secret scan") ;;
+  esac
+}
+
+backup() {
+  stage || return
   local repo digest state
   digest=$(cat "$STAGING"/* | sha256sum | cut -d' ' -f1)
   mkdir -p "$STATE_DIR"
@@ -173,7 +252,7 @@ restore() {
 "$MODE"
 
 # Record the outcome for the toolkit backup-status hook (backup.json, verify.json).
-if [[ $MODE != init ]]; then
+if [[ $MODE != init && $MODE != scan ]]; then
   mkdir -p "$STATE_DIR"
   status_file="$STATE_DIR/$MODE.json"
   jq -n --arg mode "$MODE" --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
