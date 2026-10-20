@@ -141,6 +141,8 @@ assert 'machine refcount has the project' test "$(mach --arg k "$P" '.tools.fixw
 assert 'skill copied from the installed package' test "$(<"$P/.claude/skills/fixcli/SKILL.md")" = 'skill 0.1.22'
 assert 'vendored config copied' test -f "$P/.fixcli/cli.config.json"
 assert 'first install needs no restart notice' lacks 'restart your Claude sessions'
+assert 'config dir asks to restart Claude in this project' says 'restart Claude in this project'
+assert 'config dir does not offer the reload shortcut' lacks 'run /reload-plugins'
 before=$(calls install)
 pack add webx --cwd "$P"
 assert 're-add succeeds' exit_is 0
