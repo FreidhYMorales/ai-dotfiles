@@ -2,8 +2,8 @@
 # SessionStart hook: suggest an opt-in ai-pack when the project looks like it
 # needs one. A thin wrapper over `ai-pack hint`, shown as systemMessage only
 # (never additionalContext), so it costs no tokens.
-# Silent when ai-pack is missing, slow (1.5 s) or fails. Opt out with
-# AI_HOOKS_OFF=pack-hint.
+# Silent when ai-pack is missing, slow (PACK_HINT_TIMEOUT, default 1.5 s) or
+# fails. Opt out with AI_HOOKS_OFF=pack-hint.
 set -u
 # shellcheck source=plugins/toolkit/hooks/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
@@ -16,7 +16,7 @@ cwd=$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)
 
 bin=$(command -v ai-pack) || bin=${XDG_BIN_HOME:-$HOME/.local/bin}/ai-pack
 [[ -x $bin ]] || exit 0
-output=$(timeout 1.5 "$bin" hint --cwd "$cwd" 2>/dev/null) || exit 0
+output=$(timeout "${PACK_HINT_TIMEOUT:-1.5}" "$bin" hint --cwd "$cwd" 2>/dev/null) || exit 0
 
 # Output contract: lines "v1<TAB>message"; anything else is dropped.
 message=""
