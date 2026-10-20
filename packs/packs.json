@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "packs": {
+    "web": {
+      "tools": ["playwright", "web-design-guidelines", "taste"],
+      "detect": {
+        "files_any": ["index.html"],
+        "package_deps_any": ["vite", "react", "vue", "svelte", "next", "astro"]
+      }
+    },
+    "diagrams": {
+      "tools": ["archify"],
+      "detect": {}
+    }
+  },
+  "tools": {
+    "playwright": {
+      "kind": "npm",
+      "layers": ["machine", "project"],
+      "source": {
+        "type": "npm",
+        "package": "@playwright/cli",
+        "version": "0.1.22",
+        "integrity": "sha512-6WMkQNM4VEzqMkdr/l60X9Cr7i+tI/arK87IWz2K7pB6j8I2ZJ8KN+1JfhJDLnK+SXnab6Op8xGt4adcGLsyfA=="
+      },
+      "bins": ["playwright-cli"],
+      "requires": [
+        {"cmd": "node", "min": "22", "hint": "sudo pacman -S nodejs"},
+        {"cmd": "npm", "hint": "sudo pacman -S npm"},
+        {"cmd": "chromium", "hint": "sudo pacman -S chromium"}
+      ],
+      "project_dirs": {
+        ".claude/skills/playwright-cli": {
+          "from": "npm:skills/playwright-cli",
+          "hash": "sha256:5008c2955457f7bde53edcface885279b8a5ebd46ddbbfc293599e7ee33f3325"
+        },
+        ".playwright": {
+          "from": "vendor:playwright",
+          "hash": "sha256:e336150fa28fe988cc613a1b56911964c68275c9edfb97cf91dbfe6dd7450703"
+        }
+      },
+      "leftovers": [".playwright/output"]
+    },
+    "web-design-guidelines": {
+      "kind": "skill",
+      "layers": ["project"],
+      "source": {
+        "type": "fetched",
+        "name": "rules",
+        "url": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/4ecfb9fb8d1d3b7009674869b3aaee2f904042e1/command.md",
+        "sha256": "d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234"
+      },
+      "project_dirs": {
+        ".claude/skills/web-design-guidelines": {
+          "from": "vendor:web-design-guidelines",
+          "template": "SKILL.md",
+          "hash": "sha256:52fe38fc568fa6a4e9c8fafea226e8d039554535d9aff0c15c7161d0768b3745"
+        }
+      }
+    },
+    "taste": {
+      "kind": "skill",
+      "layers": ["project"],
+      "source": {"type": "vendored", "tag": "v2.1.2"},
+      "requires": [
+        {"cmd": "node", "min": "22", "hint": "sudo pacman -S nodejs"},
+        {"cmd": "chromium", "hint": "sudo pacman -S chromium"}
+      ],
+      "project_dirs": {
+        ".claude/skills/design-taste-frontend": {
+          "from": "vendor:taste-skill",
+          "hash": "sha256:28668cdb5957ca13f55bb6fcc4339cffba8adccf724165649c6cf3c3d9a05449"
+        }
+      },
+      "leftovers": [".taste-skill"]
+    },
+    "archify": {
+      "kind": "skill",
+      "layers": ["project"],
+      "source": {"type": "vendored", "tag": "v3.2.0"},
+      "requires": [
+        {"cmd": "node", "min": "18", "hint": "sudo pacman -S nodejs"}
+      ],
+      "project_dirs": {
+        ".claude/skills/archify": {
+          "from": "vendor:archify",
+          "hash": "sha256:a1b6c55bf2d7ae307966cc104f0388968b7884d455025a15ab3c6654dfd57fb5"
+        }
+      },
+      "leftovers": []
+    }
+  }
+}

@@ -38,7 +38,7 @@ assert 'schema_version is 1' q '.schema_version == 1'
 assert 'pack and tool names are unique in one namespace' \
   q '([.packs, .tools] | map(keys[]) | length) == ([.packs, .tools] | map(keys[]) | unique | length)'
 assert 'every pack tool is defined' q '[.packs[].tools[] as $t | .tools | has($t)] | all'
-assert 'every tool belongs to a pack' q '[.tools | keys[] as $t | [.packs[].tools[]] | index($t) != null] | all'
+assert 'every tool belongs to a pack' q '. as $m | [.tools | keys[] as $t | [$m.packs[].tools[]] | index($t) != null] | all'
 assert 'every tool has kind, layers and project_dirs' \
   q '[.tools[] | (.kind | IN("skill", "npm")) and (.layers | type == "array") and (.project_dirs | type == "object")] | all'
 assert 'project dir keys are relative, without .., under .claude/skills or .playwright' \
@@ -117,8 +117,9 @@ assert 'vendor README documents both tags' \
 assert 'vendor README names the archive checksums' test "$(grep -c 'sha256' "$V/README.md")" -ge 2
 
 echo "== upstreams.json =="
+up_has() { jq -e --arg r "$1" '.upstreams | any(.repo == $r)' "$ROOT/upstreams.json" >/dev/null; }
 for r in tt-a1i/archify Leonxlnx/taste-skill vercel-labs/web-interface-guidelines microsoft/playwright-cli; do
-  assert "upstreams watches $r" jq -e --arg r "$r" '.upstreams | any(.repo == $r)' "$ROOT/upstreams.json"
+  assert "upstreams watches $r" up_has "$r"
 done
 up_reviewed() { jq -r --arg r "$1" '.upstreams[] | select(.repo == $r) | .reviewed' "$ROOT/upstreams.json"; }
 assert 'upstreams pins archify v3.2.0' test "$(up_reviewed tt-a1i/archify)" = v3.2.0
