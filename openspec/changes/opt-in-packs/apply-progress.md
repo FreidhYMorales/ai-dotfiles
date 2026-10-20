@@ -144,3 +144,9 @@ Branch: `feat/ai-pack-npm`. Completed: 5.1, 5.2, 5.3, 5.4. Remaining: Phases 0, 
 - Implicit `npm` requirement added in `check_requires` for kind npm. Fixture uses `fix-chromium` so a real chromium on a dev box cannot mask the test.
 - Journal version for npm tools is `source.version`.
 - Size: 450 insertions vs main (code 168, tests 282); over the 400 budget by test volume. `link_switch` was not split out.
+
+### Batch 5 corrective round (gatekeeper findings)
+
+- Low fixed (rollback window): `cmd_add` now writes `projects.json` (`commit_journal`) before `machine.json` (`machine_record`), so a failed journal write leaves `machine.json` unchanged while undo removes the new prefix and restores the old link. RED (test commit "cover machine.json staying unchanged..."): 1 FAIL ("machine.json not written"). The failure is forced with a `projects.json` of `schema_version` 99 (state_write refuses it), not with permissions, so it also holds as root in CI.
+- Low fixed (docs): design.md now names `XDG_DATA_HOME` / `XDG_BIN_HOME` instead of `AI_PACK_DATA` / `AI_PACK_BIN`, and states the commit order. Disclosed deviation: the code never had `AI_PACK_DATA` / `AI_PACK_BIN` seams; tests isolate through `HOME` instead.
+- Info (keep for PR 7 docs): npm transitive dependencies (for Playwright, `playwright` and `playwright-core`) are integrity-checked by npm itself against the registry metadata, but they are not pinned in the manifest. Only the top-level tarball is pinned (sha512).
