@@ -157,3 +157,77 @@ cmd_list() {
   say " -- tools --"
   for line in "${LINES[@]}"; do cut70 "$line"; done
 }
+
+# hint_signal PACK DEPS: print the dependency or file of the project root that matched
+# PACK's detect rules; fail when none did.
+hint_signal() {
+  local p=$1 deps=$2 dep f
+  while read -r dep; do
+    if jq -e --arg d "$dep" 'index($d) != null' <<<"$deps" >/dev/null; then
+      printf '%s\n' "$dep"
+      return 0
+    fi
+  done < <(jq -r --arg p "$p" '.packs[$p].detect.package_deps_any // [] | .[]' "$MANIFEST")
+  while read -r f; do
+    [[ -f $KEY/$f ]] && {
+      printf '%s\n' "$f"
+      return 0
+    }
+  done < <(jq -r --arg p "$p" '.packs[$p].detect.files_any // [] | .[]' "$MANIFEST")
+  return 1
+}
+
+# hint_due PACK HINTS: succeed when PACK was not shown in this project within 30 days.
+hint_due() {
+  jq -e --arg k "$KEY" --arg p "$1" --argjson now "$HINT_NOW" \
+    '(.projects[$k][$p] // 0) as $t | $now - $t >= 2592000' <<<"$2" >/dev/null
+}
+
+# hint_main [--cwd DIR]: print "v1<TAB>message" for each pack worth suggesting; see cmd_hint.
+hint_main() {
+  parse_cwd_args "$@"
+  HINT_NOW=${AI_PACK_NOW:-$(date +%s)}
+  local file=$STATE_DIR/hints.json hints pj ig deps="[]" p sig t found
+  local -a due=() sigs=()
+  hints=$(state_read "$file") || return 0
+  jq -e --argjson s "$STATE_SCHEMA" '(.schema_version // 0) > $s' <<<"$hints" >/dev/null && return 0
+  pj=$(state_read "$STATE_DIR/projects.json") || return 0
+  ig=$(state_read "$STATE_DIR/ignored.json") || return 0
+  if [[ -f $KEY/package.json ]]; then
+    deps=$(jq -c '[(.dependencies // {}), (.devDependencies // {}) | keys[]]' "$KEY/package.json" 2>/dev/null) || return 0
+  fi
+  while read -r p; do
+    jq -e --arg k "$KEY" --arg p "$p" '(.projects[$k] // []) | index($p) != null' <<<"$ig" >/dev/null && continue
+    found=0
+    while read -r t; do
+      jq -e --arg k "$KEY" --arg t "$t" '.projects[$k].tools[$t] != null' <<<"$pj" >/dev/null && found=1
+    done < <(jq -r --arg p "$p" '.packs[$p].tools[]' "$MANIFEST")
+    ((found == 0)) || continue
+    sig=$(hint_signal "$p" "$deps") || continue
+    hint_due "$p" "$hints" || continue
+    due+=("$p")
+    sigs+=("$sig")
+  done < <(jq -r '.packs | keys[]' "$MANIFEST")
+  ((${#due[@]})) || return 0
+  # Under the lock, re-read: a parallel session may have shown the hint meanwhile.
+  lock_try || return 0
+  hints=$(state_read "$file") || return 0
+  local -a lines=()
+  for t in "${!due[@]}"; do
+    hint_due "${due[t]}" "$hints" || continue
+    hints=$(jq --arg k "$KEY" --arg p "${due[t]}" --argjson now "$HINT_NOW" '.projects[$k][$p] = $now' <<<"$hints")
+    lines+=("v1"$'\t'"${sigs[t]} detected: ai-pack add ${due[t]} (ai-pack ignore ${due[t]})")
+  done
+  ((${#lines[@]})) || return 0
+  state_write "$file" "$hints" || return 0
+  printf '%s\n' "${lines[@]}"
+}
+
+# cmd_hint [--cwd DIR]: startup suggestion. Prints one `v1<TAB>message` line per pack that
+# the project's root package.json / index.html points to, unless the pack is ignored, any
+# of its tools is active, or it was shown in the last 30 days. Every error is silence.
+# Writes only hints.json (lock_try, temp file + mv).
+cmd_hint() {
+  (hint_main "$@") 2>/dev/null || true
+  return 0
+}

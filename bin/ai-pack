@@ -9,6 +9,7 @@
 #        ai-pack hash DIR                       print the pinned tree hash of DIR
 #        ai-pack ignore PACK [--cwd DIR]        stop suggesting PACK in this project
 #        ai-pack unignore PACK [--cwd DIR]      suggest PACK again
+#        ai-pack hint [--cwd DIR]               startup suggestion (used by the toolkit hook)
 #
 # State: $XDG_STATE_HOME/ai-pack, default ~/.local/state/ai-pack (override: AI_PACK_STATE).
 set -u
@@ -56,5 +57,6 @@ case $cmd in
   hash) cmd_hash "$@" ;;
   ignore) cmd_ignore "$@" ;;
   unignore) cmd_unignore "$@" ;;
+  hint) cmd_hint "$@" ;;
   *) usage_error "unknown command: ${cmd:-<none>}" ;;
 esac
