@@ -40,8 +40,8 @@ Chain bases (stacked-to-main): PR 1 base = `main`; each later PR base = the prev
 - [x] 0.2 Run `playwright-cli install --skills` in a scratch dir; record where it writes and the skill path inside the npm package. Blocks 6.3 (`project_dirs.from`); phases 1-5 are unaffected (fixture manifest).
 - [x] 0.3 Real `playwright-cli open` + snapshot with `/usr/bin/chromium`, then `git status`, then remove output. Confirms `.playwright/output` leftover. Blocks 6.2, 6.3, 8.1.
 - [x] 0.4 Apply the Archify patch (disable update check), write `archify/README.md` notes. Blocks 6.2.
-- [ ] 0.5 (awaits the user at the screen) Check where `systemMessage` renders next to other startup messages. Blocks 7.2 (message wording).
-- [ ] 0.6 (awaits the user: PATH-less launcher) Run the hook from a launcher without `~/.local/bin` on PATH. Blocks 7.2 (fallback path).
+- [x] 0.5 Check where `systemMessage` renders next to other startup messages. Blocks 7.2 (message wording). Done by the maintainer on 2026-10-19: a fresh vite project shows the hint at startup.
+- [x] 0.6 Run the hook from a launcher without `~/.local/bin` on PATH. Blocks 7.2 (fallback path). Not applicable to the maintainer's setup (Claude is only started from a terminal); the PATH-less fallback was simulated in Phase 0 (`env -i PATH=/usr/bin:/bin`) and is covered by pack-hint.test.sh.
 - [x] 0.7 Start `claude` from a subdirectory; record behavior. Blocks 8.1 (documented either way).
 
 Phases 1-5 (PRs 1-4) can start without Phase 0.
