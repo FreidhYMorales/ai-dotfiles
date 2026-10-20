@@ -16,6 +16,9 @@ done
 
 TMP_ROOT=$(mktemp -d)
 trap 'rm -rf "$TMP_ROOT"' EXIT
+# Isolate git from the user's config and global hooks (core.hooksPath).
+: >"$TMP_ROOT/gitconfig"
+export GIT_CONFIG_GLOBAL="$TMP_ROOT/gitconfig" GIT_CONFIG_NOSYSTEM=1
 
 # sandbox NAME [REPO...]: HOME with an engram DB and a config listing REPOs
 # (default: two local repos). Prints the HOME.
@@ -23,9 +26,9 @@ sandbox() {
   local home="$TMP_ROOT/$1" repos
   shift
   repos=${*:-"$home/repo-a $home/repo-b"}
-  mkdir -p "$home/.engram" "$home/.config/restic"
+  mkdir -p "$home/.engram" "$home/.config/restic" "$home/tmp"
   sqlite3 "$home/.engram/engram.db" \
-    "CREATE TABLE observations(title TEXT); INSERT INTO observations VALUES ('kept');"
+    "CREATE TABLE observations(id INTEGER PRIMARY KEY, title TEXT); INSERT INTO observations(title) VALUES ('kept');"
   printf '{"mode":"x"}\n' >"$home/.engram/protocol-mode.json"
   printf 'ENGRAM_BACKUP_REPOS="%s"\n' "$repos" >"$home/.config/restic/engram.env"
   printf '%s\n' "$home"
@@ -39,6 +42,7 @@ backup() {
   shift
   LAST_OUTPUT=$(env -u RESTIC_REPOSITORY -u RESTIC_PASSWORD -u RESTIC_PASSWORD_FILE \
     -u ENGRAM_BACKUP_REPOS -u XDG_CONFIG_HOME -u XDG_CACHE_HOME -u XDG_STATE_HOME \
+    -u GITLEAKS_CONFIG -u GITLEAKS_CONFIG_TOML TMPDIR="$home/tmp" \
     ENGRAM_BACKUP_ALLOW_RUNNING=1 HOME="$home" ENGRAM_DATA_DIR="$home/.engram" RESTIC_CACHE_DIR="$home/.cache/restic" \
     bash "$SCRIPT" "$@" 2>&1)
   LAST_EXIT=$?
@@ -102,7 +106,7 @@ assert 'first repository has a snapshot' same "$(snapshots "$home" "$home/repo-a
 assert 'second repository has a snapshot' same "$(snapshots "$home" "$home/repo-b")" 1
 backup "$home"
 assert 'unchanged database adds no snapshot' same "$(snapshots "$home" "$home/repo-a")" 1
-sqlite3 "$home/.engram/engram.db" "INSERT INTO observations VALUES ('new');"
+sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('new');"
 backup "$home"
 assert 'changed database adds a snapshot' same "$(snapshots "$home" "$home/repo-a")" 2
 status_file="$home/.local/state/engram-backup/backup.json"
@@ -135,7 +139,7 @@ assert 'restore brings protocol-mode.json back' test -f "$fresh/.engram/protocol
 assert 'restore reports where it came from' says 'restored'
 
 echo "existing" >"$fresh/.engram/marker"
-sqlite3 "$fresh/.engram/engram.db" "INSERT INTO observations VALUES ('local only');"
+sqlite3 "$fresh/.engram/engram.db" "INSERT INTO observations(title) VALUES ('local only');"
 backup "$fresh" --restore
 assert 'restore refuses to overwrite existing data' test "$LAST_EXIT" -ne 0
 assert 'the refusal points to --force' says '--force'
@@ -186,6 +190,38 @@ rm "$home/.config/restic/engram.env"
 backup "$home"
 assert 'missing config fails' test "$LAST_EXIT" -ne 0
 assert 'missing config explains the fix' says 'engram.env'
+
+echo "== secret scan =="
+
+# A realistic fake GitHub token, built at runtime so this file holds no literal secret.
+SECRET="ghp_$(printf 'Zq8rT2vKx9LmN4bW7cYd1PfHs6Ja3EgU0iRo')"
+# leak HOME: store SECRET in a new observation.
+leak() { sqlite3 "$1/.engram/engram.db" "INSERT INTO observations(title) VALUES ('token $SECRET');"; }
+no_secret() { [[ $LAST_OUTPUT != *"$SECRET"* ]]; }
+tmp_empty() { [[ -z $(compgen -G "$1/tmp/*") ]]; }
+
+if command -v gitleaks >/dev/null 2>&1; then
+  home=$(sandbox scan)
+  backup "$home" --scan
+  assert 'scan of a clean database succeeds' test "$LAST_EXIT" -eq 0
+  assert 'clean scan records its status' \
+    json_ok "$home/.local/state/engram-backup/scan.json" '.mode == "scan" and .ok == true and .findings == 0'
+  assert 'clean scan removes its temp dump' tmp_empty "$home"
+  leak "$home"
+  backup "$home" --scan
+  assert 'scan with a secret fails' test "$LAST_EXIT" -eq 1
+  assert 'scan records the findings' \
+    json_ok "$home/.local/state/engram-backup/scan.json" '.ok == false and .findings == 1 and (.time | fromdateiso8601) > (now - 300)'
+  assert 'scan names the rule' says 'github-pat'
+  assert 'scan points to the observation' says 'observations id=2'
+  assert 'scan never prints the secret' no_secret
+  assert 'scan with findings removes its temp dump' tmp_empty "$home"
+  ENGRAM_BACKUP_GITLEAKS=no-such-gitleaks backup "$home" --scan
+  assert 'scan without gitleaks fails' test "$LAST_EXIT" -ne 0
+  assert 'scan without gitleaks says so' says 'gitleaks not installed'
+else
+  echo "SKIP  gitleaks not installed; secret scan and off-site cases not run"
+fi
 
 echo
 if [[ $failures -gt 0 ]]; then
