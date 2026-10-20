@@ -111,13 +111,14 @@ stage() {
   return 0
 }
 
-# secret_scan: run gitleaks over a text dump of the staged database, print a
-# redacted summary and record scan.json. Returns 0 when clean, 1 when secrets
-# were found, 2 when the scan could not run.
+# secret_scan [LEVEL]: run gitleaks over a text dump of the staged database,
+# print a redacted summary and record scan.json. LEVEL prefixes the message
+# when gitleaks is missing (error by default). Returns 0 when clean, 1 when
+# secrets were found, 2 when the scan could not run.
 secret_scan() {
   local findings=0 rc=0 report line row where rule
   if ! command -v "$GITLEAKS" >/dev/null; then
-    echo "error: gitleaks not installed (sudo pacman -S gitleaks); cannot scan for secrets" >&2
+    echo "${1:-error}: gitleaks not installed (sudo pacman -S gitleaks); cannot scan for secrets" >&2
     rc=2
   else
     SCAN_DIR=$(mktemp -d) || exit 1
@@ -173,22 +174,116 @@ scan() {
   esac
 }
 
+# is_offsite DIR: DIR is the root of a git work tree with a remote; its
+# restic repo is committed and pushed after each backup.
+is_offsite() {
+  local top
+  [[ -d $1 ]] || return 1
+  top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1
+  [[ $top == "$(cd "$1" && pwd -P)" && -n $(git -C "$1" remote 2>/dev/null) ]]
+}
+
+# gitr DIR ARGS...: git in DIR, with a fallback identity when it has none.
+gitr() {
+  local dir=$1 id=()
+  shift
+  if [[ -z $(git -C "$dir" config user.name) || -z $(git -C "$dir" config user.email) ]]; then
+    id=(-c user.name=engram-backup -c user.email=engram-backup@localhost)
+  fi
+  git -C "$dir" "${id[@]}" "$@"
+}
+
+# git_pending DIR: DIR has commits its upstream does not (or no upstream yet).
+git_pending() {
+  git -C "$1" rev-parse -q --verify HEAD >/dev/null || return 1
+  git -C "$1" rev-parse -q --verify '@{u}' >/dev/null 2>&1 || return 0
+  (($(git -C "$1" rev-list --count '@{u}..HEAD') > 0))
+}
+
+# git_push DIR: push to the upstream, setting it on the first push. Never
+# prompts: under the timer there is nobody to answer.
+git_push() {
+  local remotes remote
+  if git -C "$1" rev-parse -q --verify '@{u}' >/dev/null 2>&1; then
+    GIT_TERMINAL_PROMPT=0 git -C "$1" push -q || return 1
+  else
+    mapfile -t remotes < <(git -C "$1" remote)
+    remote=${remotes[0]}
+    [[ " ${remotes[*]} " == *" origin "* ]] && remote=origin
+    GIT_TERMINAL_PROMPT=0 git -C "$1" push -q -u "$remote" HEAD || return 1
+  fi
+  echo "pushed: $1"
+}
+
+# ensure_gitignore DIR: DIR/.gitignore lists restic's locks/ directory.
+ensure_gitignore() {
+  local file="$1/.gitignore" line
+  if [[ -f $file ]]; then
+    while IFS= read -r line || [[ -n $line ]]; do
+      [[ $line == locks/ ]] && return 0
+    done <"$file"
+    [[ -s $file && $(tail -c1 "$file") != "" ]] && echo >>"$file"
+  fi
+  echo 'locks/' >>"$file"
+}
+
+# git_publish DIR MESSAGE: commit DIR's restic repo (when it changed) and push.
+git_publish() {
+  ensure_gitignore "$1"
+  gitr "$1" add -A || return 1
+  if ! gitr "$1" diff --cached --quiet; then
+    gitr "$1" commit -q -m "$2" || return 1
+  fi
+  git_pending "$1" || return 0
+  git_push "$1"
+}
+
 backup() {
   stage || return
-  local repo digest state
+  local repo digest state offsite scanned=0 rc blocked=""
   digest=$(cat "$STAGING"/* | sha256sum | cut -d' ' -f1)
   mkdir -p "$STATE_DIR"
   for repo in "${REPOS[@]}"; do
     # Content-based skip: every .backup copy has fresh metadata, so restic's
     # own --skip-if-unchanged would never skip.
     state="$STATE_DIR/$(printf '%s' "$repo" | sha256sum | cut -c1-16)"
+    offsite=0
+    is_offsite "$repo" && offsite=1
     if [[ -f $state && $(<"$state") == "$digest" ]]; then
-      echo "unchanged: $repo"
-    elif restic -r "$repo" backup "$STAGING" --tag engram --host "$HOST" --quiet &&
+      # A commit whose push failed last time goes out now.
+      if ((offsite)) && git_pending "$repo"; then
+        git_push "$repo" || failed+=("$repo (push failed)")
+      else
+        echo "unchanged: $repo"
+      fi
+      continue
+    fi
+    if ((offsite)); then
+      # Scan once, before the first off-site repo: a secret saved by mistake
+      # must not leave the machine.
+      if ((! scanned)); then
+        scanned=1 rc=0
+        secret_scan warning || rc=$?
+        case $rc in
+          0) ;;
+          1) blocked="blocked: secrets found, see engram-backup --scan" ;;
+          *) blocked="blocked: secret scan could not run, see engram-backup --scan" ;;
+        esac
+      fi
+      if [[ -n $blocked ]]; then
+        echo "skipped: $repo ($blocked)" >&2
+        failed+=("$repo ($blocked)")
+        continue
+      fi
+    fi
+    if restic -r "$repo" backup "$STAGING" --tag engram --host "$HOST" --quiet &&
       restic -r "$repo" forget --tag engram --keep-daily 7 --keep-weekly 4 --keep-monthly 12 \
         --prune --quiet >/dev/null; then
       printf '%s\n' "$digest" >"$state"
       echo "backed up: $repo"
+      if ((offsite)) && ! git_publish "$repo" "backup $HOST $(date -u +%Y-%m-%dT%H:%M:%SZ)"; then
+        failed+=("$repo (push failed)")
+      fi
     else
       failed+=("$repo")
     fi
