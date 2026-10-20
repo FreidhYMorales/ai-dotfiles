@@ -150,3 +150,39 @@ Branch: `feat/ai-pack-npm`. Completed: 5.1, 5.2, 5.3, 5.4. Remaining: Phases 0, 
 - Low fixed (rollback window): `cmd_add` now writes `projects.json` (`commit_journal`) before `machine.json` (`machine_record`), so a failed journal write leaves `machine.json` unchanged while undo removes the new prefix and restores the old link. RED (test commit "cover machine.json staying unchanged..."): 1 FAIL ("machine.json not written"). The failure is forced with a `projects.json` of `schema_version` 99 (state_write refuses it), not with permissions, so it also holds as root in CI.
 - Low fixed (docs): design.md now names `XDG_DATA_HOME` / `XDG_BIN_HOME` instead of `AI_PACK_DATA` / `AI_PACK_BIN`, and states the commit order. Disclosed deviation: the code never had `AI_PACK_DATA` / `AI_PACK_BIN` seams; tests isolate through `HOME` instead.
 - Info (keep for PR 7 docs): npm transitive dependencies (for Playwright, `playwright` and `playwright-core`) are integrity-checked by npm itself against the registry metadata, but they are not pinned in the manifest. Only the top-level tarball is pinned (sha512).
+
+## Batch 6: PR 5 real manifest and vendored trees (unit 5)
+
+Branch: `feat/ai-pack-manifest`. Completed: 6.1, 6.2, 6.3, 6.4. Remaining: Phases 7-9 (Phase 0 manual check done by the maintainer session; its tasks are not ticked here). `size:exception` approved for the vendored third-party bytes only.
+
+### TDD Cycle Evidence
+
+| Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 6.1 | `scripts/tests/ai-pack-manifest.test.sh`, `scripts/tests/checks.test.sh` | Static manifest checks + fixture repo | core/skill/npm tests pass | committed failing (5dac321): checks case FAIL; manifest test failed on the missing manifest | n/a | n/a | n/a |
+| 6.2 | same | vendored trees | n/a | covered by 6.1 | taste-skill, archify (verbatim, then patch commit), playwright config, template, README | pin check fails if a vendored byte changes (verified by editing taste-skill/README.md) | n/a |
+| 6.3 | same | manifest | n/a | covered by 6.1 | 45 PASS, 0 FAIL; checks.test.sh 49 PASS | `check-shell` skips `packs/vendor/`, still lints `packs/lib/` | `up_has` helper keeps PASS lines clean |
+| 6.4 | `make check` | whole repo | all pass | n/a | 7/7 steps | n/a | n/a |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash scripts/tests/ai-pack-manifest.test.sh`: exit 0, 45 PASS, 0 FAIL; `bash scripts/tests/checks.test.sh`: 0 FAIL; core, skill, npm tests all pass |
+| Runtime harness | Real `ai-pack add web` and `add diagrams` in a scratch git repo with network: all four tools installed, `list` shows them active, `playwright-cli --version` printed 0.1.22; `remove web --purge` and `remove diagrams` cleaned dirs, prefix, bin link and machine entry |
+| Rollback boundary | `packs/packs.json`, `packs/vendor/`, `scripts/check-shell.sh`, `upstreams.json`, the two test files |
+
+### Supply chain
+
+- Tag tarballs re-downloaded into empty dirs; sha256 equal to the Phase 0 copies (taste d6adddbb..., archify b9490be6...). No install scripts run. `gitleaks detect --no-git --source packs/vendor`: no leaks.
+- Archify patch applied with `patch -p1` from the Phase 0 patch; the result is byte-identical to the Phase 0 patched tree and lands in its own commit.
+
+### Deviations from design
+
+- Taste project dir is `.claude/skills/design-taste-frontend` (not `.../taste`), per the manual check.
+- `.taste-skill` leftover is declared but lies outside the tool's project dir, so `remove` (which only reads leftovers under a removed dir) never lists it. Documentation in PR 7.
+- Vendor notes live in `packs/vendor/README.md` (outside the hashed dirs), not `archify/README.md`.
+- web-design-guidelines: upstream now has an MIT LICENSE (added 2025-09); the in-house template plus fetched rules is kept as instructed. Rules pinned to command.md at commit 4ecfb9f; its pin is the hash of the rendered dir (computed with `render_template`, confirmed by a real add); the test checks only its format offline.
+- taste-skill has a newer release (v2.1.3); `upstreams.json` records v2.1.2 so `upstream-watch` flags it.
+- `playwright` requires hint for node is `sudo pacman -S nodejs`.
+- Runtime harness note: XDG_DATA_HOME and XDG_STATE_HOME were set in the dev environment, so the harness briefly wrote to the real `~/.local/{share,state}/ai-pack`; it was purged through `ai-pack remove --purge` and the empty state files were deleted.
