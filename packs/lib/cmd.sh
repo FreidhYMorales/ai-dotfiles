@@ -83,8 +83,8 @@ cmd_add() {
   warn_shadows
   apply_machine
   apply_plan
-  machine_record
   commit_journal
+  machine_record
   UNDO=()
   clean_stages "$PROJ"
   say "ok: active ${TOOLS[*]} in $KEY"
