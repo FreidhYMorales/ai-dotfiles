@@ -41,7 +41,7 @@ speak() {
   rm -rf "$home/state" # pack-hint shows once; start every run fresh
   out=$(printf '%s' "$input" | env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$home" XDG_STATE_HOME="$home/state" PATH="$home/bin:$PATH" \
     CLAUDE_PLUGINS_DIR="$home/plugins" UPDATE_CHECK_CACHE="$home/cache/latest" XDG_CACHE_HOME="$home/cache" \
-    "$@" bash "$HOOKS/$hook.sh" 2>/dev/null)
+    PACK_HINT_TIMEOUT=10 "$@" bash "$HOOKS/$hook.sh" 2>/dev/null)
   code=$?
   # 126/127 means the hook never ran: count it as a broken harness, not as "speaking".
   ((code == 126 || code == 127)) && code="broken"

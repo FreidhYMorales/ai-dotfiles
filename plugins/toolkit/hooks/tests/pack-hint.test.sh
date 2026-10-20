@@ -66,7 +66,7 @@ run_hook() {
   shift 2
   OUT=$(jq -nc --arg s "$source" --arg c "$cwd" '{hook_event_name: "SessionStart", source: $s, cwd: $c}' |
     env HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_HOME" XDG_DATA_HOME="$HOME_DIR/data" XDG_BIN_HOME="$HOME_DIR/nobin" \
-      PATH="$BINDIR:$CLEAN_PATH" AI_PACK_NOW="$NOW" "$@" bash "$HOOK" 2>/dev/null)
+      PATH="$BINDIR:$CLEAN_PATH" AI_PACK_NOW="$NOW" PACK_HINT_TIMEOUT=10 "$@" bash "$HOOK" 2>/dev/null)
   CODE=$?
 }
 
@@ -261,9 +261,13 @@ echo "== failures stay silent"
 fresh slow
 stub 'sleep 5; printf "v1\tlate\n"'
 start=$SECONDS
-run_hook startup "$PROJ"
+run_hook startup "$PROJ" PACK_HINT_TIMEOUT=1.5
 assert "timeout: silent" silent
 assert "timeout: returns within 3 seconds" test $((SECONDS - start)) -le 3
+fresh patient
+stub 'sleep 2; printf "v1\tlate\n"'
+run_hook startup "$PROJ" PACK_HINT_TIMEOUT=5
+assert "PACK_HINT_TIMEOUT widens the cut" msg_is late
 fresh unknown
 stub 'printf "v2\tfuture format\n"'
 run_hook startup "$PROJ"
