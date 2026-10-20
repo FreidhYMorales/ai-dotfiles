@@ -224,3 +224,23 @@ Branch: `docs/packs`. Completed: 8.1. Remaining: 9.1 (Ponytail eval, SHOULD); Ph
 - Wrote `docs/packs.md` (why, v1 contents and detection, usage and written paths, `list` marks, safety guarantees, startup hint, requirements and Arch notes, known limits, updating pins). Every command, message and flag was checked against `bin/ai-pack --help`, `packs/packs.json`, `packs/lib/*.sh`, `plugins/toolkit/hooks/pack-hint.sh` and `packs/vendor/README.md`.
 - README: `bin/ai-pack` row, `pack-hint` hook in the toolkit row (opt-out and timeout), roadmap: packs done (replaces the `install.sh --profile minimal` idea) plus a v2 item.
 - Doc-only change; no code touched.
+
+## Batch 9: corrective batch after verify (fix/packs-verify)
+
+Source: `verify-report.md` (PASS WITH WARNINGS). Branch `fix/packs-verify`.
+
+### Correction to Batch 6 (history above is kept as written)
+
+The Batch 6 deviation "web-design-guidelines: ... the in-house template plus fetched rules is kept as instructed" is stale. The shipped code vendors upstream `command.md` as `packs/vendor/web-design-guidelines/rules.md` with the upstream MIT LICENSE (commit 4ecfb9f; `packs.json` source type `vendored`). Nothing is fetched at add time for this tool. The delta spec scenario and the plan now say so (plan section "Post-implementation changes").
+
+### TDD Cycle Evidence
+
+| Finding | Test file | RED | GREEN | Notes |
+|---|---|---|---|---|
+| W1 restart notice | `ai-pack-npm.test.sh`, `ai-pack-skill.test.sh` | 2 FAIL (restart text missing, reload offered) | `cmd_add` in `packs/lib/cmd.sh` prints "restart Claude in this project to load the new config" when any selected tool has a project dir outside `.claude/skills/`, else "run /reload-plugins"; npm 0 FAIL, skill 0 FAIL | `remove` has no notice in the spec, so unchanged; docs/packs.md updated |
+| W3 playwright config | `ai-pack-manifest.test.sh` | n/a (asserts existing behavior; characterization) | 3 PASS | executablePath, outputDir, allowUnrestrictedFileAccess |
+| S1 older-schema list | `ai-pack-skill.test.sh` | n/a (characterization) | 4 PASS | list exits 0, shows defaults, file and state dir untouched |
+| S2 hook registration | `pack-hint.test.sh` | n/a (characterization) | 2 PASS | SessionStart startup, timeout 2, same toolkit version in plugin.json and marketplace.json |
+
+W2, S3: spec scenario amended (vendored with license; archify trim noted), plan section "Post-implementation changes" added. W5: tasks 0.1-0.4 and 0.7 ticked; 0.5, 0.6 await the user; 9.1 is SHOULD and not started.
+
