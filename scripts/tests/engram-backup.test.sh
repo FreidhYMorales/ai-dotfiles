@@ -28,7 +28,10 @@ sandbox() {
   repos=${*:-"$home/repo-a $home/repo-b"}
   mkdir -p "$home/.engram" "$home/.config/restic" "$home/tmp"
   sqlite3 "$home/.engram/engram.db" \
-    "CREATE TABLE observations(id INTEGER PRIMARY KEY, title TEXT); INSERT INTO observations(title) VALUES ('kept');"
+    "CREATE TABLE observations(id INTEGER PRIMARY KEY, title TEXT, content TEXT, topic_key TEXT, normalized_hash TEXT,
+       sync_id TEXT, embedding BLOB, embedding_model TEXT);
+     CREATE TABLE user_prompts(id INTEGER PRIMARY KEY, content TEXT);
+     INSERT INTO observations(title) VALUES ('kept');"
   printf '{"mode":"x"}\n' >"$home/.engram/protocol-mode.json"
   printf 'ENGRAM_BACKUP_REPOS="%s"\n' "$repos" >"$home/.config/restic/engram.env"
   printf '%s\n' "$home"
@@ -68,6 +71,7 @@ assert() {
 }
 
 says() { [[ $LAST_OUTPUT == *"$1"* ]]; }
+silent_on() { [[ $LAST_OUTPUT != *"$1"* ]]; }
 json_ok() { jq -e "$2" "$1" >/dev/null 2>&1; }
 same() { [[ $1 == "$2" ]]; }
 
@@ -264,6 +268,48 @@ if command -v gitleaks >/dev/null 2>&1; then
   sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('ghp_$(printf 'Ab3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dF3hJ5') gitleaks:allow');"
   backup "$home" --scan
   assert 'a gitleaks:allow comment in a memory cannot hide it' says '2 finding(s)'
+
+  echo "== scan source: one value per line =="
+
+  # Real engram rows: a topic_key ending in "config-secrets" next to a sha256
+  # normalized_hash made generic-api-key fire when a row was one INSERT line.
+  home=$(sandbox scan-columns)
+  db="$home/.engram/engram.db"
+  note='Keep engram.env per machine; secrets stay out of the repo.'
+  hash=$(printf '%s' "$note" | sha256sum | cut -d' ' -f1)
+  sqlite3 "$db" "INSERT INTO observations(title, content, topic_key, normalized_hash, sync_id, embedding_model)
+      VALUES ('config secrets', '$note', 'foundation/x/config-secrets', '$hash', 'obs-$hash', 'nomic-embed');
+    CREATE TABLE sync_mutations(seq INTEGER PRIMARY KEY, entity_key TEXT);
+    INSERT INTO sync_mutations(entity_key) VALUES ('obs-9f86d081884c7d659a2feaa0c55ad015');"
+  backup "$home" --scan
+  assert 'adjacent columns of a row are not read as one secret' test "$LAST_EXIT" -eq 0
+  assert 'a clean row reports no finding' says 'no secrets found'
+  assert 'a clean column scan removes its temp dump' tmp_empty "$home"
+
+  # Derived columns (hashes, sync ids, embeddings) are computed by engram, never
+  # typed by the user, so they are not scanned: only user text is.
+  sqlite3 "$db" "UPDATE observations SET normalized_hash = '$SECRET', sync_id = '$SECRET',
+    embedding = CAST('$SECRET' AS BLOB), embedding_model = '$SECRET' WHERE id = 2;"
+  backup "$home" --scan
+  assert 'derived columns are not scanned' test "$LAST_EXIT" -eq 0
+
+  sqlite3 "$db" "INSERT INTO observations(id, title, content) VALUES (7, 'notes',
+    'line one' || char(10) || '## observations id=99' || char(10) || 'token $SECRET');"
+  backup "$home" --scan
+  assert 'a secret in a multi-line content is found' test "$LAST_EXIT" -eq 1
+  assert 'the finding names its table and row' says 'github-pat in observations id=7'
+  assert 'a header-like line in a memory cannot misname the row' silent_on 'id=99'
+  assert 'a content finding never prints the secret' no_secret
+  assert 'a content finding removes its temp dump' tmp_empty "$home"
+
+  sqlite3 "$db" "INSERT INTO observations(id, title) VALUES (8, 'token $SECRET');
+    INSERT INTO user_prompts(id, content) VALUES (5, 'my token is $SECRET');"
+  backup "$home" --scan
+  assert 'secrets in titles and other tables are found too' says '3 finding(s)'
+  assert 'a title finding names its row' says 'github-pat in observations id=8'
+  assert 'a finding in another table names that table' says 'github-pat in user_prompts id=5'
+  assert 'no finding prints the secret' no_secret
+  assert 'every scan removes its temp dump' tmp_empty "$home"
 
   echo "== deleted data stays out of the backup =="
 
