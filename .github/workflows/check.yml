@@ -25,7 +25,7 @@ jobs:
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint \
-            sqlite restic socat python util-linux openssl procps-ng diffutils
+            sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks
           shfmt --version
           actionlint --version
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,14 +35,15 @@ jobs:
           make check
 
   # Recovery drill on a clean Arch: install the dotfiles, back up a memory,
-  # lose the machine, rebuild it and restore the memory.
+  # lose the machine, rebuild it and restore the memory
+  # (from the backup drive and from a clone of the off-site git repo).
   recovery:
     runs-on: ubuntu-24.04
     container: archlinux:latest
     timeout-minutes: 10
     steps:
       - name: Install the packages a new machine needs
-        run: pacman -Sy --noconfirm --needed git jq ripgrep restic sqlite openssl procps-ng
+        run: pacman -Sy --noconfirm --needed git jq ripgrep restic sqlite openssl procps-ng gitleaks
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Recovery drill
         run: bash scripts/recovery-e2e.sh
