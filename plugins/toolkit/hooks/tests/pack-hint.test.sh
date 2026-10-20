@@ -308,6 +308,34 @@ stub 'printf "v1\tfrom path\n"'
 run_hook startup "$PROJ" XDG_BIN_HOME="$HOME_DIR/fallbackbin"
 assert "PATH wins over the fallback" msg_has "from path"
 
+echo "== missing dependencies"
+# nodep TOOL: a PATH holding every executable of the system PATH except TOOL.
+nodep() {
+  local dir="$TMP_ROOT/no-$1" d f
+  mkdir -p "$dir"
+  IFS=: read -ra _ds <<<"$CLEAN_PATH"
+  for d in "${_ds[@]}"; do
+    for f in "$d"/*; do
+      [[ -x $f && ! -d $f && ${f##*/} != "$1" && ! -e $dir/${f##*/} ]] && ln -s "$f" "$dir/${f##*/}"
+    done
+  done
+  printf '%s\n' "$dir"
+}
+for missing in curl sha256sum jq; do
+  fresh "no-$missing"
+  nopath=$(nodep "$missing")
+  ai_out=$(HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_HOME" PATH="$nopath" AI_PACK_NOW="$NOW" \
+    bash "$ROOT/bin/ai-pack" hint --cwd "$PROJ" 2>"$TMP_ROOT/err-$missing")
+  ai_code=$?
+  assert "ai-pack hint without $missing: exits 0" test "$ai_code" -eq 0
+  assert "ai-pack hint without $missing: no stderr" test ! -s "$TMP_ROOT/err-$missing"
+  if [[ $missing == jq ]]; then
+    assert "ai-pack hint without $missing: no stdout" test -z "$ai_out"
+  else
+    assert "ai-pack hint without $missing: still hints" test -n "$ai_out"
+  fi
+done
+
 echo "== opt-out"
 fresh off
 use_real
