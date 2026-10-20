@@ -26,13 +26,20 @@ repo="$TMP_ROOT/repo"
 mkdir -p "$repo"
 git -C "$repo" init -q
 printf 'check:\n\texit 1\n' >"$repo/Makefile"
+# A vite project and an ai-pack on PATH make pack-hint speak.
+vite="$TMP_ROOT/vite"
+mkdir -p "$vite"
+git -C "$vite" init -q
+printf '{"devDependencies":{"vite":"5"}}\n' >"$vite/package.json"
+ln -s "$HOOKS/../../../bin/ai-pack" "$home/bin/ai-pack"
 
 # speak HOOK INPUT [ENV...]: run HOOK; "exit:<code> out:<bytes>" in $RESULT.
 RESULT=""
 speak() {
   local hook=$1 input=$2 out code
   shift 2
-  out=$(printf '%s' "$input" | env -u XDG_CONFIG_HOME -u XDG_STATE_HOME HOME="$home" PATH="$home/bin:$PATH" \
+  rm -rf "$home/state" # pack-hint shows once; start every run fresh
+  out=$(printf '%s' "$input" | env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$home" XDG_STATE_HOME="$home/state" PATH="$home/bin:$PATH" \
     CLAUDE_PLUGINS_DIR="$home/plugins" UPDATE_CHECK_CACHE="$home/cache/latest" XDG_CACHE_HOME="$home/cache" \
     "$@" bash "$HOOKS/$hook.sh" 2>/dev/null)
   code=$?
@@ -60,6 +67,7 @@ cases=(
   "host-info|{\"source\":\"startup\"}"
   "update-check|{\"source\":\"startup\"}"
   "backup-status|{\"source\":\"startup\"}"
+  "pack-hint|{\"source\":\"startup\",\"cwd\":\"$vite\"}"
   "engram-resume-fallback|{\"source\":\"resume\"}"
   "pause|{\"prompt\":\"pausa\",\"cwd\":\"$repo\"}"
   "prefer-modern-cli|{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"grep x f\"}}"
