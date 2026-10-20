@@ -118,7 +118,7 @@ list_tool() {
     ACTIVE[$t]=1 mark=✔
     via=$(jq -r --arg k "$KEY" --arg t "$t" '.projects[$k].tools[$t].via // [] | join(",")' <<<"$PJ")
     detail="(via $via) $jver"
-    mver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // "-"' "$MANIFEST")
+    mver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // ((.commit // "-") | .[0:7])' "$MANIFEST")
     [[ $mver == - || $mver == "$jver" ]] || detail+=" -> $mver available"
     cur=$(jq -r --arg t "$t" '.tools[$t].current // empty' <<<"$MACHINE")
     [[ -z $cur || $cur == "$jver" ]] || detail+=" (machine $cur)"
@@ -143,8 +143,14 @@ cmd_list() {
   MACHINE=$(state_read "$STATE_DIR/machine.json") || exit 1
   while read -r t; do list_tool "$t"; done < <(jq -r '.tools | keys[]' "$MANIFEST")
   while read -r p; do
-    mark=·
-    while read -r t; do [[ -z ${ACTIVE[$t]:-} ]] || mark=✔; done < <(jq -r --arg p "$p" '.packs[$p].tools[]' "$MANIFEST")
+    # ✔ every tool active, ◐ some, · none.
+    local on=0 all=0 mark=·
+    while read -r t; do
+      all=$((all + 1))
+      [[ -z ${ACTIVE[$t]:-} ]] || on=$((on + 1))
+    done < <(jq -r --arg p "$p" '.packs[$p].tools[]' "$MANIFEST")
+    ((on == 0)) || mark=◐
+    ((on == 0 || on < all)) || mark=✔
     line=$(printf ' %-9s %s  %s' "$p" "$mark" "$(jq -r --arg p "$p" '.packs[$p].tools | join(", ")' "$MANIFEST")")
     cut70 "$line"
   done < <(jq -r '.packs | keys[]' "$MANIFEST")
