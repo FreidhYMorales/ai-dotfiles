@@ -88,7 +88,12 @@ cmd_add() {
   UNDO=()
   clean_stages "$PROJ"
   say "ok: active ${TOOLS[*]} in $KEY"
-  say "run /reload-plugins to load the new skills"
+  if jq -e --arg t "${TOOLS[*]}" '[.tools[($t | split(" "))[]].project_dirs | keys[] | select(startswith(".claude/skills/") | not)] | length > 0' \
+    "$MANIFEST" >/dev/null 2>&1; then
+    say "restart Claude in this project to load the new config"
+  else
+    say "run /reload-plugins to load the new skills"
+  fi
   ((RESTART == 0)) || say "restart your Claude sessions to use the new machine version"
 }
 

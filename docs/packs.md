@@ -23,7 +23,7 @@ ai-pack unignore web
 ai-pack add web --cwd ~/code/site  # any command takes --cwd (default: the current directory)
 ```
 
-The project is the git root of `--cwd` (or the directory itself outside git). After `add`, run `/reload-plugins` or restart Claude; the command says which.
+The project is the git root of `--cwd` (or the directory itself outside git). After `add`, the command says what to do: `run /reload-plugins` when only skills changed, or `restart Claude in this project` when it also wrote config outside `.claude/skills` (the `web` pack writes `.playwright/`).
 
 What gets written:
 

@@ -133,6 +133,7 @@ assert 'journal lists files with sha256' test \
 assert 'journal records via' test "$(journal --arg k "$P" '.projects[$k].tools.beta.via | join(",")')" = duo
 assert 'journal records version' test "$(journal --arg k "$P" '.projects[$k].tools.beta.version')" = v1
 assert 'notice to reload plugins' says 'run /reload-plugins'
+assert 'skill-only add does not ask for a restart' lacks 'restart Claude in this project'
 assert 'no stage left behind' test -z "$(find "$P/.claude" -maxdepth 1 -name '.ai-pack-stage-*')"
 pack add duo --cwd "$P"
 assert 'second add is a no-op that succeeds' exit_is 0
