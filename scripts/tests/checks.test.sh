@@ -75,6 +75,15 @@ printf '#!/usr/bin/env bash\necho ok\n' >"$root/git-hooks/_dispatch"
 ln -s _dispatch "$root/git-hooks/pre-push"
 expect 0 'symlinked hook is skipped, target linted once' check-shell.sh "$root"
 
+root=$(fixture shell-vendor)
+mkdir -p "$root/packs/vendor/x/scripts" "$root/packs/lib"
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/packs/vendor/x/scripts/bad.sh"
+printf '#!/usr/bin/env bash\necho "unterminated\n' >"$root/packs/vendor/x/scripts/syntax.sh"
+expect 0 'failing script under packs/vendor/ is skipped' check-shell.sh "$root"
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/packs/lib/bad.sh"
+expect 1 'failing script under packs/lib/ is still linted' check-shell.sh "$root"
+output_has 'names the packs/lib file' 'packs/lib/bad.sh'
+
 echo "== check-json =="
 root=$(fixture json-bad)
 printf '{"a": 1,}\n' >"$root/plugins/p/broken.json"
