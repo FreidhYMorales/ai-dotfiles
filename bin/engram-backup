@@ -100,7 +100,7 @@ init() {
     elif restic -r "$repo" init --quiet >/dev/null; then
       echo "created: $repo"
       if is_offsite "$repo" && ! git_publish "$repo" "init restic repository"; then
-        failed+=("$repo (push failed)")
+        failed+=("$repo (commit or push failed)")
       fi
     else
       failed+=("$repo")
@@ -238,6 +238,7 @@ ensure_gitignore() {
 }
 
 # git_publish DIR MESSAGE: commit DIR's restic repo (when it changed) and push.
+# Returns 1 when the commit failed, 2 when the push failed.
 git_publish() {
   ensure_gitignore "$1"
   gitr "$1" add -A || return 1
@@ -245,7 +246,24 @@ git_publish() {
     gitr "$1" commit -q -m "$2" || return 1
   fi
   git_pending "$1" || return 0
-  git_push "$1"
+  git_push "$1" || return 2
+}
+
+# publish REPO: git_publish an off-site repo, recording a failure.
+publish() {
+  local rc=0
+  git_publish "$1" "backup $HOST $(date -u +%Y-%m-%dT%H:%M:%SZ)" || rc=$?
+  case $rc in
+    0) ;;
+    1) failed+=("$1 (commit failed)") ;;
+    *) failed+=("$1 (push failed)") ;;
+  esac
+}
+
+# unpublished DIR: DIR has uncommitted changes or unpushed commits left by an
+# earlier run whose commit or push failed.
+unpublished() {
+  [[ -n $(git -C "$1" status --porcelain 2>/dev/null) ]] || git_pending "$1"
 }
 
 backup() {
@@ -260,9 +278,10 @@ backup() {
     offsite=0
     is_offsite "$repo" && offsite=1
     if [[ -f $state && $(<"$state") == "$digest" ]]; then
-      # A commit whose push failed last time goes out now.
-      if ((offsite)) && git_pending "$repo"; then
-        git_push "$repo" || failed+=("$repo (push failed)")
+      # A commit or push that failed last time is retried now; the data was
+      # scanned clean when it was backed up.
+      if ((offsite)) && unpublished "$repo"; then
+        publish "$repo"
       else
         echo "unchanged: $repo"
       fi
@@ -291,9 +310,7 @@ backup() {
         --prune --quiet >/dev/null; then
       printf '%s\n' "$digest" >"$state"
       echo "backed up: $repo"
-      if ((offsite)) && ! git_publish "$repo" "backup $HOST $(date -u +%Y-%m-%dT%H:%M:%SZ)"; then
-        failed+=("$repo (push failed)")
-      fi
+      ((offsite)) && publish "$repo"
     else
       failed+=("$repo")
     fi
