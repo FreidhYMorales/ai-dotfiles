@@ -309,3 +309,17 @@ Source: `plan-review-4.md`.
 | 13 | Pinned hash scope undefined | Final dir contents minus `.gitignore`; deterministic-template test | planner |
 | 14 | Hint with a partly active pack | Silent if any tool of the pack is active; test | planner |
 | risks | PATH from launchers; hook/CLI skew; npm swap mid-session; node upgrades | Hook falls back to `~/.local/bin/ai-pack`; `hint` output versioned; old npm prefixes kept; tested versions recorded in docs/packs.md | planner |
+
+## Post-implementation changes
+
+Dated 2026-10-19, after verify. The sections above keep the original decisions; where they differ, this section wins.
+
+| Item | Was | Now | Why |
+|---|---|---|---|
+| web-design-guidelines rules (Research, Core model source kinds, Scope row, Data gaps, resolutions review-1 #15 and review-2 #12) | Rules fetched at add time from a pinned commit + sha256, never committed | Vendored as `packs/vendor/web-design-guidelines/rules.md` (upstream `command.md`, commit 4ecfb9f) with the upstream LICENSE; SKILL.md stays in-house | Upstream added an MIT LICENSE in 2025-09; the fetch path is gone, so `add` needs no network for this tool |
+| archify vendored tree | Verbatim v3.2.0 plus the update-check patch | Also without `examples/*.html` (11.9 MB, unused) | Size; documented in `packs/vendor/README.md` |
+| taste project dir | `.claude/skills/taste` | `.claude/skills/design-taste-frontend` | Claude lists project skills by dir name; the frontmatter name is `design-taste-frontend` |
+| `pack-hint` timeout | Fixed cut | `PACK_HINT_TIMEOUT` widens the cut (hook `timeout` stays 2) | Slow CI runners made the hint test flaky |
+| CI image | Check job on `ubuntu-24.04` | `archlinux:latest` container (commit 321eee7) | Matches the target platform; Ubuntu 24.04 ships coreutils 9.4 without `mv --exchange` |
+| Post-change notice | "reload" or "restart" in the plan | `add` prints "restart Claude in this project" when a tool writes outside `.claude/skills`, else "run /reload-plugins" | Found by verify; implemented in the corrective batch |
+

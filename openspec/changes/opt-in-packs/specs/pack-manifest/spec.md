@@ -16,11 +16,16 @@
 
 Each tool MUST declare one source: vendored (tag + pinned tree hash, under `packs/vendor/`), fetched (pinned commit URL + sha256, never committed), or npm (exact version + sha512 integrity of the `npm pack` tarball).
 
-#### Scenario: Unlicensed rules are not committed
-- GIVEN the `web-design-guidelines` tool
+#### Scenario: Licensed rules are vendored with their license
+- GIVEN the `web-design-guidelines` tool (upstream added an MIT LICENSE in 2025-09)
 - WHEN the repo is inspected
-- THEN its SKILL.md is in-house and templated
-- AND the rules are a fetched pin (URL + sha256) with no committed copy
+- THEN its SKILL.md is in-house
+- AND the rules are vendored as `rules.md` (upstream `command.md` at a pinned commit) with the upstream LICENSE, under `packs/vendor/web-design-guidelines/`
+- AND the pinned tree hash covers all three files
+
+Amended after implementation (2026-10-19). The original scenario said the rules were a fetched pin with no committed copy because the upstream had no LICENSE file. That reason no longer holds, so the shipped code vendors the file (commit 4ecfb9f).
+
+Note on "vendored": a vendored tool MAY omit unused upstream files when `packs/vendor/README.md` says so. `archify` omits the 15 rendered showcase pages `examples/*.html` (11.9 MB); nothing in the skill reads them, and the pinned hash is of the trimmed tree.
 
 ### Requirement: Pinned tree hash
 

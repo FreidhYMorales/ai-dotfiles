@@ -36,13 +36,13 @@ Chain bases (stacked-to-main): PR 1 base = `main`; each later PR base = the prev
 
 ## Phase 0: Early manual check (no PR; blocks marked tasks)
 
-- [ ] 0.1 Confirm project skills load from `<proj>/.claude/skills/` incl. a hand-copied taste-skill v2.1.2 (needs extra files?). Blocks 6.2 (taste vendor files), 6.3.
-- [ ] 0.2 Run `playwright-cli install --skills` in a scratch dir; record where it writes and the skill path inside the npm package. Blocks 6.3 (`project_dirs.from`); phases 1-5 are unaffected (fixture manifest).
-- [ ] 0.3 Real `playwright-cli open` + snapshot with `/usr/bin/chromium`, then `git status`, then remove output. Confirms `.playwright/output` leftover. Blocks 6.2, 6.3, 8.1.
-- [ ] 0.4 Apply the Archify patch (disable update check), write `archify/README.md` notes. Blocks 6.2.
-- [ ] 0.5 Check where `systemMessage` renders next to other startup messages. Blocks 7.2 (message wording).
-- [ ] 0.6 Run the hook from a launcher without `~/.local/bin` on PATH. Blocks 7.2 (fallback path).
-- [ ] 0.7 Start `claude` from a subdirectory; record behavior. Blocks 8.1 (documented either way).
+- [x] 0.1 Confirm project skills load from `<proj>/.claude/skills/` incl. a hand-copied taste-skill v2.1.2 (needs extra files?). Blocks 6.2 (taste vendor files), 6.3.
+- [x] 0.2 Run `playwright-cli install --skills` in a scratch dir; record where it writes and the skill path inside the npm package. Blocks 6.3 (`project_dirs.from`); phases 1-5 are unaffected (fixture manifest).
+- [x] 0.3 Real `playwright-cli open` + snapshot with `/usr/bin/chromium`, then `git status`, then remove output. Confirms `.playwright/output` leftover. Blocks 6.2, 6.3, 8.1.
+- [x] 0.4 Apply the Archify patch (disable update check), write `archify/README.md` notes. Blocks 6.2.
+- [ ] 0.5 (awaits the user at the screen) Check where `systemMessage` renders next to other startup messages. Blocks 7.2 (message wording).
+- [ ] 0.6 (awaits the user: PATH-less launcher) Run the hook from a launcher without `~/.local/bin` on PATH. Blocks 7.2 (fallback path).
+- [x] 0.7 Start `claude` from a subdirectory; record behavior. Blocks 8.1 (documented either way).
 
 Phases 1-5 (PRs 1-4) can start without Phase 0.
 
@@ -101,4 +101,4 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 9: SHOULD
 
-- [ ] 9.1 Ponytail eval: 3 over-build-tempting cases, with vs without, verdict recorded in `docs/packs.md` or the plan. Check: verdict file exists.
+- [ ] 9.1 (SHOULD, not started) Ponytail eval: 3 over-build-tempting cases, with vs without, verdict recorded in `docs/packs.md` or the plan. Check: verdict file exists.
