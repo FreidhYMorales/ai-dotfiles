@@ -170,6 +170,30 @@ assert 'restore refuses while engram is running' test "$LAST_EXIT" -ne 0
 assert 'the refusal says to close Claude Code' says 'close every Claude Code session'
 assert 'nothing is restored while engram runs' test ! -e "$fresh/.engram/engram.db"
 
+echo "== one run at a time =="
+
+# Timers that fire together (e.g. both missed while the laptop was off) must
+# not collide on restic's exclusive lock: a second run waits for the first.
+home=$(ready serial)
+lock="$home/.local/state/engram-backup/run.lock"
+mkdir -p "${lock%/*}"
+flock "$lock" sleep 2 &
+holder=$!
+sleep 0.3
+backup "$home"
+wait "$holder"
+assert 'a run waits for the one holding the lock' test "$LAST_EXIT" -eq 0
+assert 'the waiting run still backs up' says 'backed up'
+flock "$lock" sleep 3 &
+holder=$!
+sleep 0.3
+EXTRA_ENV=(ENGRAM_BACKUP_LOCK_WAIT=1)
+backup "$home"
+EXTRA_ENV=()
+wait "$holder"
+assert 'a run gives up after ENGRAM_BACKUP_LOCK_WAIT' test "$LAST_EXIT" -ne 0
+assert 'giving up says another run is active' says 'another engram-backup run is still active'
+
 echo "== failures =="
 
 home=$(ready partial)
