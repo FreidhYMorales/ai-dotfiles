@@ -83,10 +83,10 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 6: PR 5 Real manifest and vendor (spec: pack-manifest all; depends on Phase 0)
 
-- [ ] 6.1 RED: `scripts/tests/ai-pack-manifest.test.sh` (schema_version 1, names unique, pack tools defined, node min 22, chromium hint, `web` and `diagrams` membership, detect rules, pins equal `ai-pack hash` of vendor dirs, no committed web-design-guidelines rules). Add case to `scripts/tests/checks.test.sh`: failing script under `packs/vendor/` still passes.
-- [ ] 6.2 GREEN: vendor `packs/vendor/{taste-skill,archify}` (patched, `README.md`), in-house `web-design-guidelines` template, `playwright` config (`cli.config.json`).
-- [ ] 6.3 GREEN: `packs/packs.json` with pins from `ai-pack hash`; `scripts/check-shell.sh` skips `packs/vendor/*`; `upstreams.json` pins.
-- [ ] 6.4 REFACTOR: `make check`; if no `size:exception`, split into 5a/5b.
+- [x] 6.1 RED: `scripts/tests/ai-pack-manifest.test.sh` (schema_version 1, names unique, pack tools defined, node min 22, chromium hint, `web` and `diagrams` membership, detect rules, pins equal `ai-pack hash` of vendor dirs, no committed web-design-guidelines rules). Add case to `scripts/tests/checks.test.sh`: failing script under `packs/vendor/` still passes.
+- [x] 6.2 GREEN: vendor `packs/vendor/{taste-skill,archify}` (patched, `README.md`), in-house `web-design-guidelines` template, `playwright` config (`cli.config.json`).
+- [x] 6.3 GREEN: `packs/packs.json` with pins from `ai-pack hash`; `scripts/check-shell.sh` skips `packs/vendor/*`; `upstreams.json` pins.
+- [x] 6.4 REFACTOR: `make check`; if no `size:exception`, split into 5a/5b.
 
 ## Phase 7: PR 6 Hint and hook (spec: pack-hint all; Makefile; version bump)
 
