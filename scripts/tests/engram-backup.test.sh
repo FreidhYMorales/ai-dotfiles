@@ -191,6 +191,25 @@ backup "$home"
 assert 'missing config fails' test "$LAST_EXIT" -ne 0
 assert 'missing config explains the fix' says 'engram.env'
 
+echo "== init an off-site git repo =="
+
+home=$(sandbox init-offsite)
+cp -a "$template/.config/restic/engram.pass" "$home/.config/restic/"
+git init -q --bare "$home/remote.git"
+git clone -q "$home/remote.git" "$home/clone" 2>/dev/null
+printf 'ENGRAM_BACKUP_REPOS="%s"\n' "$home/clone" >"$home/.config/restic/engram.env"
+backup "$home" --init
+assert 'init of an empty clone succeeds' test "$LAST_EXIT" -eq 0
+assert 'init creates the restic repo in the clone' test -f "$home/clone/config"
+assert 'init ignores restic locks' rg -qx 'locks/' "$home/clone/.gitignore"
+assert 'init commits the new repo' \
+  same "$(git --git-dir="$home/remote.git" log --format=%s --all 2>/dev/null)" 'init restic repository'
+assert 'init pushes to the remote' \
+  same "$(git --git-dir="$home/remote.git" ls-tree --name-only -r HEAD 2>/dev/null | rg -c '^(config|\.gitignore|keys/)')" 3
+backup "$home" --init
+assert 'second init of the clone succeeds' test "$LAST_EXIT" -eq 0
+assert 'second init makes no commit' same "$(git -C "$home/clone" rev-list --count HEAD)" 1
+
 echo "== secret scan =="
 
 # A realistic fake GitHub token, built at runtime so this file holds no literal secret.
