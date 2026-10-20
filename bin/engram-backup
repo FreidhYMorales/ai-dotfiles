@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Back up the engram database to every configured restic repository.
-#   - Takes a consistent copy with `sqlite3 .backup` (safe while engram runs).
+#   - Takes a consistent, compacted copy with `VACUUM INTO` (safe while engram
+#     runs; deleted rows left in free pages are not copied, so what is backed
+#     up is exactly what the secret scan sees).
 #   - Backs it up to each repository in ENGRAM_BACKUP_REPOS; one failing
 #     repository does not stop the others, but the run exits non-zero.
 #   - Skips the snapshot when nothing changed; keeps 7 daily, 4 weekly and
@@ -116,7 +118,8 @@ stage() {
     return 1
   fi
   rm -rf "$STAGING" && mkdir -p "$STAGING"
-  sqlite3 "$DATA_DIR/engram.db" ".backup '$STAGING/engram.db'" || exit 1
+  local target="$STAGING/engram.db"
+  sqlite3 "$DATA_DIR/engram.db" "VACUUM INTO '${target//\'/\'\'}'" || exit 1
   [[ -f $DATA_DIR/protocol-mode.json ]] && cp "$DATA_DIR/protocol-mode.json" "$STAGING/"
   return 0
 }
@@ -272,7 +275,7 @@ backup() {
   digest=$(cat "$STAGING"/* | sha256sum | cut -d' ' -f1)
   mkdir -p "$STATE_DIR"
   for repo in "${REPOS[@]}"; do
-    # Content-based skip: every .backup copy has fresh metadata, so restic's
+    # Content-based skip: every copy is a new file, so restic's
     # own --skip-if-unchanged would never skip.
     state="$STATE_DIR/$(printf '%s' "$repo" | sha256sum | cut -c1-16)"
     offsite=0
