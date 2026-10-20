@@ -32,6 +32,11 @@
           },
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pack-hint.sh",
+            "timeout": 2
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/backup-status.sh",
             "timeout": 5
           }
