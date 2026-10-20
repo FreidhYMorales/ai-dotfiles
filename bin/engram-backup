@@ -11,7 +11,10 @@
 # Off-site: a repository that is the root of a git clone with a remote (e.g.
 # a private GitHub repo) is committed and pushed after each backup, but only
 # when a gitleaks scan of the database finds no secrets; otherwise it is
-# skipped and the run fails. --verify and --restore use the clone as is.
+# skipped and the run fails. A failed commit or push is retried on the next
+# run. --verify and --restore use the clone as is. The scan uses gitleaks'
+# built-in rules only; it cannot catch secrets they do not match (split
+# tokens, plain passwords), and a SIGKILL can leave the dump in $TMPDIR.
 #
 # Usage: engram-backup [--init | --verify | --scan | --restore [--force]]
 #   --init    create the password file (if missing) and every repository;
