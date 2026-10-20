@@ -122,7 +122,7 @@ add:  deps → resolve names → key → lock_wait → clean_stages → PREFLIGH
 
 **list**: read-only (no lock, no state write). Rows fit in 70 columns. Per pack: ✔ if any tool is active in this project, else ·. Per tool: active (journal entry + real presence of its dirs) with `(via <pack>)`; "adoptable" (no journal entry, target exists, tree hash == pinned; `add` adopts it); journal version vs manifest version (`3.2.0 -> 3.3.0 available`); `machine.json` current vs journal version (`(machine 0.1.23)`); "shadowed by <path>". Projects whose root no longer exists are skipped.
 
-**hint --cwd**: every error is silence (exit 0). Newer schema → silent. For each pack with detect rules: skip if ignored, any tool active, or shown < 30 days (`AI_PACK_NOW`). Match root `files_any`, or `package_deps_any` against `dependencies + devDependencies` keys of root `package.json`. On a match: `lock_try` (busy → silent), re-read `hints.json`, write epoch, print `v1\t<signal> detected; suggested: ai-pack add <p>  (ai-pack ignore <p>)`.
+**hint --cwd**: every error is silence (exit 0). Newer schema → silent. For each pack with detect rules: skip if ignored, any tool active, or shown < 30 days (`AI_PACK_NOW`). Match root `files_any`, or `package_deps_any` against `dependencies + devDependencies` keys of root `package.json`. On a match: `lock_try` (busy → silent), re-read `hints.json`, write epoch, print one line per suggested pack (at most one line per pack, so several lines when several packs match): `v1\t<signal> detected; suggested: ai-pack add <p>  (ai-pack ignore <p>)`.
 
 **pack-hint.sh**: `hook_off`; `source == startup`; `cwd` from input; `ai-pack` from PATH else `${XDG_BIN_HOME:-$HOME/.local/bin}/ai-pack`; `timeout 1.5`; strip `v1\t`; `jq -n '{systemMessage: $m}'`.
 
