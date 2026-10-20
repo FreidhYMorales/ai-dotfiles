@@ -219,6 +219,102 @@ if command -v gitleaks >/dev/null 2>&1; then
   ENGRAM_BACKUP_GITLEAKS=no-such-gitleaks backup "$home" --scan
   assert 'scan without gitleaks fails' test "$LAST_EXIT" -ne 0
   assert 'scan without gitleaks says so' says 'gitleaks not installed'
+
+  echo "== off-site git repo =="
+
+  # offsite HOME NAME: a clone (HOME/NAME) of a local bare repo standing in for
+  # GitHub (HOME/NAME-remote.git), holding a copy of the template's restic repo.
+  offsite() {
+    git init -q --bare "$1/$2-remote.git"
+    git clone -q "$1/$2-remote.git" "$1/$2" 2>/dev/null
+    cp -a "$template/repo-a/." "$1/$2/"
+    printf '%s\n' "$1/$2"
+  }
+  repos() { printf 'ENGRAM_BACKUP_REPOS="%s"\n' "${*:2}" >"$1/.config/restic/engram.env"; }
+  commits() { git -C "$1" rev-list --count HEAD 2>/dev/null || echo 0; }
+  pushed() { git --git-dir="$1" rev-list --count --all 2>/dev/null || echo 0; }
+  failed_with() { json_ok "$1/.local/state/engram-backup/backup.json" ".ok == false and (.failed | any(contains(\"$2\")))"; }
+
+  home=$(ready offsite)
+  clone=$(offsite "$home" git)
+  remote="$home/git-remote.git"
+  repos "$home" "$home/repo-a" "$clone"
+  backup "$home"
+  assert 'backup to an off-site git repo succeeds' test "$LAST_EXIT" -eq 0
+  assert 'the off-site repo is pushed' same "$(pushed "$remote")" 1
+  assert 'the push is reported' says "pushed: $clone"
+  assert 'the off-site repo ignores restic locks' rg -qx 'locks/' "$clone/.gitignore"
+  assert 'the local repo is backed up too' same "$(snapshots "$home" "$home/repo-a")" 1
+  git clone -q "$remote" "$home/check-clone" 2>/dev/null
+  assert 'a fresh clone of the remote holds the snapshot' same "$(snapshots "$home" "$home/check-clone")" 1
+
+  backup "$home"
+  assert 'unchanged database makes no commit' same "$(commits "$clone")" 1
+  assert 'unchanged database pushes nothing' same "$(pushed "$remote")" 1
+
+  sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('more');"
+  backup "$home"
+  assert 'changed database is committed and pushed' same "$(pushed "$remote")" 2
+
+  leak "$home"
+  backup "$home"
+  assert 'a secret in the database fails the run' test "$LAST_EXIT" -ne 0
+  assert 'the local repo is still backed up' same "$(snapshots "$home" "$home/repo-a")" 3
+  assert 'the off-site repo is not backed up' same "$(snapshots "$home" "$clone")" 2
+  assert 'nothing is pushed while secrets are found' same "$(pushed "$remote")" 2
+  assert 'the block is recorded' failed_with "$home" "$clone (blocked: secrets found, see engram-backup --scan)"
+  assert 'the blocked run never prints the secret' no_secret
+  assert 'the blocked run removes its temp dump' tmp_empty "$home"
+
+  sqlite3 "$home/.engram/engram.db" "DELETE FROM observations WHERE title LIKE 'token %';"
+  backup "$home"
+  assert 'removing the secret unblocks the off-site repo' same "$(pushed "$remote")" 3
+
+  mv "$remote" "$home/away.git"
+  sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('offline');"
+  backup "$home"
+  assert 'a failed push fails the run' test "$LAST_EXIT" -ne 0
+  assert 'the failed push is recorded' failed_with "$home" "$clone"
+  assert 'the local commit is kept' same "$(commits "$clone")" 4
+  mv "$home/away.git" "$remote"
+  backup "$home"
+  assert 'the next run succeeds' test "$LAST_EXIT" -eq 0
+  assert 'the next run pushes the kept commit' same "$(pushed "$remote")" 4
+
+  sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('no scanner');"
+  ENGRAM_BACKUP_GITLEAKS=no-such-gitleaks backup "$home"
+  assert 'without gitleaks the run fails' test "$LAST_EXIT" -ne 0
+  assert 'without gitleaks the user is warned' says 'gitleaks not installed'
+  assert 'without gitleaks the off-site repo is blocked' failed_with "$home" "$clone (blocked"
+  assert 'without gitleaks nothing is pushed' same "$(pushed "$remote")" 4
+  assert 'without gitleaks the local repo is backed up' same "$(snapshots "$home" "$home/repo-a")" 6
+
+  echo "== restore from a clone =="
+
+  fresh=$(sandbox clone-restore)
+  rm -rf "$fresh/.engram"
+  cp -a "$home/.config/restic/engram.pass" "$fresh/.config/restic/"
+  git clone -q "$remote" "$fresh/clone" 2>/dev/null
+  repos "$fresh" "$fresh/clone"
+  backup "$fresh" --restore
+  assert 'restore from a fresh clone succeeds' test "$LAST_EXIT" -eq 0
+  assert 'restore from a clone brings the data back' \
+    test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations' 2>/dev/null)" == 3
+  backup "$fresh" --verify
+  assert 'verify works on a clone' test "$LAST_EXIT" -eq 0
+
+  echo "== plain directories stay plain =="
+
+  home=$(ready plain)
+  git init -q "$home/repo-b"
+  git init -q --bare "$home/outer-remote.git"
+  git init -q "$home"
+  git -C "$home" remote add origin "$home/outer-remote.git"
+  backup "$home"
+  assert 'git dirs without a remote, or inside another tree, back up as before' test "$LAST_EXIT" -eq 0
+  assert 'no .gitignore is added to plain repos' test ! -e "$home/repo-a/.gitignore" -a ! -e "$home/repo-b/.gitignore"
+  assert 'nothing is committed in plain repos' same "$(commits "$home/repo-b")$(commits "$home")" 00
+  assert 'no scan runs without off-site repos' test ! -e "$home/.local/state/engram-backup/scan.json"
 else
   echo "SKIP  gitleaks not installed; secret scan and off-site cases not run"
 fi
