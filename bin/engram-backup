@@ -426,6 +426,17 @@ restore() {
   done
 }
 
+# One run at a time: the backup and verify timers can fire together (both
+# missed while the machine was off), and restic's exclusive lock would make one
+# of them fail. Wait for the other run instead.
+mkdir -p "$STATE_DIR"
+exec 8>"$STATE_DIR/run.lock"
+lock_wait=${ENGRAM_BACKUP_LOCK_WAIT:-600}
+if ! flock -w "$lock_wait" 8; then
+  echo "error: another engram-backup run is still active (waited ${lock_wait}s); try again later" >&2
+  exit 1
+fi
+
 "$MODE"
 
 # Record the outcome for the toolkit backup-status hook (backup.json, verify.json).
