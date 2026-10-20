@@ -1,0 +1,11 @@
+schema_version: "1"
+name: doc-design-readme
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    README.md is a draft that new contributors find hard to follow. Rewrite it
+    so they can get going quickly. Show the full new README in your reply; do
+    not write any file.

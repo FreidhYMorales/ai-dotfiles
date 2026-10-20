@@ -1,0 +1,11 @@
+schema_version: "1"
+name: go-testing-table
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Write Go tests for `Slugify` in slug/slug.go (lowercase, spaces and
+    punctuation become single dashes, no leading or trailing dash). Show the
+    full slug_test.go in your reply; do not write any file.
