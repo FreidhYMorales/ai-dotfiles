@@ -37,12 +37,13 @@ sandbox() {
 # backup HOME [ARGS...]: run engram-backup in the sandbox; output in $LAST_OUTPUT.
 LAST_OUTPUT=""
 LAST_EXIT=0
+EXTRA_ENV=() # extra NAME=VALUE pairs for the next runs
 backup() {
   local home=$1
   shift
   LAST_OUTPUT=$(env -u RESTIC_REPOSITORY -u RESTIC_PASSWORD -u RESTIC_PASSWORD_FILE \
     -u ENGRAM_BACKUP_REPOS -u XDG_CONFIG_HOME -u XDG_CACHE_HOME -u XDG_STATE_HOME \
-    -u GITLEAKS_CONFIG -u GITLEAKS_CONFIG_TOML TMPDIR="$home/tmp" \
+    -u GITLEAKS_CONFIG -u GITLEAKS_CONFIG_TOML TMPDIR="$home/tmp" "${EXTRA_ENV[@]}" \
     ENGRAM_BACKUP_ALLOW_RUNNING=1 HOME="$home" ENGRAM_DATA_DIR="$home/.engram" RESTIC_CACHE_DIR="$home/.cache/restic" \
     bash "$SCRIPT" "$@" 2>&1)
   LAST_EXIT=$?
@@ -238,6 +239,31 @@ if command -v gitleaks >/dev/null 2>&1; then
   ENGRAM_BACKUP_GITLEAKS=no-such-gitleaks backup "$home" --scan
   assert 'scan without gitleaks fails' test "$LAST_EXIT" -ne 0
   assert 'scan without gitleaks says so' says 'gitleaks not installed'
+
+  # stub NAME EXIT REPORT: a fake gitleaks that writes REPORT and exits EXIT.
+  stub() {
+    # shellcheck disable=SC2016 # the $1/$2 belong to the generated script
+    printf '#!/usr/bin/env bash\nwhile (($#)); do [[ $1 == --report-path ]] && printf %%s %q >"$2"; shift; done\nexit %s\n' \
+      "$3" "$2" >"$TMP_ROOT/$1"
+    chmod +x "$TMP_ROOT/$1"
+    printf '%s\n' "$TMP_ROOT/$1"
+  }
+  ENGRAM_BACKUP_GITLEAKS=$(stub gitleaks-crash 2 '[]') backup "$home" --scan
+  assert 'a gitleaks error is not a clean scan' test "$LAST_EXIT" -ne 0
+  assert 'a gitleaks error says the scan could not run' says 'could not run'
+  assert 'a gitleaks error is recorded' \
+    json_ok "$home/.local/state/engram-backup/scan.json" '.ok == false and has("error")'
+  ENGRAM_BACKUP_GITLEAKS=$(stub gitleaks-odd 0 '[{"RuleID":"x","StartLine":1}]') backup "$home" --scan
+  assert 'findings with exit 0 are not trusted' says 'could not run'
+
+  printf 'title = "no rules"\n[[rules]]\nid = "never"\nregex = """x{999}"""\n' >"$TMP_ROOT/norules.toml"
+  EXTRA_ENV=("GITLEAKS_CONFIG=$TMP_ROOT/norules.toml" "GITLEAKS_CONFIG_TOML=$(<"$TMP_ROOT/norules.toml")")
+  backup "$home" --scan
+  EXTRA_ENV=()
+  assert 'a GITLEAKS_CONFIG from the environment cannot hide findings' says 'github-pat'
+  sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('ghp_$(printf 'Ab3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dF3hJ5') gitleaks:allow');"
+  backup "$home" --scan
+  assert 'a gitleaks:allow comment in a memory cannot hide it' says '2 finding(s)'
 
   echo "== deleted data stays out of the backup =="
 
