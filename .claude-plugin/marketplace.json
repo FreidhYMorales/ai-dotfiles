@@ -23,7 +23,7 @@
     {
       "name": "toolkit",
       "description": "Engineering skills: Judgment Day dual review, work-unit commits, chained PRs, comment writing, doc design, skill authoring, Go testing.",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "source": "./plugins/toolkit",
       "category": "development"
     }
