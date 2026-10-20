@@ -52,7 +52,8 @@ function silent(reason) {
 }
 
 function updatesDisabled() {
-  return process.env.ARCHIFY_UPDATE_CHECK_DISABLED === '1';
+  // ai-dotfiles vendor patch: update check always off (pinned copy, upgraded via ai-pack).
+  return true;
 }
 
 function isPlainObject(value) {
