@@ -1,0 +1,10 @@
+schema_version: "1"
+name: skill-improver-audit
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Audit the skill in .claude/skills/release-notes/SKILL.md and tell me
+    exactly what to change. Do not edit it.
