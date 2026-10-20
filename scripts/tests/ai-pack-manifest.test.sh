@@ -78,12 +78,10 @@ assert 'taste is vendored v2.1.2 into a dir named after its frontmatter name' \
 assert 'taste declares the .taste-skill leftover' q '.tools.taste.leftovers | index(".taste-skill") != null'
 assert 'archify is vendored v3.2.0' \
   q '.tools.archify | .source == {type: "vendored", tag: "v3.2.0"} and .project_dirs[".claude/skills/archify"].from == "vendor:archify"'
-assert 'web-design-guidelines fetches rules from a 40-hex commit over https with a sha256' \
-  q '.tools["web-design-guidelines"].source | .type == "fetched" and .name == "rules"
-     and (.url | test("^https://raw\\.githubusercontent\\.com/vercel-labs/web-interface-guidelines/[0-9a-f]{40}/command\\.md$"))
-     and (.sha256 | test("^[0-9a-f]{64}$"))'
-assert 'web-design-guidelines renders vendor:web-design-guidelines/SKILL.md' \
-  q '.tools["web-design-guidelines"].project_dirs[".claude/skills/web-design-guidelines"] | .from == "vendor:web-design-guidelines" and .template == "SKILL.md"'
+assert 'web-design-guidelines is vendored from a 40-hex upstream commit' \
+  q '.tools["web-design-guidelines"].source | .type == "vendored" and (.commit | test("^[0-9a-f]{40}$"))'
+assert 'web-design-guidelines copies vendor:web-design-guidelines without a template' \
+  q '.tools["web-design-guidelines"].project_dirs[".claude/skills/web-design-guidelines"] | .from == "vendor:web-design-guidelines" and (has("template") | not)'
 
 echo "== pins match the vendored trees =="
 while IFS=$'\t' read -r tool rel from pin; do
@@ -95,15 +93,16 @@ while IFS=$'\t' read -r tool rel from pin; do
 done < <(jq -r '.tools | to_entries[] | .key as $t | .value.project_dirs | to_entries[]
   | [$t, .key, .value.from, .value.hash] | @tsv' "$M")
 
-echo "== web-design-guidelines template =="
-tpl="$V/web-design-guidelines"
-assert 'vendor dir holds only SKILL.md (rules are never committed)' \
-  test "$(find "$tpl" -type f | wc -l)" -eq 1 -a -f "$tpl/SKILL.md"
-assert 'template has exactly one {{FETCHED:rules}} marker line' \
-  test "$(grep -cx '{{FETCHED:rules}}' "$tpl/SKILL.md")" -eq 1
-assert 'template frontmatter names the skill' test "$(sed -n 's/^name: //p' "$tpl/SKILL.md")" = web-design-guidelines
-assert 'no rules text is committed anywhere in packs/' \
-  test -z "$(grep -rlF 'Icon-only buttons need' "$ROOT/packs" 2>/dev/null)"
+echo "== web-design-guidelines =="
+wdg="$V/web-design-guidelines"
+assert 'vendor dir holds SKILL.md, rules.md and the upstream LICENSE' \
+  test "$(find "$wdg" -type f -printf '%f\n' | sort | tr '\n' ' ')" = "LICENSE SKILL.md rules.md "
+assert 'rules.md is the upstream command.md at the pinned commit' \
+  test "$(sha256sum "$wdg/rules.md" | cut -d' ' -f1)" = d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234
+assert 'the upstream LICENSE is MIT' grep -q '^MIT License' "$wdg/LICENSE"
+assert 'SKILL.md frontmatter names the skill' test "$(sed -n 's/^name: //p' "$wdg/SKILL.md")" = web-design-guidelines
+assert 'SKILL.md points at rules.md and has no fetch marker' \
+  bash -c 'grep -q "rules.md" "$1" && ! grep -q "{{FETCHED:" "$1"' _ "$wdg/SKILL.md"
 
 echo "== vendored trees =="
 assert 'taste SKILL.md name matches the project dir' \
