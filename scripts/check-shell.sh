@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Lint every tracked shell script with shellcheck (and shfmt -d when installed).
 # Shell scripts are *.sh files plus extensionless files with a sh/bash shebang.
-# Symlinks are skipped so a shared target is linted once.
+# Symlinks are skipped so a shared target is linted once. Vendored third-party
+# trees (packs/vendor/) are pinned byte for byte and are not linted.
 set -u
 # shellcheck source=scripts/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -9,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 scripts=()
 while IFS= read -r f; do
   path="$ROOT/$f"
-  [[ -f $path && ! -L $path ]] || continue
+  [[ -f $path && ! -L $path && $f != packs/vendor/* ]] || continue
   if [[ $f == *.sh ]] || head -n1 "$path" | rg -q '^#!.*\b(ba)?sh\b'; then
     scripts+=("$f")
   fi

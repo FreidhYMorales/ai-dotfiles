@@ -41,6 +41,30 @@
       "watch": "releases",
       "reviewed": "v2.2.3",
       "why": "harness ideas: per-language rules, hook controls, install profiles"
+    },
+    {
+      "repo": "Leonxlnx/taste-skill",
+      "watch": "releases",
+      "reviewed": "v2.1.2",
+      "why": "vendored in packs/vendor/taste-skill (web pack); re-vendor and re-pin on a new release"
+    },
+    {
+      "repo": "tt-a1i/archify",
+      "watch": "releases",
+      "reviewed": "v3.2.0",
+      "why": "vendored in packs/vendor/archify with the update check patched off (diagrams pack)"
+    },
+    {
+      "repo": "microsoft/playwright-cli",
+      "watch": "releases",
+      "reviewed": "v0.1.22",
+      "why": "npm @playwright/cli pinned in packs/packs.json (web pack); bump version and integrity"
+    },
+    {
+      "repo": "vercel-labs/web-interface-guidelines",
+      "watch": "commits",
+      "reviewed": "434b7f91364665f2f733b310ec54809bf8f37937",
+      "why": "rules fetched at add time, pinned to command.md at 4ecfb9f in packs/packs.json (web pack)"
     }
   ]
 }
