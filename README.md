@@ -116,7 +116,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Claude Code look and feel: theme, visual tweaks and TUI mods (panes, banners), keeping it functional first
 - [x] Permission hygiene: `claude-perms-audit` (manual; cleaned `python3 *` and dead rules on 2026-10-17)
 - [x] Secret scan of engram memory: `engram-backup --scan` runs gitleaks over a dump of the DB; a finding blocks the off-site push
-- [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets), one variable to disable hooks plus a minimal profile, a cap on SessionStart context (off for local-model setups). Its Memory Vault overlaps engram: reference only
+- [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets) and a cap on SessionStart context (low value today: the measured startup cost is ~3k tokens). Done elsewhere: one variable to disable hooks (`AI_HOOKS_OFF`); the minimal profile became opt-in packs. Its Memory Vault overlaps engram: reference only
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
 - [ ] OpenCode and Gemini support
