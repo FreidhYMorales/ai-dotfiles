@@ -122,6 +122,10 @@ assert 'unreachable GitHub exits 0' test "$LAST_EXIT" -eq 0
 echo "== apply =="
 
 home=$(sandbox apply 3.4.0 3.5.0 0.3.0 0.3.1)
+# A deleted row stays in the free pages of the live file (engram's sqlite keeps
+# them); the pre-update copy must not carry it.
+sqlite3 "$home/.engram/engram.db" "PRAGMA secure_delete=OFF; INSERT INTO obs VALUES ('deleted-row-marker-7Qx'); DELETE FROM obs WHERE t LIKE 'deleted-row%';"
+assert 'the deleted row is still in the live file (precondition)' rg -aq 'deleted-row-marker-7Qx' "$home/.engram/engram.db"
 update "$home" '' --yes
 assert 'apply exits 0' test "$LAST_EXIT" -eq 0
 assert 'engram is upgraded' engram_is "$home" 3.5.0
@@ -130,6 +134,8 @@ assert 'old binary is kept as .bak' \
 backup=$(compgen -G "$home/.engram-backup-*" | head -n1)
 assert 'database backup is consistent' \
   test "$(sqlite3 "$backup/engram.db" 'SELECT t FROM obs' 2>/dev/null)" == kept
+lacks_bytes() { ! rg -aq "$1" "$2"; }
+assert 'database backup drops deleted rows' lacks_bytes deleted-row-marker-7Qx "$backup/engram.db"
 assert 'doctor runs after the upgrade' says 'doctor: ok'
 assert 'update-check cache is refreshed' test ! -e "$home/.cache/ai-dotfiles/engram-latest"
 assert 'marketplaces are refreshed' claude_called "$home" 'plugin marketplace update mkt'
