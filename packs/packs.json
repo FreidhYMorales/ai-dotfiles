@@ -84,7 +84,7 @@
       "project_dirs": {
         ".claude/skills/archify": {
           "from": "vendor:archify",
-          "hash": "sha256:a1b6c55bf2d7ae307966cc104f0388968b7884d455025a15ab3c6654dfd57fb5"
+          "hash": "sha256:b27a2e25369a3915a309fb0bbe2b99b3cf463152feea0a2e484dbcb1fff35130"
         }
       },
       "leftovers": []

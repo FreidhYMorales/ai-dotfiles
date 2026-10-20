@@ -33,6 +33,12 @@ or reaches the network to look for updates:
 Both edits carry the comment `ai-dotfiles vendor patch`; they are one separate
 commit on top of the verbatim copy. Needs node >= 18.
 
+The 15 rendered showcase pages `archify/examples/*.html` (11.9 MB) are left out:
+nothing in the skill or its scripts reads them. The example JSON inputs, which
+`SKILL.md` and `bin/archify.mjs` use, are kept. Verified after the trim:
+`archify doctor` reports ready, and `render` and `demo` work; `archify examples`
+still prints the paths of the removed pages.
+
 ## playwright
 
 `cli.config.json` points Playwright at the system `/usr/bin/chromium`, writes
@@ -53,6 +59,7 @@ The rules are never committed.
 1. Download the new tag tarball into an empty dir, record its sha256 here, and
    compare it with the upstream tag commit (`git ls-remote`).
 2. Replace the directory with the verbatim upstream bytes (no install scripts).
-3. Re-apply the archify edits above and keep the `ai-dotfiles vendor patch` marker.
+3. Re-apply the archify edits above and keep the `ai-dotfiles vendor patch` marker;
+   delete `archify/examples/*.html` again.
 4. Run `bin/ai-pack hash packs/vendor/<dir>` and put the result in `packs.json`.
 5. Update the `reviewed` value in `upstreams.json`, then run `make check`.
