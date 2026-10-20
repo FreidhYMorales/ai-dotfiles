@@ -6,8 +6,14 @@
 #   - Skips the snapshot when nothing changed; keeps 7 daily, 4 weekly and
 #     12 monthly snapshots.
 #
+# Off-site: a repository that is the root of a git clone with a remote (e.g.
+# a private GitHub repo) is committed and pushed after each backup, but only
+# when a gitleaks scan of the database finds no secrets; otherwise it is
+# skipped and the run fails. --verify and --restore use the clone as is.
+#
 # Usage: engram-backup [--init | --verify | --scan | --restore [--force]]
-#   --init    create the password file (if missing) and every repository
+#   --init    create the password file (if missing) and every repository;
+#             in an empty off-site clone also commit and push the new repo
 #   --verify  check each repository, restore the latest snapshot and check
 #             the restored database
 #   --scan    run gitleaks over a dump of the database; prints a redacted
@@ -92,6 +98,9 @@ init() {
       echo "ok: $repo"
     elif restic -r "$repo" init --quiet >/dev/null; then
       echo "created: $repo"
+      if is_offsite "$repo" && ! git_publish "$repo" "init restic repository"; then
+        failed+=("$repo (push failed)")
+      fi
     else
       failed+=("$repo")
     fi
