@@ -96,7 +96,7 @@ done < <(jq -r '.tools | to_entries[] | .key as $t | .value.project_dirs | to_en
 echo "== web-design-guidelines =="
 wdg="$V/web-design-guidelines"
 assert 'vendor dir holds SKILL.md, rules.md and the upstream LICENSE' \
-  test "$(find "$wdg" -type f -printf '%f\n' | sort | tr '\n' ' ')" = "LICENSE SKILL.md rules.md "
+  test "$(find "$wdg" -type f -printf '%f\n' | LC_ALL=C sort | tr '\n' ' ')" = "LICENSE SKILL.md rules.md "
 assert 'rules.md is the upstream command.md at the pinned commit' \
   test "$(sha256sum "$wdg/rules.md" | cut -d' ' -f1)" = d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234
 assert 'the upstream LICENSE is MIT' grep -q '^MIT License' "$wdg/LICENSE"

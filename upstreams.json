@@ -64,7 +64,7 @@
       "repo": "vercel-labs/web-interface-guidelines",
       "watch": "commits",
       "reviewed": "434b7f91364665f2f733b310ec54809bf8f37937",
-      "why": "rules fetched at add time, pinned to command.md at 4ecfb9f in packs/packs.json (web pack)"
+      "why": "command.md vendored as packs/vendor/web-design-guidelines/rules.md at 4ecfb9f (web pack)"
     }
   ]
 }
