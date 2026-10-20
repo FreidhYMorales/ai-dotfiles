@@ -308,6 +308,23 @@ if command -v gitleaks >/dev/null 2>&1; then
   assert 'without gitleaks nothing is pushed' same "$(pushed "$remote")" 4
   assert 'without gitleaks the local repo is backed up' says "backed up: $home/repo-a"
 
+  echo "== off-site commit failures =="
+
+  hooked=$(ready hooked)
+  hclone=$(offsite "$hooked" git)
+  repos "$hooked" "$hclone"
+  printf '#!/usr/bin/env bash\nexit 1\n' >"$hclone/.git/hooks/pre-commit"
+  chmod +x "$hclone/.git/hooks/pre-commit"
+  backup "$hooked"
+  assert 'a failed commit fails the run' test "$LAST_EXIT" -ne 0
+  assert 'a failed commit is reported as such' failed_with "$hooked" "$hclone (commit failed)"
+  assert 'a failed commit pushes nothing' same "$(pushed "$hooked/git-remote.git")" 0
+  rm "$hclone/.git/hooks/pre-commit"
+  backup "$hooked"
+  assert 'after a failed commit the next run succeeds' test "$LAST_EXIT" -eq 0
+  assert 'the next run commits and pushes the unchanged data' same "$(pushed "$hooked/git-remote.git")" 1
+  assert 'the next run leaves a clean work tree' same "$(git -C "$hclone" status --porcelain)" ""
+
   echo "== restore from a clone =="
 
   fresh=$(sandbox clone-restore)
