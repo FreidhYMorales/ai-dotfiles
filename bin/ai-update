@@ -3,7 +3,7 @@
 #   - Plugins: refresh every marketplace, then update installed plugins that
 #     are older than their marketplace manifest.
 #   - engram: download the latest GitHub release, verify its checksum, back up
-#     the database (sqlite3 .backup) and the binary, swap it atomically, verify
+#     the database (sqlite3 VACUUM INTO) and the binary, swap it atomically, verify
 #     the version (rolling back on mismatch), run `engram doctor`, and restart
 #     a running `engram serve`.
 # Shows the plan and asks once. A MAJOR engram bump always asks, even with --yes.
@@ -137,7 +137,9 @@ upgrade_engram() {
   backup="$HOME/.engram-backup-$stamp"
   mkdir -p "$backup"
   if [[ -f $ENGRAM_DATA_DIR/engram.db ]]; then
-    sqlite3 "$ENGRAM_DATA_DIR/engram.db" ".backup '$backup/engram.db'"
+    # VACUUM INTO, like engram-backup: a consistent copy without the deleted
+    # rows that engram's sqlite leaves in free pages.
+    sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'"
   fi
   echo "backed up: database -> $backup"
   cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"
