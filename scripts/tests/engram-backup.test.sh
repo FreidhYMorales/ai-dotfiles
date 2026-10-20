@@ -302,7 +302,11 @@ if command -v gitleaks >/dev/null 2>&1; then
   assert 'the blocked run never prints the secret' no_secret
   assert 'the blocked run removes its temp dump' tmp_empty "$home"
 
+  # Back to the content already pushed: a compacted copy is byte-identical.
   sqlite3 "$home/.engram/engram.db" "DELETE FROM observations WHERE title LIKE 'token %';"
+  backup "$home"
+  assert 'removing the secret restores the unchanged state' says "unchanged: $clone"
+  sqlite3 "$home/.engram/engram.db" "INSERT INTO observations(title) VALUES ('cleaned');"
   backup "$home"
   assert 'removing the secret unblocks the off-site repo' same "$(pushed "$remote")" 3
 
@@ -352,7 +356,7 @@ if command -v gitleaks >/dev/null 2>&1; then
   backup "$fresh" --restore
   assert 'restore from a fresh clone succeeds' test "$LAST_EXIT" -eq 0
   assert 'restore from a clone brings the data back' \
-    test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations' 2>/dev/null)" == 3
+    test "$(sqlite3 "$fresh/.engram/engram.db" 'SELECT count(*) FROM observations' 2>/dev/null)" == 4
   backup "$fresh" --verify
   assert 'verify works on a clone' test "$LAST_EXIT" -eq 0
 
