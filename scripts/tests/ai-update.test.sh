@@ -60,6 +60,11 @@ EOF
   cat >"$home/bin/claude" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_STATE/claude-calls"
+# A refresh may publish a newer version, as a real marketplace update does.
+if [[ "$*" == "plugin marketplace update mkt" && -n ${FAKE_MKT_BUMP:-} ]]; then
+  jq --arg v "$FAKE_MKT_BUMP" '.plugins[0].version = $v' "$FAKE_STATE/../mkt/.claude-plugin/marketplace.json" >"$FAKE_STATE/mkt.tmp" &&
+    mv "$FAKE_STATE/mkt.tmp" "$FAKE_STATE/../mkt/.claude-plugin/marketplace.json"
+fi
 EOF
   chmod +x "$home/bin/curl" "$home/bin/claude"
   mkdir -p "$home/.cache/ai-dotfiles" && echo "$current" >"$home/.cache/ai-dotfiles/engram-latest"
@@ -107,7 +112,15 @@ assert 'check lists the engram update' says 'engram 3.4.0 -> 3.5.0'
 assert 'check lists the plugin update' says 'demo@mkt 0.3.0 -> 0.3.1'
 assert 'check leaves engram alone' engram_is "$home" 3.4.0
 assert 'check makes no backup' no_backup "$home" 3.4.0
-assert 'check calls no claude command' test ! -e "$home/state/claude-calls"
+assert 'check refreshes the marketplaces' claude_called "$home" 'plugin marketplace update mkt'
+no_installs() { ! rg -q '^plugin (install|update)' "$1/state/claude-calls" 2>/dev/null; }
+assert 'check installs no plugin' no_installs "$home"
+
+# The catalog is read after the refresh, so a release published since the last
+# refresh is reported (it was missed before: plugin engram 0.1.12 -> 0.1.14).
+home=$(sandbox check-fresh 3.4.0 3.4.0 0.3.1 0.3.1)
+FAKE_MKT_BUMP=0.3.2 update "$home" '' --check
+assert 'check reports a plugin published since the last refresh' says 'demo@mkt 0.3.1 -> 0.3.2'
 
 home=$(sandbox current 3.4.0 3.4.0)
 update "$home" '' --check
