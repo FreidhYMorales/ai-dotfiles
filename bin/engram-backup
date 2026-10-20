@@ -23,7 +23,8 @@
 #             aside as <data dir>.before-restore-<time>
 #
 # Config: ~/.config/restic/engram.env, e.g.
-#   ENGRAM_BACKUP_REPOS="/home/me/Files/backups/restic-engram rclone:gdrive:backups/restic-engram"
+#   ENGRAM_BACKUP_REPOS="/home/me/Files/backups/restic-engram /home/me/Files/backups/restic-engram-git"
+# (the second one a clone of a private git repo; rclone:<remote>:<path> works too)
 # Password: ~/.config/restic/engram.pass (created by --init; keep a copy in a
 # password manager: without it the backups cannot be restored).
 set -uo pipefail
