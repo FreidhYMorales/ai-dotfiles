@@ -118,7 +118,7 @@ Branch: `feat/ai-pack-remove`. Completed: 4.1, 4.2, 4.3. Remaining: Phases 0, 5-
 - Low fixed: journal dirs must be non-empty, not `.`, relative, and declared in the manifest `project_dirs`; others are ignored with a warning.
 - Low fixed: a `.gitignore` that is not exactly `*` (or is a symlink) counts as a hand edit and keeps the dir.
 - Low fixed (deviation 6 withdrawn): `add` journals the parent dirs it created (`projects.<key>.created`); the last `remove` rmdirs them only if still empty.
-- Evidence: RED commit shows 15 FAIL (symlinked-subdir case already held because the extra-file scan catches it). GREEN: 170 PASS, 0 FAIL, three runs (default x2, `LC_ALL=C` x1); `make check` 7/7.
+- Evidence: RED commit shows 15 FAIL (symlinked-subdir case already held because the extra-file scan catches it). GREEN: 169 PASS (78 after the corrective round), 0 FAIL, three runs (default x2, `LC_ALL=C` x1); `make check` 7/7.
 
 ## Batch 5: PR 4 kind npm, machine layer (unit 4)
 
@@ -196,7 +196,7 @@ Branch: `feat/pack-hint`. Completed: 7.1, 7.2, 7.3, 7.4. Remaining: Phases 8-9 (
 | Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
 |------|-----------|-------|------------|-----|-------|-------------|----------|
 | 7.1 | `plugins/toolkit/hooks/tests/pack-hint.test.sh`, `hooks-off.test.sh` | Integration (real `bin/ai-pack`, stubs for timeout/prefix cases, temp HOME and XDG dirs) | hooks-off, stdin-socket pass | committed failing (3640073): 53 FAIL in pack-hint, 5 FAIL in hooks-off | n/a | n/a | n/a |
-| 7.2 | same | Integration | n/a | covered by 7.1 | `cmd_hint` in `packs/lib/cmd.sh` (9744e68), `pack-hint.sh` + hooks.json (b685a71): 70 PASS | vite, react, index.html, subdirectory, 31/30/5 days, exact 30-day edge, ignored, active, partly active, other project, corrupt package.json, newer and corrupt hints.json, non-startup sources, no cwd, bad cwd, lock held, 3 rounds of two parallel runs, timeout, unknown prefix, error exit, mixed prefixes, argv, PATH vs XDG_BIN_HOME vs ~/.local/bin | SC2012 in the test replaced by a glob helper |
+| 7.2 | same | Integration | n/a | covered by 7.1 | `cmd_hint` in `packs/lib/cmd.sh` (9744e68), `pack-hint.sh` + hooks.json (b685a71): 69 PASS (78 after the corrective round) | vite, react, index.html, subdirectory, 31/30/5 days, exact 30-day edge, ignored, active, partly active, other project, corrupt package.json, newer and corrupt hints.json, non-startup sources, no cwd, bad cwd, lock held, 3 rounds of two parallel runs, timeout, unknown prefix, error exit, mixed prefixes, argv, PATH vs XDG_BIN_HOME vs ~/.local/bin | SC2012 in the test replaced by a glob helper |
 | 7.3 | `make check` | whole repo | n/a | n/a | Makefile `HOOKS`, toolkit 0.11.0 in plugin.json and marketplace.json | n/a | n/a |
 | 7.4 | `make check`, `make mutate HOOKS=pack-hint` | whole repo | n/a | n/a | 7/7 steps; mutation 17/18 killed (94%) | n/a | n/a |
 
@@ -205,9 +205,14 @@ Survivor: line 12 `IFS= read -r -d '' input || true` mutated to `&& true`; equiv
 ### Deviations from design
 
 - `hint` leaves `lock` (the state lock file) next to `hints.json` in the state dir; the test asserts the state dir holds exactly those two.
-- Message wording: `<signal> detected: ai-pack add <pack> (ai-pack ignore <pack>)` (55 characters, e.g. `vite detected: ai-pack add web (ai-pack ignore web)`); for `index.html` the signal is the file name. The 70-column budget did not fit the plan's "package.json + vite" prefix.
+- Message wording: `<signal> detected: ai-pack add <pack> (ai-pack ignore <pack>)` (51 characters, e.g. `vite detected: ai-pack add web (ai-pack ignore web)`); for `index.html` the signal is the file name. The 70-column budget did not fit the plan's "package.json + vite" prefix.
 - "Active" for the hint is the journal entry in `projects.json` (no project dir reads beyond `package.json` and `index.html`), so a journaled but hand-deleted tool still counts as active and keeps the hint silent.
 - `cmd_hint` runs in a subshell with stderr discarded and always exits 0 (including usage errors and a missing `--cwd` directory).
 - The hook is registered between `update-check.sh` and `backup-status.sh` under the `startup` matcher, `"timeout": 2`.
 - tasks.md 7.3 said 0.10.1; the repo was at 0.10.2, so the bump is 0.10.2 to 0.11.0 (tasks.md corrected).
 - Not covered: mutation testing of `cmd_hint` itself (`make mutate` targets hooks only).
+
+### Batch 7 corrective round (gatekeeper findings)
+
+- Low fixed: `bin/ai-pack` ran `check_deps` before dispatch, so `hint` could exit 1 with stderr output when curl or sha256sum was missing. `hint` now skips `check_deps` and needs only `jq` and `flock`; when either is missing it exits 0 silently. RED (test commit "cover ai-pack hint staying silent when dependencies are missing"): 8 FAIL; GREEN: pack-hint 78 PASS, 0 FAIL (default x3 incl. `LC_ALL=C`), hooks-off and stdin-socket pass, `make check` 7/7. Tests use a PATH holding every system executable except curl, sha256sum or jq.
+- Clarification (not a deviation): `hint` prints one line per suggested pack, so several lines are possible when several packs match, as the plan says ("at most one line per suggested pack"). The hook joins the `v1` lines into one `systemMessage`.
