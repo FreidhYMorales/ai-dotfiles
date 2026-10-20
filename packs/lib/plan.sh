@@ -245,7 +245,7 @@ commit_journal() {
         files=$(jq -c --argjson n "$(journal_files "$rel")" '. + $n' <<<"$files")
       fi
     done
-    ver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // "-"' "$MANIFEST")
+    ver=$(jq -r --arg t "$t" '.tools[$t].source | .tag // .version // ((.commit // "-") | .[0:7])' "$MANIFEST")
     cur=$(jq -c --arg k "$KEY" --arg t "$t" --arg v "$ver" --arg via "$VIA" --argjson at "$now" \
       --argjson dirs "$dirs" --argjson files "$files" \
       '.projects[$k].tools[$t] = {version: $v, dirs: $dirs, files: $files, at: $at,
