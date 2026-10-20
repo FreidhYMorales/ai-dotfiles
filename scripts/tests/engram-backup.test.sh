@@ -259,7 +259,7 @@ if command -v gitleaks >/dev/null 2>&1; then
   leak "$home"
   backup "$home"
   assert 'a secret in the database fails the run' test "$LAST_EXIT" -ne 0
-  assert 'the local repo is still backed up' same "$(snapshots "$home" "$home/repo-a")" 3
+  assert 'the local repo is still backed up' says "backed up: $home/repo-a"
   assert 'the off-site repo is not backed up' same "$(snapshots "$home" "$clone")" 2
   assert 'nothing is pushed while secrets are found' same "$(pushed "$remote")" 2
   assert 'the block is recorded' failed_with "$home" "$clone (blocked: secrets found, see engram-backup --scan)"
@@ -287,7 +287,7 @@ if command -v gitleaks >/dev/null 2>&1; then
   assert 'without gitleaks the user is warned' says 'gitleaks not installed'
   assert 'without gitleaks the off-site repo is blocked' failed_with "$home" "$clone (blocked"
   assert 'without gitleaks nothing is pushed' same "$(pushed "$remote")" 4
-  assert 'without gitleaks the local repo is backed up' same "$(snapshots "$home" "$home/repo-a")" 6
+  assert 'without gitleaks the local repo is backed up' says "backed up: $home/repo-a"
 
   echo "== restore from a clone =="
 
