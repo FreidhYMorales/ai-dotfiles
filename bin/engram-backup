@@ -12,17 +12,21 @@
 # a private GitHub repo) is committed and pushed after each backup, but only
 # when a gitleaks scan of the database finds no secrets; otherwise it is
 # skipped and the run fails. A failed commit or push is retried on the next
-# run. --verify and --restore use the clone as is. The scan uses gitleaks'
-# built-in rules only; it cannot catch secrets they do not match (split
-# tokens, plain passwords), and a SIGKILL can leave the dump in $TMPDIR.
+# run. --verify and --restore use the clone as is. The scan reads every user
+# text value of every table, one per line, skipping BLOBs, FTS index tables
+# and columns engram derives (normalized_hash, sync_id, embedding*). It uses
+# gitleaks' built-in rules only; it cannot catch secrets they do not match
+# (split tokens, plain passwords), and a SIGKILL can leave its text copy in
+# $TMPDIR.
 #
 # Usage: engram-backup [--init | --verify | --scan | --restore [--force]]
 #   --init    create the password file (if missing) and every repository;
 #             in an empty off-site clone also commit and push the new repo
 #   --verify  check each repository, restore the latest snapshot and check
 #             the restored database
-#   --scan    run gitleaks over a dump of the database; prints a redacted
-#             summary and exits 1 when it finds secrets
+#   --scan    run gitleaks over the database's user text, one value per
+#             line; prints a redacted summary (rule, table and row id) and
+#             exits 1 when it finds secrets
 #   --restore [--force]  put the latest snapshot back into the engram data
 #             dir (new machine); --force replaces existing data, keeping it
 #             aside as <data dir>.before-restore-<time>
@@ -127,12 +131,47 @@ stage() {
   return 0
 }
 
-# secret_scan [LEVEL]: run gitleaks over a text dump of the staged database,
+# The scan source query: for each table holding user text, a SELECT that
+# prints each row as a "@MARK@ <table> id=<rowid>" line followed by one
+# "<table>.<column> | <value>" line per value (NULLs left out). Skipped:
+# sqlite_* tables, FTS index shadow tables (their text lives in the indexed
+# table; a contentful FTS table's own _content table is kept), BLOB columns
+# and columns engram derives itself (normalized_hash, sync_id, embedding*).
+# The separator is not an assignment, so a column named *_key or *token*
+# gives gitleaks no keyword context for its value.
+read -r -d '' SCAN_SQL <<'SQL'
+WITH t AS (
+  SELECT name, wr FROM pragma_table_list
+  WHERE schema = 'main' AND name NOT LIKE 'sqlite\_%' ESCAPE '\'
+    AND (type = 'table' OR (type = 'shadow' AND name LIKE '%\_content' ESCAPE '\'))
+), c AS (
+  SELECT t.name AS tbl, t.wr AS wr,
+    'ifnull(char(10) || ' || quote(t.name || '.' || p.name || ' | ') ||
+      ' || "' || replace(p.name, '"', '""') || '", '''')' AS expr
+  FROM t JOIN pragma_table_info(t.name) AS p
+  WHERE p.name NOT IN ('normalized_hash', 'sync_id') AND p.name NOT LIKE 'embedding%'
+    AND upper(p.type) <> 'BLOB'
+  ORDER BY t.name, p.cid
+)
+SELECT 'SELECT ' || quote('@MARK@ ' || tbl || iif(wr, ' row=', ' id=')) || ' || ' ||
+  iif(wr, 'row_number() OVER ()', 'rowid') || ' || ' || group_concat(expr, ' || ') ||
+  ' FROM "' || replace(tbl, '"', '""') || '";'
+FROM c GROUP BY tbl ORDER BY tbl;
+SQL
+
+# scan_source DB MARK: print DB's user text as described for SCAN_SQL.
+scan_source() {
+  local queries
+  queries=$(sqlite3 -bail "$1" "${SCAN_SQL//@MARK@/$2}") || return 1
+  [[ -z $queries ]] || sqlite3 -bail "$1" <<<"$queries"
+}
+
+# secret_scan [LEVEL]: run gitleaks over a text copy of the staged database,
 # print a redacted summary and record scan.json. LEVEL prefixes the message
 # when gitleaks is missing (error by default). Returns 0 when clean, 1 when
 # secrets were found, 2 when the scan could not run.
 secret_scan() {
-  local findings=0 rc=0 status=0 report line row where rule var unset_env=()
+  local findings=0 rc=0 status=0 report line where rule var mark unset_env=()
   if ! command -v "$GITLEAKS" >/dev/null; then
     echo "${1:-error}: gitleaks not installed (sudo pacman -S gitleaks); cannot scan for secrets" >&2
     rc=2
@@ -141,7 +180,9 @@ secret_scan() {
     chmod 700 "$SCAN_DIR"
     mkdir "$SCAN_DIR/src"
     report="$SCAN_DIR/report.json"
-    if ! sqlite3 "$STAGING/engram.db" .dump >"$SCAN_DIR/src/engram.sql"; then
+    # Row headers carry a per-run mark, so a line in a memory cannot pose as one.
+    mark="#row-$(od -An -N8 -tu8 /dev/urandom | tr -d ' ')"
+    if ! scan_source "$STAGING/engram.db" "$mark" >"$SCAN_DIR/src/engram.txt"; then
       echo "error: could not dump the database for the secret scan" >&2
       rc=2
     else
@@ -165,11 +206,10 @@ secret_scan() {
         echo "secrets found in the engram database: $findings finding(s)"
         while IFS=$'\t' read -r rule line; do
           # Name the row by table and numeric id only: never echo the content.
-          row=$(sed -n "${line}p" "$SCAN_DIR/src/engram.sql")
-          where="line $line of the dump"
-          if [[ $row =~ ^INSERT\ INTO\ \"?([A-Za-z0-9_]+)\"?\ VALUES\(([0-9]+), ]]; then
-            where="${BASH_REMATCH[1]} id=${BASH_REMATCH[2]}"
-          fi
+          where=$(awk -v n="$line" -v m="$mark " \
+            'index($0, m) == 1 { h = substr($0, length(m) + 1) } NR == n { print h; exit }' \
+            "$SCAN_DIR/src/engram.txt")
+          [[ -n $where ]] || where="line $line of the scan source"
           echo "  $rule in $where"
         done < <(jq -r '.[] | [.RuleID, .StartLine] | @tsv' "$report")
         echo "remove or redact those observations, then run: engram-backup --scan"
