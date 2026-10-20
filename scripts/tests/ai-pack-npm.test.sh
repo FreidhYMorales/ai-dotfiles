@@ -119,7 +119,10 @@ new_proj() {
   mkdir -p "$P"
   git init -q "$P" && git -C "$P" commit -q --allow-empty -m init
 }
-reset_machine() { rm -rf "$STATE" "$HOME/.local"; : >"$NPM_LOG"; }
+reset_machine() {
+  rm -rf "$STATE" "$HOME/.local"
+  : >"$NPM_LOG"
+}
 
 echo "== add =="
 mk_manifest 0.1.22

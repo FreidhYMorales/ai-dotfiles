@@ -77,14 +77,19 @@ cmd_add() {
   trap add_cleanup EXIT
   clean_stages "$PROJ"
   PJ=$(state_read "$STATE_DIR/projects.json") || exit 1
+  MACHINE=$(state_read "$STATE_DIR/machine.json") || exit 1
+  MACHINE0=$MACHINE
   load_plan
   warn_shadows
+  apply_machine
   apply_plan
+  machine_record
   commit_journal
   UNDO=()
   clean_stages "$PROJ"
   say "ok: active ${TOOLS[*]} in $KEY"
   say "run /reload-plugins to load the new skills"
+  ((RESTART == 0)) || say "restart your Claude sessions to use the new machine version"
 }
 
 # cut70 LINE: print LINE cut to 70 characters, whatever the caller's locale.

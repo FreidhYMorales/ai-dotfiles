@@ -158,6 +158,7 @@ cmd_remove() {
       '.projects[$k].tools[$t].via -= [$v]' <<<"$PJ")
   done
   if ((purge)); then
+    for t in "${TOOLS[@]}"; do npm_purge "$t"; done
     for t in "${TOOLS[@]}"; do MACHINE=$(jq -c --arg t "$t" 'del(.tools[$t])' <<<"$MACHINE"); done
   fi
   state_write "$STATE_DIR/projects.json" "$PJ"
