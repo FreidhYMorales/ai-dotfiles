@@ -76,10 +76,10 @@ Phases 1-5 (PRs 1-4) can start without Phase 0.
 
 ## Phase 5: PR 4 npm kind (spec: npm machine layer, Machine-wide upgrade)
 
-- [ ] 5.1 RED: `scripts/tests/ai-pack-npm.test.sh`: sha512 mismatch writes nothing, `FAKE_NPM_FAIL=install` removes staging and leaves `machine.json`, bin collision refused, missing chromium prints pacman line plus "nothing was written", version bump shows machine 0.1.23 in another project and "restart your Claude sessions", purge removes prefixes and links.
-- [ ] 5.2 GREEN: `sources.sh` (`npm_pack_verified`, `npm_install_prefix`, `link_switch`) and machine layer in `plan.sh`; `machine.json` commit.
-- [ ] 5.3 GREEN: npm purge in `cmd_remove`.
-- [ ] 5.4 REFACTOR: `bash scripts/tests/ai-pack-npm.test.sh` plus `make check`.
+- [x] 5.1 RED: `scripts/tests/ai-pack-npm.test.sh`: sha512 mismatch writes nothing, `FAKE_NPM_FAIL=install` removes staging and leaves `machine.json`, bin collision refused, missing chromium prints pacman line plus "nothing was written", version bump shows machine 0.1.23 in another project and "restart your Claude sessions", purge removes prefixes and links.
+- [x] 5.2 GREEN: `sources.sh` (`npm_pack_verified`, `npm_install_prefix`, `link_switch`) and machine layer in `plan.sh`; `machine.json` commit.
+- [x] 5.3 GREEN: npm purge in `cmd_remove`.
+- [x] 5.4 REFACTOR: `bash scripts/tests/ai-pack-npm.test.sh` plus `make check`.
 
 ## Phase 6: PR 5 Real manifest and vendor (spec: pack-manifest all; depends on Phase 0)
 

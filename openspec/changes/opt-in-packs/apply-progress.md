@@ -119,3 +119,28 @@ Branch: `feat/ai-pack-remove`. Completed: 4.1, 4.2, 4.3. Remaining: Phases 0, 5-
 - Low fixed: a `.gitignore` that is not exactly `*` (or is a symlink) counts as a hand edit and keeps the dir.
 - Low fixed (deviation 6 withdrawn): `add` journals the parent dirs it created (`projects.<key>.created`); the last `remove` rmdirs them only if still empty.
 - Evidence: RED commit shows 15 FAIL (symlinked-subdir case already held because the extra-file scan catches it). GREEN: 170 PASS, 0 FAIL, three runs (default x2, `LC_ALL=C` x1); `make check` 7/7.
+
+## Batch 5: PR 4 kind npm, machine layer (unit 4)
+
+Branch: `feat/ai-pack-npm`. Completed: 5.1, 5.2, 5.3, 5.4. Remaining: Phases 0, 6-9.
+
+### TDD Cycle Evidence
+
+| Task | Test file | Layer | Safety net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 5.1 | `scripts/tests/ai-pack-npm.test.sh` | Integration (npm/node/chromium stubs, fixture npm package and manifest) | skill test 170/170 | committed failing (12d6b50): 27 FAIL, 39 PASS | n/a | n/a | n/a |
+| 5.2 | same | Integration | n/a | covered by 5.1 | `sources.sh` (`npm_pack_verified`, `npm_install_prefix`, `link_set`, `link_switch`), new `machine.sh`, `plan.sh` and `cmd_add` wiring | add, re-add noop, integrity mismatch, install failure (fresh and upgrade), rollback after the machine layer, foreign file and symlink at the bin path, missing requires, implicit npm, upgrade A/B | shellcheck SC2034/SC2015, shfmt `-i 2 -ci` |
+| 5.3 | same | Integration | n/a | covered by 5.1 | `npm_purge` called from `cmd_remove` | live-user refusal, all prefixes and link removed, relinked bin kept, unrecorded prefix kept | n/a |
+| 5.4 | same | `make check` | all pass | n/a | 66 PASS, 0 FAIL, three locale runs; skill test passes; 7/7 steps | n/a | n/a |
+
+### Deviations from design
+
+- New file `packs/lib/machine.sh` (preflight, apply, record, purge); `link_switch` stays in `sources.sh`.
+- `NPM_ROOT` and `BIN_DIR` are set in `bin/ai-pack`; bin link target is `<prefix>/node_modules/.bin/<bin>`; manifest `bins` is an array of names.
+- A bin path is allowed only if journaled in `machine.json` and still a symlink into `NPM_ROOT/<tool>@*`; otherwise refused before any write.
+- An existing unrecorded prefix is refused, never deleted. Removals go through `npm_owned` (basename `<tool>@<ver>[.staging]`, parent is `NPM_ROOT`, not a symlink).
+- No `npm pack` when the version is already recorded and its prefix exists.
+- `machine.json` is written after the link switch and project moves, before the project journal; the restart notice prints only when a previous `current` differs.
+- Implicit `npm` requirement added in `check_requires` for kind npm. Fixture uses `fix-chromium` so a real chromium on a dev box cannot mask the test.
+- Journal version for npm tools is `source.version`.
+- Size: 450 insertions vs main (code 168, tests 282); over the 400 budget by test volume. `link_switch` was not split out.
