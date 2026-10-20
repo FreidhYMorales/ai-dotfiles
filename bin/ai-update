@@ -9,7 +9,8 @@
 # Shows the plan and asks once. A MAJOR engram bump always asks, even with --yes.
 #
 # Usage: ai-update [--check] [--yes]
-#   --check  report available updates and exit; changes nothing
+#   --check  refresh the marketplace catalogs, report available updates and
+#            exit; installs nothing
 #   --yes    do not ask for minor/patch updates
 set -euo pipefail
 
@@ -168,10 +169,10 @@ main() {
   require rg
 
   local plugin_lines=() line current="" latest="" major=0 plan=()
-  ((CHECK)) || {
-    require claude
-    refresh_marketplaces
-  }
+  # Refresh the catalogs even for --check: comparing against a stale catalog
+  # misses releases published since the last refresh. It installs nothing.
+  require claude
+  refresh_marketplaces
   while IFS= read -r line; do [[ -n $line ]] && plugin_lines+=("$line"); done < <(outdated_plugins)
   for line in "${plugin_lines[@]}"; do
     read -r key from to <<<"$line"
