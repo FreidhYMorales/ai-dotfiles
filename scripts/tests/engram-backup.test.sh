@@ -239,6 +239,23 @@ if command -v gitleaks >/dev/null 2>&1; then
   assert 'scan without gitleaks fails' test "$LAST_EXIT" -ne 0
   assert 'scan without gitleaks says so' says 'gitleaks not installed'
 
+  echo "== deleted data stays out of the backup =="
+
+  home=$(ready freepages)
+  sqlite3 "$home/.engram/engram.db" "PRAGMA secure_delete=OFF; INSERT INTO observations(title) VALUES ('token $SECRET');
+    DELETE FROM observations WHERE title LIKE 'token %';" >/dev/null
+  has_secret() { rg -a -q -F "$SECRET" "$1"; }
+  lacks_secret() { ! rg -a -q -F "$SECRET" "$1"; }
+  assert 'the deleted secret is still in the free pages' has_secret "$home/.engram/engram.db"
+  backup "$home"
+  assert 'backup of a database with free pages succeeds' test "$LAST_EXIT" -eq 0
+  RESTIC_PASSWORD_FILE="$home/.config/restic/engram.pass" RESTIC_CACHE_DIR="$home/.cache/restic" \
+    restic -r "$home/repo-a" restore latest --target "$home/restored" --quiet >/dev/null 2>&1
+  restored_db="$home/restored$home/.cache/engram-backup/snapshot/engram.db"
+  assert 'the snapshot holds a database' test -f "$restored_db"
+  assert 'the snapshot leaves deleted data out' lacks_secret "$restored_db"
+  assert 'the snapshot database is intact' same "$(sqlite3 "$restored_db" 'PRAGMA integrity_check;' 2>/dev/null)" ok
+
   echo "== off-site git repo =="
 
   # offsite HOME NAME: a clone (HOME/NAME) of a local bare repo standing in for
