@@ -79,6 +79,10 @@ short() { [[ $(jq -r '.systemMessage' <<<"$OUT" | awk '{print length}') -le 70 ]
 shown_at() { jq -e --arg k "$PROJ" --argjson t "$1" '.projects[$k].web == $t' "$STATE/hints.json" >/dev/null 2>&1; }
 no_hints_file() { [[ ! -e $STATE/hints.json ]]; }
 seed() { mkdir -p "$STATE" && printf '%s\n' "$2" >"$STATE/$1"; }
+state_names() {
+  local f
+  for f in "$STATE"/* "$STATE"/.[!.]*; do [[ -e $f ]] && printf '%s ' "${f##*/}"; done
+}
 file_is() { [[ $(<"$1") == "$2" ]]; }
 
 echo "== hint shown"
@@ -225,7 +229,7 @@ run_hook startup "$PROJ"
 proj_after=$(snapshot "$PROJ")
 assert "hint was shown" msg_has "ai-pack add web"
 assert "project tree is unchanged" test "$proj_before" = "$proj_after"
-assert "state dir holds hints.json and the lock only" test "$(ls -A "$STATE" | LC_ALL=C sort | tr '\n' ' ')" = "hints.json lock "
+assert "state dir holds hints.json and the lock only" test "$(state_names)" = "hints.json lock "
 assert "no data dir is created" test ! -e "$HOME_DIR/data"
 
 echo "== concurrency"
