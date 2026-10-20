@@ -2,10 +2,12 @@
 Description=Daily engram backup
 
 [Timer]
-OnCalendar=daily
+# Daytime, when the laptop is usually on and the keyring is unlocked for the
+# off-site push.
+OnCalendar=*-*-* 10:00:00
 # Run at the next boot when the machine was off at the scheduled time.
 Persistent=true
-RandomizedDelaySec=30m
+RandomizedDelaySec=15m
 
 [Install]
 WantedBy=timers.target
