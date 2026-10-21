@@ -77,3 +77,25 @@ test('the 60 s agent.list poll finishes an agent whose notification never came',
   expect(toasts.join(' ')).toMatch(/1 failed · .* 1 done/)
   expect(written.alerts).toEqual([{ source: 'agent:a2', kind: 'agent', text: 'Broken failed' }])
 })
+
+test('an agent missing from agent.list on two polls in a row is stopped, with no alert', async ($, on) => {
+  const { toasts, clock, written, agents } = world(on)
+  await begin($)
+  await spawn($, 'tuA', 'Ghost')
+  await spawn($, 'tuB', 'Flicker')
+  agents.push({ id: 'a2', status: 'running' })
+  await clock.advance(MIN)
+  expect(await band($, /Ghost/)).toBeDefined()
+  expect(toasts).toEqual([])
+
+  // Ghost missed one poll, reappears (count resets), then misses two in a row.
+  agents.push({ id: 'a1', status: 'running' })
+  await clock.advance(MIN)
+  agents.splice(1, 1)
+  await clock.advance(MIN)
+  expect(await band($, /Ghost/)).toBeDefined()
+  await clock.advance(MIN)
+  expect(await band($, /Ghost/)).toBeUndefined()
+  expect(toasts.at(-1)).toMatch(/Ghost stopped/)
+  expect(written.alerts ?? []).toEqual([])
+})

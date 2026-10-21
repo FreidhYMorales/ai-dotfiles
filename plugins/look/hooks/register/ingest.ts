@@ -21,6 +21,8 @@ const LABEL_MAX = 40
 const queued = new Set<string>()
 let batch: ToastBatch | null = null
 const AGENT_POLL_MS = 60_000
+// Consecutive polls an agent was missing from the list; a reload restarts the count.
+const misses = new Map<string, number>()
 let pollHandle: { cancel: () => void } | null = null
 
 function toast($: EngineInterface, tone: Tone, label: string, at: number): void {
@@ -117,10 +119,15 @@ async function pollAgents($: EngineInterface): Promise<void> {
     const listed = await $.agent.list()
     const items = await read($, running)
     for (const [key, item] of Object.entries(items)) {
+      if (item.kind !== 'agent' || queued.has(key)) continue
       const info = listed.find(a => a.id === item.id)
-      if (item.kind !== 'agent' || queued.has(key) || !info || !['completed', 'failed', 'killed'].includes(info.status)) continue
+      const ended = info && ['completed', 'failed', 'killed'].includes(info.status)
+      const missed = info ? 0 : (misses.get(key) ?? 0) + 1
+      misses.set(key, missed)
+      if (!ended && missed < 2) continue
+      misses.delete(key)
       queued.add(key)
-      await finish($, key, mapStatus(info.status))
+      await finish($, key, ended ? mapStatus(info.status) : 'stopped')
     }
   } catch (err) {
     logOnce($, 'poll', err)
@@ -146,5 +153,6 @@ async function finish($: EngineInterface, key: string, tone: Tone): Promise<void
     logOnce($, 'finish', err)
   } finally {
     queued.delete(key)
+    misses.delete(key)
   }
 }
