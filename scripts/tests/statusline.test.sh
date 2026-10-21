@@ -8,20 +8,28 @@ failures=0
 TMP_ROOT=$(mktemp -d)
 trap 'rm -rf "$TMP_ROOT"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+# Deterministic reset times and character-based string slicing.
+export TZ=UTC LC_ALL=C.UTF-8
+RESETS=1700000000 # 22:13 UTC
 
 repo="$TMP_ROOT/my-repo"
 mkdir -p "$repo"
 git -C "$repo" init -q -b feature/x
 git -C "$repo" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -q --allow-empty -m init
 
-# payload DIR CTX [FIVE_HOUR] [RESETS_EPOCH]: a statusline JSON input.
+# payload DIR CTX [FIVE] [SEVEN] [MODEL]: a statusline JSON input.
+# Empty FIVE or SEVEN leaves that quota out; both empty drops rate_limits.
 payload() {
-  jq -n --arg d "$1" --argjson ctx "$2" --arg five "${3:-}" --arg resets "${4:-}" '{
-    model: {display_name: "Opus"},
+  jq -n --arg d "$1" --argjson ctx "$2" --arg five "${3:-}" --arg seven "${4:-}" \
+    --arg model "${5:-Opus}" --argjson resets "$RESETS" '{
+    model: {display_name: $model},
     workspace: {current_dir: $d, project_dir: $d},
     context_window: {used_percentage: $ctx},
-    rate_limits: (if $five == "" then null else
-      {five_hour: {used_percentage: ($five | tonumber), resets_at: ($resets | tonumber)}} end)
+    rate_limits: ((if $five == "" then {} else
+        {five_hour: {used_percentage: ($five | tonumber), resets_at: $resets}} end)
+      + (if $seven == "" then {} else
+        {seven_day: {used_percentage: ($seven | tonumber)}} end)
+      | if . == {} then null else . end)
   }'
 }
 
@@ -53,17 +61,12 @@ assert() {
 has() { [[ $LINE == *"$1"* ]]; }
 lacks() { [[ $LINE != *"$1"* ]]; }
 raw_has() { [[ $RAW == *"$1"* ]]; }
+matches() { [[ $LINE =~ $1 ]]; }
 
-echo "== content =="
+echo "== order and content =="
 
-render "$(payload "$repo" 34 62 "$(date -d 'today 14:20' +%s)")"
-assert 'shows the model' has 'Opus'
-assert 'shows the project folder' has 'my-repo'
-assert 'shows the git branch' has 'feature/x'
-assert 'shows context usage' has 'ctx 34%'
-assert 'shows a context bar' has '▓'
-assert 'shows the 5-hour quota' has '5h 62%'
-assert 'shows when the quota resets' has 'resets 14:20'
+render "$(payload "$repo" 42 84 61)"
+assert 'meters come before the place' matches '^ctx .* 42% · 5h .* 84% ↻22:13 · 7d .* 61% · Opus · my-repo ⎇ feature/x$'
 assert 'prints a single line' test "$(printf '%s\n' "$RAW" | wc -l)" -eq 1
 
 printf 'x\n' >"$repo/dirty.txt"
@@ -73,32 +76,92 @@ rm "$repo/dirty.txt"
 render "$(payload "$repo" 10)"
 assert 'a clean tree has no dirty mark' lacks 'feature/x*'
 
+echo "== bars =="
+
+# 48 steps: round(pct * 48 / 100) eighth-cells; 6 cells; the rest is a dim track.
+render "$(payload "$repo" 0)"
+assert '0% is an all-track bar' has 'ctx ░░░░░░ 0%'
+assert '0% track is dim' raw_has $'\e[2m░░░░░░'
+render "$(payload "$repo" 2)"
+assert '1 step is the thinnest glyph' has 'ctx ▏░░░░░ 2%'
+render "$(payload "$repo" 42)"
+assert '42% is 2 full cells, a partial and a track' has 'ctx ██▌░░░ 42%'
+render "$(payload "$repo" 98)"
+assert '47 steps leave the last cell almost full' has 'ctx █████▉ 98%'
+render "$(payload "$repo" 100)"
+assert '48 steps fill the bar with no track' has 'ctx ██████ 100%'
+
 echo "== colors =="
 
-render "$(payload "$repo" 20)"
-assert 'low context is green' raw_has $'\e[32mctx 20%'
-render "$(payload "$repo" 65)"
-assert 'mid context is yellow' raw_has $'\e[33mctx 65%'
-render "$(payload "$repo" 90)"
-assert 'high context is red' raw_has $'\e[31mctx 90%'
+for pct in 49 50 79 80; do
+  render "$(payload "$repo" "$pct")"
+  case $pct in
+    49) want=$'\e[32m' ;;
+    50 | 79) want=$'\e[33m' ;;
+    *) want=$'\e[31m' ;;
+  esac
+  assert "$pct% uses the right color" raw_has "${want}ctx "
+done
 
-echo "== optional parts =="
+echo "== 5h reset =="
 
-render "$(payload "$repo" 10)"
-assert 'no rate-limit data hides the quota' lacks '5h'
+render "$(payload "$repo" 10 80 20)"
+assert 'reset shows at 80%' has '↻22:13'
+render "$(payload "$repo" 10 79 20)"
+assert 'reset hides at 79%' lacks '↻'
 
-render "$(payload "$repo" 10)" ZELLIJ_SESSION_NAME=claude-my-repo
-assert 'shows the zellij session' has 'zj claude-my-repo'
-render "$(payload "$repo" 10)"
-assert 'outside zellij shows no session' lacks 'zj'
+echo "== 7d meter =="
+
+render "$(payload "$repo" 10 20 61)"
+assert '7d meter follows 5h' matches '5h .* 20% · 7d .* 61%'
+
+echo "== place =="
+
+render "$(payload "$repo" 10 "" "" "Claude Opus")"
+assert 'strips a leading "Claude "' has ' Opus · '
+assert 'no "Claude" remains' lacks 'Claude'
+
+long="$TMP_ROOT/abcdefghijklmnopqrstuvwxyz1234"
+mkdir -p "$long"
+git -C "$long" init -q -b feature/abcdefghijklmnopqrstuvwxyz0123456789
+git -C "$long" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -q --allow-empty -m init
+render "$(payload "$long" 10)"
+assert 'repo is cut to 15 chars plus an ellipsis' has ' abcdefghijklmno… ⎇ '
+assert 'branch is cut to 19 chars plus an ellipsis' has ' feature/abcdefghijk…'
+assert 'no text past the cuts' lacks 'abcdefghijklmnop'
+
+echo "== length budget =="
+
+printf 'x\n' >"$long/dirty.txt"
+render "$(payload "$long" 100 100 100 "Sonnet")"
+assert "worst case stays within 110 columns (got ${#LINE})" test "${#LINE}" -le 110
+assert 'worst case keeps every meter' matches '^ctx .* 100% · 5h .* 100% ↻22:13 · 7d .* 100% · '
+rm "$long/dirty.txt"
+
+echo "== degraded states =="
 
 plain="$TMP_ROOT/plain"
 mkdir -p "$plain"
-render "$(payload "$plain" 10)"
+render "$(payload "$plain" 10 20 30)"
 assert 'outside git shows no branch' lacks '⎇'
+assert 'outside git keeps the meters' matches '^ctx .* 10% · 5h .* 20% · 7d .* 30% · Opus · plain$'
+
+render "$(payload "$repo" 10)"
+assert 'no rate_limits shows only ctx' lacks '5h'
+assert 'no rate_limits hides 7d' lacks '7d'
+assert 'no rate_limits keeps ctx and place' matches '^ctx .* 10% · Opus · my-repo ⎇ feature/x$'
+
+render "$(payload "$repo" 10 20)"
+assert 'missing 7d omits only 7d' matches '^ctx .* 10% · 5h .* 20% · Opus'
+assert 'missing 7d drops the 7d label' lacks '7d'
+render "$(payload "$repo" 10 "" 30)"
+assert 'missing 5h omits only 5h' matches '^ctx .* 10% · 7d .* 30% · Opus'
+
+render "$(payload "$repo" 10)" ZELLIJ_SESSION_NAME=claude-my-repo
+assert 'never shows the zellij session' lacks 'zj'
 
 render '{}'
-assert 'empty input still renders' has 'ctx 0%'
+assert 'empty input still renders' has 'ctx ░░░░░░ 0%'
 
 echo
 if [[ $failures -gt 0 ]]; then
