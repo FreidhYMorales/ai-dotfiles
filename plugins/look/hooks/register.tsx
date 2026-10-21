@@ -1,6 +1,7 @@
 import type { Register } from 'claude-code'
 
 import { renderBand } from './register/band'
+import { pollCi, startCiPoll } from './register/ci'
 import { clearBand, startDismissTick } from './register/dismiss'
 import { onAgent, onBash, onNotification, syncAgents } from './register/ingest'
 import { syncTick } from './register/timers'
@@ -12,6 +13,7 @@ export const register: Register = on => {
     await syncTick($)
     await syncAgents($)
     await startDismissTick($)
+    startCiPoll($)
     await $.command.register({ name: 'band', description: 'Dismiss every alert and clear the band', argumentHint: 'clear' })
 
     return next(e)
@@ -22,6 +24,15 @@ export const register: Register = on => {
     await clearBand($)
 
     return { text: 'Band cleared.' }
+  })
+
+  // A directory change is polled soon, outside the hook, so a slow gh never holds it.
+  on('classic.CwdChanged', ($, e, next) => {
+    $.clock.after(0, () => {
+      void pollCi($)
+    })
+
+    return next(e)
   })
 
   on('agent.spawn', ($, e, next) => onAgent($, e, next))

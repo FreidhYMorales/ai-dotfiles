@@ -43,7 +43,7 @@ export function formatElapsed(ms: number): string {
   return `${Math.floor(m / 60)}h${pad(m % 60)}m`
 }
 
-const KIND_GLYPH = { ci: G.running, agent: G.agent, shell: G.shell } as const
+const KIND_GLYPH = { ci: G.ci, agent: G.agent, shell: G.shell } as const
 
 function hhmm(at: number): string {
   const d = new Date(at)

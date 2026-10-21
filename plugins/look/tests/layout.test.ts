@@ -82,7 +82,7 @@ test('more than three items get one row each, oldest first', async () => {
     `${G.agent} two 9s`,
     `${G.shell} three 8s`,
     `${G.agent} one 7s`,
-    `${G.running} CI #18 6s`,
+    `${G.ci} CI #18 6s`,
   ])
 })
 
