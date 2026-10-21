@@ -1,0 +1,15 @@
+{
+  "name": "look",
+  "description": "A band above the prompt for background shells, agents, CI and backup alerts. It draws nothing while the session is idle.",
+  "version": "0.1.0",
+  "author": {
+    "name": "FreidhYMorales"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ui",
+    "band",
+    "alerts"
+  ],
+  "types": "./types/index.d.ts"
+}

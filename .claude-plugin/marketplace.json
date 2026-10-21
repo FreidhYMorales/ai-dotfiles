@@ -26,6 +26,13 @@
       "version": "0.12.0",
       "source": "./plugins/toolkit",
       "category": "development"
+    },
+    {
+      "name": "look",
+      "description": "A band above the prompt for background shells, agents, CI and backup alerts; draws nothing while idle.",
+      "version": "0.1.0",
+      "source": "./plugins/look",
+      "category": "development"
     }
   ]
 }
