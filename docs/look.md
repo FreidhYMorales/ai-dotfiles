@@ -114,6 +114,8 @@ Checked on 2026-10-20 with Claude Code 2.1.305 in two zellij panes:
 - [ ] Atoms survive a hot reload of the plugin code, and no double tick appears afterwards.
 - [x] Toasts: two tasks ending 0.5 s apart gave two toasts, because Claude delivers the notifications on separate turns (see the band rules). Not a defect.
 - [x] `/band clear` clears the band (`/band` alone prints the usage).
-- [ ] Real PR CI (a first try showed the 5 min "no PR" cache hid a new PR; it is 60 s now). Real PR with failing CI: the red alert appears, shows the failed check, and clears when CI passes.
+- [x] Real PR CI: `CI #28` showed within a minute of opening the PR and cleared after green. (A first try showed the 5 min "no PR" cache hid a new PR; it is 60 s now.)
+- [ ] Real PR with failing CI: the red alert appears, shows the failed check, and clears when CI passes (covered by tests).
+- [ ] Collapsed band (ctrl+x ctrl+a) keeps alerts hidden (host behaviour, not tested).
 - [x] Real backup state: a failed `backup.json` (temporary edit, restored) raised the alert in both panes, each within its own 5 min poll.
 - [x] Digit hotkey in a real composer: `1` on an empty composer dismisses the first alert.
