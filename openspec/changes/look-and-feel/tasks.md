@@ -32,9 +32,9 @@ Chain strategy: stacked-to-main
 
 ## PR 1: Status line (bash; independent of Task 0)
 
-- [ ] 1.1 RED: in `scripts/tests/statusline.test.sh` add failing cases: order, bar at 0/1/47/48 steps, 49/50/79/80 colors, reset at >=80%, 7d, model strip, `*`, truncation 16/20, worst-case length, no git, no rate_limits, 7d missing, no zellij.
-- [ ] 1.2 GREEN: rewrite `claude/statusline.sh` (one jq read, `bar PCT`, new order, zellij removed).
-- [ ] 1.3 REFACTOR: tidy helpers. Update README rows. Check: `make check`.
+- [x] 1.1 RED: in `scripts/tests/statusline.test.sh` add failing cases: order, bar at 0/1/47/48 steps, 49/50/79/80 colors, reset at >=80%, 7d, model strip, `*`, truncation 16/20, worst-case length, no git, no rate_limits, 7d missing, no zellij.
+- [x] 1.2 GREEN: rewrite `claude/statusline.sh` (one jq read, `bar PCT`, new order, zellij removed).
+- [x] 1.3 REFACTOR: tidy helpers. Update README rows. Check: `make check`.
 
 ## Task 0: Mod prerequisites (before any mod code; PR 1 does not need it)
 
