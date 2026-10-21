@@ -141,7 +141,7 @@ CheckRun (`status`/`conclusion`) and StatusContext (`state`) MUST be normalized.
 
 ### Requirement: CI polling and shared cache
 
-Git/gh calls MUST run with cwd = repo root, a 10 s timeout and an in-flight guard (no overlap). A shared `$.store` cache `look:ci:<repo root>:<branch>` = `{ at, pr, headSha, checks }` MUST be polled by the session that finds it older than 60 s (pending checks) or 5 min (otherwise); other sessions MUST read it.
+Git/gh calls MUST run with cwd = repo root, a 10 s timeout and an in-flight guard (no overlap). A shared `$.store` cache `look:ci:<repo root>:<branch>` = `{ at, pr, headSha, checks }` MUST be polled by the session that finds it older than 60 s (pending checks or no open PR) or 5 min (otherwise); other sessions MUST read it.
 
 #### Scenario: Fresh cache
 

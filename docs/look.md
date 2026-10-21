@@ -61,7 +61,7 @@ Alert sources: `ci:<root>:<branch>:<pr>:<sha>`, `backup:<rule>:<time>`, `agent:<
 
 | What | Cadence | Notes |
 |---|---|---|
-| CI | check every 60 s; `gh` runs only when the cache is stale: 60 s with pending checks, 5 min otherwise | Also on a cwd change. `gh` timeout 10 s. Missing gh or an error keeps the last state for the same branch and logs under the `ci` tag (debug log) |
+| CI | check every 60 s; `gh` runs only when the cache is stale: 60 s with pending checks or no open PR, 5 min otherwise | Also on a cwd change. `gh` timeout 10 s. Missing gh or an error keeps the last state for the same branch and logs under the `ci` tag (debug log) |
 | Backup | 5 min | Reads the engram-backup state files, same rules as `plugins/toolkit/hooks/backup-status.sh`, plus `scan.json` |
 | Agents | 60 s | Reconciles with `$.agent.list()` |
 | Dismissals | 5 s | Reads the shared store |
@@ -114,6 +114,6 @@ Checked on 2026-10-20 with Claude Code 2.1.305 in two zellij panes:
 - [ ] Atoms survive a hot reload of the plugin code, and no double tick appears afterwards.
 - [x] Toasts: two tasks ending 0.5 s apart gave two toasts, because Claude delivers the notifications on separate turns (see the band rules). Not a defect.
 - [x] `/band clear` clears the band (`/band` alone prints the usage).
-- [ ] Real PR with failing CI: the red alert appears, shows the failed check, and clears when CI passes.
+- [ ] Real PR CI (a first try showed the 5 min "no PR" cache hid a new PR; it is 60 s now). Real PR with failing CI: the red alert appears, shows the failed check, and clears when CI passes.
 - [x] Real backup state: a failed `backup.json` (temporary edit, restored) raised the alert in both panes, each within its own 5 min poll.
 - [x] Digit hotkey in a real composer: `1` on an empty composer dismisses the first alert.
