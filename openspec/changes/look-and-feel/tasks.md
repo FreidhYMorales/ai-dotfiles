@@ -61,8 +61,8 @@ Chain strategy: stacked-to-main
 
 ## PR 4a: Agents
 
-- [ ] 4a.1 RED: `tests/agent.test.ts`: spawn adds item by `tool_use_id`, failed alert persists, resume creates no alert, 60 s `agent.list` fallback.
-- [ ] 4a.2 GREEN: agent paths in `register/{ingest,timers}.ts`. REFACTOR. Check: `claude plugin test`.
+- [x] 4a.1 RED: `tests/agent.test.ts`: spawn adds item by `tool_use_id`, failed alert persists, resume creates no alert, 60 s `agent.list` fallback.
+- [x] 4a.2 GREEN: agent paths in `register/{ingest,timers}.ts`. REFACTOR. Check: `claude plugin test`.
 
 ## PR 4b: Dismissals
 
