@@ -55,9 +55,9 @@ Chain strategy: stacked-to-main
 
 ## PR 3b: Shell ingestion, toasts, expiry
 
-- [ ] 3b.1 RED: `tests/ingest.test.ts`: unknown id, repeated id/resume, refused render write, failure row then pass removal, killed dim toast, 30-min expiry then late notification ignored, toast merge in 2 s, idle 1 s tick, reload idempotency, throwing render logs once.
-- [ ] 3b.2 GREEN: `register/{ingest,timers,band}.ts`, `lib/toast.ts`, wire `register.tsx`.
-- [ ] 3b.3 REFACTOR. Check: `claude plugin test`.
+- [x] 3b.1 RED: `tests/ingest.test.ts`: unknown id, repeated id/resume, refused render write, failure row then pass removal, killed dim toast, 30-min expiry then late notification ignored, toast merge in 2 s, idle 1 s tick, reload idempotency, throwing render logs once.
+- [x] 3b.2 GREEN: `register/{ingest,timers,band}.ts`, `lib/toast.ts`, wire `register.tsx`.
+- [x] 3b.3 REFACTOR. Check: `claude plugin test`.
 
 ## PR 4a: Agents
 
