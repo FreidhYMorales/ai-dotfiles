@@ -25,11 +25,22 @@ jobs:
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint \
-            sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks
+            sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks \
+            nodejs npm
           shfmt --version
           actionlint --version
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The look mod tests run on the Claude Code build pinned in
+      # plugins/look/tests/claude-code.version (`claude plugin validate|test`
+      # need no auth). The pinned install runs the package's own installer.
+      - name: Install pinned Claude Code
+        run: |
+          npm install -g "@anthropic-ai/claude-code@$(cat plugins/look/tests/claude-code.version)"
+          node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+          claude --version
       - name: make check
+        env:
+          LOOK_REQUIRE_CLAUDE: "1"
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make check
