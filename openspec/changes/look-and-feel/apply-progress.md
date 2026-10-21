@@ -211,3 +211,32 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - Validator note: `classic.CwdChanged` is listed as a "gating hook without .catch"; it never denies.
 - Cancelled, timed out and similar conclusions count as failed; NEUTRAL and SKIPPED count as ok.
 - Not verified against a real `gh` and a real PR; the first real run is in the PR 7 manual checks.
+
+## PR 6: Backup alert (tasks 6.1-6.2) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 6.1 / 6.2 pure | `bash plugins/look/tests/look.test.sh`: new `tests/backup.test.ts` did not load (`lib/backup` missing) | 10 `backup.test.ts` cases pass | single `check` helper for backup and verify |
+| 6.2 poll | `tests/backup-poll.test.tsx`: 5 of 8 cases failed (no poll, `alerts` never written) | after `register/backup.ts`: 70 pass, 1 fail (log count included other tags), then 71 pass, 0 fail | `env.get` default moved into `world()` in `support.tsx` (a second `on('env.get')` is rejected) |
+| all | n/a | `make check`: All checks passed (7 steps); `taskset -c 0 bash plugins/look/tests/look.test.sh`: 71 pass, 6.5 s wall | |
+
+### Rules mirrored from `plugins/toolkit/hooks/backup-status.sh`
+
+| Condition | Rule (source `backup:<rule>:<time>`) |
+|---|---|
+| `engram.env` missing | nothing at all |
+| `backup.json` missing | `backup-none` (time `never`) |
+| `verify.json` or `scan.json` missing | nothing |
+| `ok != true` (also unparseable or unreadable file) | `backup-failed` / `verify-failed` / `scan-failed`, time from the file (empty if none) |
+| ok and `floor(age / 1 day) > 2` | `backup-stale`; verify: `> 8` -> `verify-stale`; unparseable time counts as epoch (stale) |
+| `scan.json` `ok:false` | `scan-failed` (`findings: n`, or `error` for "could not run") |
+
+### Deviations and notes
+
+- The scan rule is not in the hook; it comes from the spec and `bin/engram-backup` (`scan.json` = `{mode,time,ok,findings[,error]}`).
+- An existing file whose read fails is treated as broken (failed alert, logged once under `backup`), as `jq` failing does in the hook.
+- Poll: `$.clock.every(5 min)` handle plus one poll at `session.start`; unchanged alerts are not rewritten. Dismissal is the existing band filter on `source`.
+- `world()` in `tests/support.tsx` now mocks `env.get` (empty by default, `vars` to set), so no test reads the real home.
+- Not verified against real state files; first real run is in the PR 7 manual checks.

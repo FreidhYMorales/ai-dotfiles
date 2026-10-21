@@ -76,8 +76,8 @@ Chain strategy: stacked-to-main
 
 ## PR 6: Backup alert
 
-- [ ] 6.1 RED: `tests/backup.test.ts`: each `backupRules` rule, blocked scan, stale backup, not configured, clears on ok.
-- [ ] 6.2 GREEN: `lib/backup.ts`, `register/backup.ts` (5 min). REFACTOR. Check: `claude plugin test`.
+- [x] 6.1 RED: `tests/backup.test.ts`: each `backupRules` rule, blocked scan, stale backup, not configured, clears on ok.
+- [x] 6.2 GREEN: `lib/backup.ts`, `register/backup.ts` (5 min). REFACTOR. Check: `claude plugin test`.
 
 ## PR 7: Docs and manual checks
 
