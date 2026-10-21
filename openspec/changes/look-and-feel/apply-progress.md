@@ -26,3 +26,47 @@ Safety net: 22 pre-existing cases passed before edits.
 
 - Worst case measured ~106 columns with a 4-char model, over the plan ~100. The test budget is 110. Branch cap 20 excludes the dirty `*`.
 - Eighth-block glyphs still need the 30-second zellij look (task 7.2).
+
+## Task 0 and PR 2: Scaffold, CI, pin (tasks 0.1, 2.1-2.4) - done
+
+Mode: Strict TDD. Branch: feat/look-scaffold (stacked-to-main, PR 1 already merged). Claude Code 2.1.305 installed, equal to the pin.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|------|-----|-------|----------|
+| 2.1 | `scripts/tests/look-wrapper.test.sh`: 7 cases failed, wrapper and pin file missing. `claude plugin test plugins/look`: "no hooks module to load". `install.test.sh`: FAIL "all plugins are installed" (expects `look@ai-dotfiles`) | - | - |
+| 2.2 | - | wrapper test: "All cases passed" (13); `claude plugin validate`: passed; `claude plugin test`: 1 pass 0 fail; install.test.sh no FAIL | wrapper made bash-only (no `dirname`, tests caught it under a stub PATH); engine types dir gitignored |
+| 2.3 | - | `actionlint .github/workflows/check.yml` exit 0; `npm view @anthropic-ai/claude-code@2.1.305` exists, postinstall is `node install.cjs` | - |
+| 2.4 | - | `make check`: All checks passed (7 steps) | - |
+
+Task 0.1: `claude plugin validate|test` run fine. Headless `claude -p --plugin-dir plugins/look` does NOT lay `.claude-plugin/types/` (the docs say only hot-reloaded sessions do), so nothing generated exists locally; `tsc` is not installed. Type-checking falls back to the 2.1.304 declaration file when needed; `plugins/*/.claude-plugin/types/` is gitignored at the repo root.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` exit 0 (validate passed, 1 test passed); `bash scripts/tests/look-wrapper.test.sh` all 13 cases passed |
+| Runtime harness | `claude plugin test` on the idle mod (AbovePrompt mount, engine drawing passes through). Also run under `unshare -rn` (no network) with a temp HOME: passes, so validate/test need no auth or model call |
+| Rollback boundary | `plugins/look/`, `scripts/tests/look-wrapper.test.sh`, marketplace entry, `install.sh` PLUGINS, `install.test.sh` line 113, `.gitignore`, check.yml steps, upstreams entry |
+
+### Stop hook timing (task 2.4, for the PR body)
+
+`make check` is what the require-check Stop hook runs. hyperfine, 3 runs each, same machine:
+
+| | mean | min | max |
+|---|---|---|---|
+| before (main + PR 1) | 1.3 min (± 0.2) | 1.1 min | 1.4 min |
+| after (this PR) | 1.4 min (± 0.1) | 1.3 min | 1.4 min |
+
+The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in parallel with the other test files, so the difference is within run-to-run noise.
+
+### Deviations and notes
+
+- `tests/idle.test.tsx`, not `.ts`: the test returns JSX, and a `.ts` file fails to load (Syntax Error).
+- Added `scripts/tests/look-wrapper.test.sh` (not in the task list) so the wrapper's SKIP / require / version-warning behavior has its own RED/GREEN, using stub `claude` binaries on a restricted PATH.
+- The wrapper also runs `claude plugin validate` before `claude plugin test`, and isolates HOME and XDG dirs in a temp dir.
+- The contract `types/index.d.ts` declares only `PluginState.look` (no `$` noun); `validate` reports "declares on $: nothing" which is expected.
+- `plugin.json` carries `author` and `license: MIT` to match the other plugins; `validate` also warns about a missing icon and README (plugin-directory checks, not enforced).
+- CI install path (`npm install -g` + `install.cjs`) was verified only by the npm registry check and actionlint; it first runs in the PR's CI.
+- Installed plugin order in `install.test.sh` is sorted: `flow look sdd toolkit`.
