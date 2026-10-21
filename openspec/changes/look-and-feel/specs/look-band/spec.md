@@ -193,6 +193,12 @@ A background agent ending `failed` MUST raise a red alert that clears only when 
 - WHEN the old notification re-renders
 - THEN no alert is created
 
+#### Scenario: Agent vanished from the list
+
+- GIVEN a known running agent that `$.agent.list()` does not list on 2 consecutive polls
+- WHEN the second poll runs
+- THEN it is removed with a dim "stopped" toast and no alert; listing it again resets the count
+
 ### Requirement: Activity layout
 
 Running shells, agents and pending CI checks MUST show on one line when 3 or fewer, and one row each when more than 3. Rows MUST NOT exceed `maxRows`; extra items MUST fold into `+N more`. Nothing is right-aligned, elapsed time follows the label, two columns of `bodyColumns` are reserved, and labels are truncated, never wrapped. Glyphs are the plan's Nerd Font set A.
