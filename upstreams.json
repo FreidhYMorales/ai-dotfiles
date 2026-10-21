@@ -65,6 +65,12 @@
       "watch": "commits",
       "reviewed": "434b7f91364665f2f733b310ec54809bf8f37937",
       "why": "command.md vendored as packs/vendor/web-design-guidelines/rules.md at 4ecfb9f (web pack)"
+    },
+    {
+      "repo": "anthropics/claude-code",
+      "watch": "releases",
+      "reviewed": "v2.1.305",
+      "why": "mod API for plugins/look; pinned in plugins/look/tests/claude-code.version, re-verify the mod tests on a new release"
     }
   ]
 }
