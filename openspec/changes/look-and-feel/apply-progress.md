@@ -70,3 +70,28 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - `plugin.json` carries `author` and `license: MIT` to match the other plugins; `validate` also warns about a missing icon and README (plugin-directory checks, not enforced).
 - CI install path (`npm install -g` + `install.cjs`) was verified only by the npm registry check and actionlint; it first runs in the PR's CI.
 - Installed plugin order in `install.test.sh` is sorted: `flow look sdd toolkit`.
+
+## PR 3a: Pure lib (tasks 3a.1-3a.3) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 3a.1 / 3a.2 | `bash plugins/look/tests/look.test.sh`: 3 fail ("cannot import ../hooks/lib/{label,glyphs,status}: no such file"), 1 pass | same command: 17 pass, 0 fail | Cut `Look` to the fields `buildBand` reads; `label` reuses `truncate` from `layout`. No behavior change |
+| 3a.3 | n/a | `make check`: All checks passed (7 steps) | |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` (validate passed, 17 tests) |
+| Runtime harness | N/A: pure functions |
+| Rollback boundary | `plugins/look/hooks/lib/{label,status,layout,glyphs}.ts`, `plugins/look/tests/{label,status,layout}.test.ts` |
+
+### Deviations and notes
+
+- `layout.ts` declares a structural `Look` type (the fields `buildBand` reads) instead of importing `PluginState` from the ambient module, so the file loads in tests without the generated types. `PluginState['look']` is assignable to it.
+- `shellLabel(description, key, max)` and `truncate`, `formatElapsed` are extra exports (the design lists only `buildBand`).
+- `=value` is masked as `=*`. String width: one column per code point (Nerd Font PUA is one column; wide CJK/emoji unmeasured), documented in `truncate`.
+- Alert rows reserve 6 more columns for the `[n ✕]` button drawn by register. Alerts, shell-failure rows and activity share the `maxRows` budget, in that order; the overflow folds into one `+N more` row (a joined activity line counts its items).
+- Hotkeys are the 1-based index among non-dismissed alerts, omitted past 9.
