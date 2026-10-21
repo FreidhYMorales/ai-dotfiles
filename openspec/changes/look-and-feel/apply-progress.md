@@ -153,3 +153,31 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - The running item is keyed by `tool_use_id`; its `id` becomes the `agentId` once `next` resolves. Notifications match an agent by `id` or `toolUseId`, shells by `id` only (they share a notification's `toolUseId`). A denied spawn removes the item.
 - A failed agent appends `{ source: 'agent:<id>', kind: 'agent', text: '<label> failed' }` to `alerts` once per source; nothing removes it (dismissal is PR 4b). Alert rows render through the existing band, without the `✕` Button.
 - Poll gap, decided by the user: an agent absent from `$.agent.list()` on 2 consecutive polls (~2 min) is finished as stopped (dim toast, no alert, removed). A per-item miss counter lives in module state (a reload restarts the count); being listed again resets it. An agent listed with an ended status finishes with that status; one listed as running is untouched. Agents still have no 30-minute expiry. Test: `agent.test.tsx` (RED: 30 pass, 1 fail; GREEN: 31 pass).
+
+
+## PR 4b: Dismissals (tasks 4b.1-4b.2) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 4b.1 / 4b.2 | `bash plugins/look/tests/look.test.sh`: 31 pass, 1 fail (new `tests/dismiss.test.tsx` did not load: `lib/dismiss` missing) | same command: 37 pass, 0 fail (after moving the test options argument and replacing `mock.store`, see below) | `memStore` and `mountBand` moved to `tests/support.tsx` |
+| 4b.2 | n/a | `make check`: All checks passed (7 steps); `taskset -c 0 bash plugins/look/tests/look.test.sh`: 37 pass | |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` (validate passed, 37 tests) |
+| Runtime harness | `$.ui.mount` of `AbovePrompt` + `ui.press`, `$.command.run`, in-memory store hooks, `mock.clock` |
+| Rollback boundary | `plugins/look/hooks/lib/dismiss.ts`, `hooks/register/{dismiss,band}.ts(x)`, `hooks/register.tsx`, `tests/{dismiss,support}.tsx` |
+
+### Deviations and notes
+
+- Test file is `dismiss.test.tsx` (JSX in the shared helpers).
+- `mock.store` is not usable from a test: the test's `$` is the engine and has no `$.store`. `tests/support.tsx` `memStore(on, entries)` answers `store.get/set/delete/keys` from a Map that the test reads and writes (as the other session would).
+- A Button `onPress` writes state directly (it is not render); the press test passes, so no `$.clock.after(0)` is needed.
+- Button: `key` `dismiss:<source>`, label `<n> ✕`, `hotkey` the digit (alerts past the ninth have no hotkey).
+- `/band clear` (registered in `session.start`, served by `command.run`) dismisses every alert (store keys) and clears running items and shell-failure rows. The spec names only alerts and running items; shell-failure rows are included so the dim rows have a way out. Revisit if unwanted.
+- The 5 s tick starts from `session.start` only (no `$` at module load, as for the other timers) and the store is also read once at start. The atom is replaced only when the set of sources changes.
+- A stale entry (older than 30 days or without a valid `at`) is deleted on the next tick.
