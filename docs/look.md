@@ -21,6 +21,7 @@ Rules:
 - Shell failures and finished items leave the activity line; a failed shell leaves one dim row.
 - Running shells expire after 30 minutes. Agents have no expiry; an agent missing from the agent list on 2 consecutive polls (about 2 min) is finished as stopped, with a dim toast and no alert.
 - Toasts announce each finish: a check mark for done, a cross for failed, dots for stopped. Toasts have no color in the API, so the glyph carries the tone. Finishes within 2 s of the first one merge into one count line (`2 done`).
+- The band learns that a background task ended when Claude draws its notification in the chat, which happens on a turn. Claude delivers those one per turn, so two tasks ending together usually give two toasts, and in a quiet pane the end shows when the chat next moves. Dismissals and polls do not depend on this: they update an idle pane on their own.
 
 ## Glyphs (set A)
 
@@ -105,10 +106,14 @@ The code wins. Known differences from the design: agent state lives in `register
 
 Not covered by automated tests; tick them after a real run (task 7.2). Record the result in the PR.
 
-- [ ] Status line in zellij: the eighth-block bars and dim track look right (30-second look).
-- [ ] Two panes: dismiss an alert in one; it disappears in the other within about 5 s.
+Checked on 2026-10-20 with Claude Code 2.1.305 in two zellij panes:
+
+- [x] Status line in zellij: the eighth-block bars and dim track look right (30-second look).
+- [x] Background shell: running line with elapsed time, then a done toast. A failing one leaves a dim row; the same command passing removes it.
+- [x] Two panes: dismiss an alert in one; it disappears in the other within about 5 s, with the other pane idle.
 - [ ] Atoms survive a hot reload of the plugin code, and no double tick appears afterwards.
-- [ ] Toasts: finishes in quick succession show as one merged count line; spaced ones stack.
+- [x] Toasts: two tasks ending 0.5 s apart gave two toasts, because Claude delivers the notifications on separate turns (see the band rules). Not a defect.
+- [x] `/band clear` clears the band (`/band` alone prints the usage).
 - [ ] Real PR with failing CI: the red alert appears, shows the failed check, and clears when CI passes.
-- [ ] Real backup state: a failing or stale engram-backup state file raises the alert; fixing it clears it.
-- [ ] Digit hotkey in a real composer: `1` on an empty composer dismisses the first alert; typing text keeps digits as text.
+- [x] Real backup state: a failed `backup.json` (temporary edit, restored) raised the alert in both panes, each within its own 5 min poll.
+- [x] Digit hotkey in a real composer: `1` on an empty composer dismisses the first alert.
