@@ -49,9 +49,9 @@ Chain strategy: stacked-to-main
 
 ## PR 3a: Pure lib
 
-- [ ] 3a.1 RED: `tests/{label,status,layout}.test.ts`: `normalizeCommand` (cd/VAR prefix, 3 words, `=value` masked), `mapStatus` (completed/failed/killed/weird), `buildBand` (<=3 one line, >3 rows, maxRows, `+N more`, truncation).
-- [ ] 3a.2 GREEN: `hooks/lib/{label,status,layout,glyphs}.ts`.
-- [ ] 3a.3 REFACTOR. Check: `claude plugin test`.
+- [x] 3a.1 RED: `tests/{label,status,layout}.test.ts`: `normalizeCommand` (cd/VAR prefix, 3 words, `=value` masked), `mapStatus` (completed/failed/killed/weird), `buildBand` (<=3 one line, >3 rows, maxRows, `+N more`, truncation).
+- [x] 3a.2 GREEN: `hooks/lib/{label,status,layout,glyphs}.ts`.
+- [x] 3a.3 REFACTOR. Check: `claude plugin test`.
 
 ## PR 3b: Shell ingestion, toasts, expiry
 
