@@ -66,8 +66,8 @@ Chain strategy: stacked-to-main
 
 ## PR 4b: Dismissals
 
-- [ ] 4b.1 RED: `tests/dismiss.test.ts`: `prune` 30 days, digit hotkey writes key, cross-session 5 s tick, re-raise on new key, `/band clear`.
-- [ ] 4b.2 GREEN: `lib/dismiss.ts`, `register/dismiss.ts`, Buttons in `register.tsx`. REFACTOR. Check: `claude plugin test`.
+- [x] 4b.1 RED: `tests/dismiss.test.ts`: `prune` 30 days, digit hotkey writes key, cross-session 5 s tick, re-raise on new key, `/band clear`.
+- [x] 4b.2 GREEN: `lib/dismiss.ts`, `register/dismiss.ts`, Buttons in `register.tsx`. REFACTOR. Check: `claude plugin test`.
 
 ## PR 5: CI polling
 
