@@ -240,3 +240,8 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - Poll: `$.clock.every(5 min)` handle plus one poll at `session.start`; unchanged alerts are not rewritten. Dismissal is the existing band filter on `source`.
 - `world()` in `tests/support.tsx` now mocks `env.get` (empty by default, `vars` to set), so no test reads the real home.
 - Not verified against real state files; first real run is in the PR 7 manual checks.
+
+## PR 7: Docs (task 7.1) - done; 7.2 pending (manual, user)
+
+- `docs/look.md` written (band rules, glyph set A, keys, shared store keys, polling, status line, tests and pin, "Last verified with Claude Code 2.1.305"). README row for `plugins/look/`.
+- The manual checks are a checklist in `docs/look.md` ("Manual checks"): status line bars in zellij, two-pane dismissal, atoms across hot reload / no double tick, stacked vs merged toasts, real PR CI alert, real backup state alert, digit hotkey in a real composer. Task 7.2 stays open until the user ticks them.
