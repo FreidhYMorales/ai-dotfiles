@@ -25,6 +25,16 @@ test('a denied spawn leaves no item', async ($, on) => {
   expect(await band($, /Review diff/)).toBeUndefined()
 })
 
+test('the band yields to a survey, even with a failing alert', async ($, on) => {
+  const { clock } = world(on)
+  await begin($)
+  await spawn($, 'tuA')
+  await note($, clock, 'a1', 'failed', 'tuA')
+  expect(await band($, /Review diff failed/)).toBeDefined()
+  expect(await band($, /Review diff failed/, true)).toBeUndefined()
+  expect(await band($, /engine/, true)).toBe('engine')
+})
+
 test('a failed agent raises a pinned alert that outlives the item', async ($, on) => {
   const { toasts, clock, written } = world(on)
   await begin($)

@@ -54,14 +54,14 @@ export async function note($: Engine, clock: { settle: () => Promise<void> }, id
   await ui.unmount()
 }
 
-export function mountBand($: Engine) {
-  const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+export function mountBand($: Engine, hasSurvey = false) {
+  const props = { hasSurvey, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: { offset: 0, bodyRows: 6 }, view: {} }
 
   return $.ui.mount({ plugin: 'look', component: 'AbovePrompt', requestId: `b${(n += 1)}`, surface: 'terminal', props } as never)
 }
 
-export async function band($: Engine, re: RegExp) {
-  const ui = await mountBand($)
+export async function band($: Engine, re: RegExp, hasSurvey = false) {
+  const ui = await mountBand($, hasSurvey)
   const found = (await ui.find({ type: 'Text', text: re }))?.text
   await ui.unmount()
 

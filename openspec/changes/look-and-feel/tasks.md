@@ -82,4 +82,4 @@ Chain strategy: stacked-to-main
 ## PR 7: Docs and manual checks
 
 - [x] 7.1 Create `docs/look.md` (rules, keys, last verified version); README row.
-- [ ] 7.2 Manual: dismissal across two panes; 30-second zellij look at status line bars. Record both in the PR. Check: `make check`.
+- [x] 7.2 Manual: dismissal across two panes; 30-second zellij look at status line bars. Record both in the PR. Check: `make check`.

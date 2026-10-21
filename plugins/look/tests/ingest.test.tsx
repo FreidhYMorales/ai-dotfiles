@@ -33,6 +33,17 @@ test('a failure leaves a dim row until the same command passes', async ($, on) =
   expect(await band($, /failed/)).toBeUndefined()
 })
 
+test('commands sharing a first word but not words 2-3 fail as separate rows', async ($, on) => {
+  const { clock } = world(on)
+  await begin($)
+  await bg($, 'make check fast', 'Fast checks')
+  await bg($, 'make build all', 'Build all')
+  await note($, clock, 'b1', 'failed')
+  await note($, clock, 'b2', 'failed')
+  expect(await band($, /Fast checks failed/)).toBeDefined()
+  expect(await band($, /Build all failed/)).toBeDefined()
+})
+
 test('a killed shell gives a stopped toast and no row', async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
