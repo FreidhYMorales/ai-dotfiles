@@ -2,6 +2,7 @@ import type { EngineInterface } from 'claude-code'
 import { atom, read } from 'claude-code'
 
 import { buildBand } from '../lib/layout'
+import { dismiss } from './dismiss'
 import { logOnce } from './timers'
 
 // The validator reads atoms only where they are declared in the same file, so
@@ -24,14 +25,19 @@ export async function renderBand($: EngineInterface, e: any, next: (e: any) => a
     }
     const rows = buildBand(state, e.props.maxRows, e.props.bodyColumns, await read($, now))
     if (rows.length === 0) return next(e)
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
 
     return (
       <Box flexDirection="column">
         {rows.map(r => (
-          <Text color={r.kind === 'alert' ? 'red' : undefined} dimColor={r.kind !== 'alert' && r.kind !== 'activity'}>
-            {r.text}
-          </Text>
+          <Box>
+            <Text color={r.kind === 'alert' ? 'red' : undefined} dimColor={r.kind !== 'alert' && r.kind !== 'activity'}>
+              {r.text}
+            </Text>
+            {r.source && (
+              <Button key={`dismiss:${r.source}`} label={`${r.hotkey ?? ' '} ✕`} {...(r.hotkey ? { hotkey: String(r.hotkey) } : {})} onPress={() => dismiss($, [r.source!])} />
+            )}
+          </Box>
         ))}
       </Box>
     )

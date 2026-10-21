@@ -1,6 +1,7 @@
 import type { Register } from 'claude-code'
 
 import { renderBand } from './register/band'
+import { clearBand, startDismissTick } from './register/dismiss'
 import { onAgent, onBash, onNotification, syncAgents } from './register/ingest'
 import { syncTick } from './register/timers'
 
@@ -10,8 +11,17 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await syncTick($)
     await syncAgents($)
+    await startDismissTick($)
+    await $.command.register({ name: 'band', description: 'Dismiss every alert and clear the band', argumentHint: 'clear' })
 
     return next(e)
+  })
+
+  on('command.run', { command: 'band' }, async ($, e) => {
+    if (e.args.trim() !== 'clear') return { text: 'Usage: /band clear' }
+    await clearBand($)
+
+    return { text: 'Band cleared.' }
   })
 
   on('agent.spawn', ($, e, next) => onAgent($, e, next))

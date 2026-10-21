@@ -13,6 +13,7 @@ export function world(on: On) {
   const spawnReply: { deny?: string } = {}
   on('agent.spawn', () => (spawnReply.deny ? ({ deny: spawnReply.deny } as never) : { model: 'm', agentId: `a${(seq += 1)}` }))
   on('agent.list', () => ({ value: agents as never }))
+  on('command.register', () => ({ value: { command: 'band' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('tool.call', () => ({
     result: { stdout: '', stderr: '', interrupted: false, backgroundTaskId: `b${(seq += 1)}` },
@@ -50,11 +51,36 @@ export async function note($: Engine, clock: { settle: () => Promise<void> }, id
   await ui.unmount()
 }
 
-export async function band($: Engine, re: RegExp) {
+export function mountBand($: Engine) {
   const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-  const ui = await $.ui.mount({ plugin: 'look', component: 'AbovePrompt', requestId: `b${(n += 1)}`, surface: 'terminal', props } as never)
+
+  return $.ui.mount({ plugin: 'look', component: 'AbovePrompt', requestId: `b${(n += 1)}`, surface: 'terminal', props } as never)
+}
+
+export async function band($: Engine, re: RegExp) {
+  const ui = await mountBand($)
   const found = (await ui.find({ type: 'Text', text: re }))?.text
   await ui.unmount()
 
   return found
+}
+
+// The shared `$.store`, in memory: the test reads and writes the Map as the
+// other session would.
+export function memStore(on: On, entries: Record<string, unknown> = {}) {
+  const map = new Map<string, unknown>(Object.entries(entries))
+  on('store.get', (_, e) => ({ value: map.get(e.key) }) as never)
+  on('store.set', (_, e) => {
+    map.set(e.key, e.value)
+
+    return { value: undefined } as never
+  })
+  on('store.delete', (_, e) => {
+    map.delete(e.key)
+
+    return { value: undefined } as never
+  })
+  on('store.keys', () => ({ value: [...map.keys()] }) as never)
+
+  return map
 }
