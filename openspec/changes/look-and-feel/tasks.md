@@ -38,14 +38,14 @@ Chain strategy: stacked-to-main
 
 ## Task 0: Mod prerequisites (before any mod code; PR 1 does not need it)
 
-- [ ] 0.1 Load `plugin-authoring`; regenerate types for the Claude Code build in use into `plugins/look/types/`.
+- [x] 0.1 Load `plugin-authoring`; confirm the engine lays the editor types for the build in use into `plugins/look/.claude-plugin/types/` (gitignored, never committed); `plugins/look/types/` holds only the contract. Headless `claude -p` does not lay them, so tsc falls back to the 2.1.304 file.
 
 ## PR 2: Scaffold, CI, pin
 
-- [ ] 2.1 RED: `plugins/look/tests/look.test.sh` (SKIP without claude, `LOOK_REQUIRE_CLAUDE=1` fails, version warning) and an idle-render `tests/idle.test.ts`. Edit `scripts/tests/install.test.sh` lines 112-113 to expect `look@ai-dotfiles`.
-- [ ] 2.2 GREEN: create `plugin.json`, `hooks/hooks.json`, idle `register.tsx`, `types/index.d.ts` (contract), `tests/claude-code.version` (2.1.305). Edit `.claude-plugin/marketplace.json`, `install.sh`.
-- [ ] 2.3 GREEN: `.github/workflows/check.yml` (nodejs npm, pinned install, `LOOK_REQUIRE_CLAUDE=1`), `upstreams.json`.
-- [ ] 2.4 Measure the require-check Stop hook time; record in the PR. Check: `make check`.
+- [x] 2.1 RED: `plugins/look/tests/look.test.sh` (SKIP without claude, `LOOK_REQUIRE_CLAUDE=1` fails, version warning) and an idle-render `tests/idle.test.tsx` (JSX needs .tsx). Edit `scripts/tests/install.test.sh` lines 112-113 to expect `look@ai-dotfiles`.
+- [x] 2.2 GREEN: create `plugin.json`, `hooks/hooks.json`, idle `register.tsx`, `types/index.d.ts` (contract), `tests/claude-code.version` (2.1.305). Edit `.claude-plugin/marketplace.json`, `install.sh`.
+- [x] 2.3 GREEN: `.github/workflows/check.yml` (nodejs npm, pinned install, `LOOK_REQUIRE_CLAUDE=1`), `upstreams.json`.
+- [x] 2.4 Measure the require-check Stop hook time; record in the PR. Check: `make check`.
 
 ## PR 3a: Pure lib
 
