@@ -1,63 +1,9 @@
-import { expect, mock, test } from 'claude-code/testing'
-import type { Engine, On } from 'claude-code'
+import { expect, test } from 'claude-code/testing'
 
 import { renderBand } from '../hooks/register/band'
+import { band, begin, bg, note, world } from './support'
 
 const MIN = 60_000
-
-// Nothing draws beneath the plugin: the hooks here stand for the engine.
-function world(on: On) {
-  const toasts: string[] = []
-  // What the plugin wrote to its atoms: the host's copy, seen from outside.
-  const written: Record<string, unknown> = {}
-  const writes: string[] = []
-  let seq = 0
-  const clock = mock.clock(on, { now: 1_000_000 })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('tool.call', () => ({
-    result: { stdout: '', stderr: '', interrupted: false, backgroundTaskId: `b${(seq += 1)}` },
-  }))
-  on('ui.toast', (_, e) => {
-    toasts.push(e.text)
-
-    return { value: undefined }
-  })
-  on('state.set', { plugin: 'look' }, (_, e, next) => {
-    written[e.key] = e.value
-    writes.push(e.key)
-
-    return next(e)
-  })
-  on('ui.render', ($, e) => {
-    const { Text } = $.ui.resolve(e)
-
-    return <Text>engine</Text>
-  })
-
-  return { toasts, clock, written, writes }
-}
-
-let n = 0
-const bg = ($: Engine, command: string, description?: string) =>
-  $.tool.call({ tool: 'Bash', command, description, run_in_background: true })
-const begin = ($: Engine) => $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-
-async function note($: Engine, clock: { settle: () => Promise<void> }, id: string, status: string) {
-  const task = { id, status, toolUseId: 'tu' }
-  const props = { text: '', origin: { kind: 'task-notification' }, isExpanded: false, task }
-  const ui = await $.ui.mount({ plugin: 'look', component: 'UserMessage', requestId: `n${(n += 1)}`, surface: 'terminal', props } as never)
-  await clock.settle()
-  await ui.unmount()
-}
-
-async function band($: Engine, re: RegExp) {
-  const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-  const ui = await $.ui.mount({ plugin: 'look', component: 'AbovePrompt', requestId: `b${(n += 1)}`, surface: 'terminal', props } as never)
-  const found = (await ui.find({ type: 'Text', text: re }))?.text
-  await ui.unmount()
-
-  return found
-}
 
 test('an unknown id changes nothing; a repeated or resumed one is ignored', async ($, on) => {
   const { toasts, clock } = world(on)

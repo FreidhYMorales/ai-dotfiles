@@ -1,7 +1,7 @@
 import type { Register } from 'claude-code'
 
 import { renderBand } from './register/band'
-import { onBash, onNotification } from './register/ingest'
+import { onAgent, onBash, onNotification, syncAgents } from './register/ingest'
 import { syncTick } from './register/timers'
 
 // Hooks only record events and schedule work (see register/): the render hook
@@ -9,9 +9,12 @@ import { syncTick } from './register/timers'
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await syncTick($)
+    await syncAgents($)
 
     return next(e)
   })
+
+  on('agent.spawn', ($, e, next) => onAgent($, e, next))
 
   on('tool.call', async ($, e, next) => {
     const out = await next(e)

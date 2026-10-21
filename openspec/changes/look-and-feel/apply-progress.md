@@ -128,3 +128,28 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - `session.start` is the only timer entry: `register` has no `$`, so there is no "at module load" start. `syncTick` is idempotent and also runs after every start and finish.
 - Validator note: `tool.call` is listed as a "gating hook without .catch"; the hook never denies, so no `.catch` was added.
 
+
+## PR 4a: Agents (tasks 4a.1-4a.2) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 4a.1 / 4a.2 | `bash plugins/look/tests/look.test.sh`: 25 pass, 5 fail (new `tests/agent.test.tsx`; the resume test passed already, as nothing ingested agents) | same command: 30 pass, 0 fail | Test helpers moved to `tests/support.tsx` and shared with `ingest.test.tsx`; `any` renamed `hasAgent` |
+| 4a.2 | n/a | `make check`: All checks passed (7 steps); pinned to one core (`taskset -c 0`): 30 pass | |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` (validate passed, 30 tests) |
+| Runtime harness | `$.agent.spawn` with `tool_use_id`, `on('agent.list')` mock, `mock.clock` |
+| Rollback boundary | `plugins/look/hooks/register/ingest.ts`, `hooks/register.tsx`, `tests/{agent,support,ingest}.test.tsx` |
+
+### Deviations and notes
+
+- Test file is `agent.test.tsx` (JSX in the shared helpers); helpers live in `tests/support.tsx`.
+- The agent paths are all in `register/ingest.ts` (`onAgent`, `syncAgents`, `pollAgents`), not `timers.ts`: the 60 s poll needs `finish`, and `ingest` already imports `timers`, so the reverse import would be circular. `register.tsx` calls `syncAgents` on `session.start`.
+- The running item is keyed by `tool_use_id`; its `id` becomes the `agentId` once `next` resolves. Notifications match an agent by `id` or `toolUseId`, shells by `id` only (they share a notification's `toolUseId`). A denied spawn removes the item.
+- A failed agent appends `{ source: 'agent:<id>', kind: 'agent', text: '<label> failed' }` to `alerts` once per source; nothing removes it (dismissal is PR 4b). Alert rows render through the existing band, without the `✕` Button.
+- Poll gap (spec silent): the poll finishes an agent only when `$.agent.list()` lists it with an ended status (`completed`, `failed`, `killed`). An agent missing from the list is left alone, since the spec does not say how it ended; agents are not expired after 30 minutes. Needs a decision before PR 7.
