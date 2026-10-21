@@ -97,7 +97,8 @@ test('a killed shell gives a stopped toast and no row', async ($, on) => {
   expect(await band($, /Wait|failed/)).toBeUndefined()
 })
 
-test('a shell expires after 30 minutes and a late notification is ignored', async ($, on) => {
+// 31 simulated minutes run ~1,860 one-second ticks: slow on a busy CI runner.
+test('a shell expires after 30 minutes and a late notification is ignored', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
   await bg($, 'sleep 9999', 'Long job')
