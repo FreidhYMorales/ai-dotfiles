@@ -95,3 +95,36 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - `=value` is masked as `=*`. String width: one column per code point (Nerd Font PUA is one column; wide CJK/emoji unmeasured), documented in `truncate`.
 - Alert rows reserve 6 more columns for the `[n ✕]` button drawn by register. Alerts, shell-failure rows and activity share the `maxRows` budget, in that order; the overflow folds into one `+N more` row (a joined activity line counts its items).
 - Hotkeys are the 1-based index among non-dismissed alerts, omitted past 9.
+
+## PR 3b: Shell ingestion, toasts, expiry (tasks 3b.1-3b.3) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 3b.1 / 3b.2 | `bash plugins/look/tests/look.test.sh`: 9 fail, 17 pass (new `tests/ingest.test.tsx` against the idle register: no toast, no row, no tick) | same command: 24 pass, 0 fail (the 9 became 7 after merging overlapping tests) | Tests merged (unknown/repeated id, tick/reload); atoms declared per file; `Tone` aligned with `mapStatus` (`failed`) |
+| 3b.3 | n/a | `make check`: All checks passed (7 steps) | |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` (validate passed, 24 tests) |
+| Runtime harness | `$.ui.mount` of `AbovePrompt` and `UserMessage` with `mock.clock` |
+| Rollback boundary | `plugins/look/hooks/register/{ingest,timers,band}.ts(x)`, `hooks/lib/toast.ts`, `hooks/register.tsx`, `tests/ingest.test.tsx` |
+
+### Open question 3 (atoms survive a hot reload): settled by documentation, not by a test
+
+- `claude plugin test` loads the plugin once and offers no reload, so no test can re-run `register`. The reference (types, `$.state`) states that named values are "held by the host for the session, plain data that survives a hot reload of the plugin's code", and `atom` has a `shape` option for "a reload of the plugin's code" that finds the value absent. So atoms do survive; nothing needs rework.
+- What the test does prove: the state is the host's (read from outside the module via `state.set`), a second and third `session.start` leave exactly one 1 s tick, and `syncTick` on `session.start` rebuilds the tick from the atoms, which is the reload path (module variables, including the timer handle, are lost on a reload; the engine drops the old timers).
+- Not verified in a real interactive session; add it to the PR 7 manual checks.
+
+### Deviations and notes
+
+- `register/band.tsx`, not `.ts`: it returns JSX. The test is `ingest.test.tsx`, not `.ts`, for the same reason.
+- No `register/state.ts`: the validator reads an atom only where it is declared in the same file, so `ingest`, `timers` and `band` each declare the few atoms they use (same keys and initials).
+- Toasts have no color in the API (`ToastOptions` is only `timeoutMs`): the tone is the glyph (`✓`/`✕`/`⋯`). A toast within 2 s of the batch start replaces the plugin's own previous toast with a count line (`✓ 2 done`); the first one shows at once.
+- A test cannot make a hook beneath the plugin throw or poison a read (a thrown hook is skipped, a `state.get` answer is ignored), so the render-error test calls `renderBand` with a fake `$` whose `state.get` rejects.
+- `session.start` is the only timer entry: `register` has no `$`, so there is no "at module load" start. `syncTick` is idempotent and also runs after every start and finish.
+- Validator note: `tool.call` is listed as a "gating hook without .catch"; the hook never denies, so no `.catch` was added.
+
