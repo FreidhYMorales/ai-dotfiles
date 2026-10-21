@@ -40,3 +40,9 @@ test('a cache entry is fresh for 60 s while checks are pending and 5 min otherwi
   expect(isFresh(entry('ok'), 299_999)).toBe(true)
   expect(isFresh(entry('ok'), 300_000)).toBe(false)
 })
+
+test('a "no open PR" entry is fresh for 60 s, so a new PR shows within a minute', () => {
+  const none = { at: 0, pr: 0, headSha: '', checks: [] }
+  expect(isFresh(none, 59_999)).toBe(true)
+  expect(isFresh(none, 60_000)).toBe(false)
+})

@@ -54,9 +54,12 @@ export function summarize(checks: Check[]): { state: CheckState; failing: string
   return { state: failing.length ? 'failed' : checks.some(c => c.state === 'pending') ? 'pending' : 'ok', failing }
 }
 
-/** A cache entry is fresh for 60 s while checks are pending, 5 min otherwise. */
+/**
+ * A cache entry is fresh for 60 s while checks are pending or there is no open
+ * PR (so a PR opened right after shows within a minute), 5 min otherwise.
+ */
 export function isFresh(entry: CiEntry, now: number): boolean {
-  const ttl = summarize(entry.checks).state === 'pending' ? PENDING_TTL_MS : IDLE_TTL_MS
+  const ttl = entry.pr === 0 || summarize(entry.checks).state === 'pending' ? PENDING_TTL_MS : IDLE_TTL_MS
 
   return now - entry.at < ttl
 }
