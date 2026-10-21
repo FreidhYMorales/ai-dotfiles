@@ -1,5 +1,6 @@
 import type { Register } from 'claude-code'
 
+import { startBackupPoll } from './register/backup'
 import { renderBand } from './register/band'
 import { pollCi, startCiPoll } from './register/ci'
 import { clearBand, startDismissTick } from './register/dismiss'
@@ -14,6 +15,7 @@ export const register: Register = on => {
     await syncAgents($)
     await startDismissTick($)
     startCiPoll($)
+    startBackupPoll($)
     await $.command.register({ name: 'band', description: 'Dismiss every alert and clear the band', argumentHint: 'clear' })
 
     return next(e)

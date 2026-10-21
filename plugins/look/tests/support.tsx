@@ -13,6 +13,9 @@ export function world(on: On) {
   const spawnReply: { deny?: string } = {}
   on('agent.spawn', () => (spawnReply.deny ? ({ deny: spawnReply.deny } as never) : { model: 'm', agentId: `a${(seq += 1)}` }))
   on('agent.list', () => ({ value: agents as never }))
+  // No HOME by default, so the backup poll finds nothing configured and never reads the real disk.
+  const vars: Record<string, string> = {}
+  on('env.get', (_, e) => ({ value: vars[e.name] }))
   on('command.register', () => ({ value: { command: 'band' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('tool.call', () => ({
@@ -35,7 +38,7 @@ export function world(on: On) {
     return <Text>engine</Text>
   })
 
-  return { toasts, clock, written, writes, agents, spawnReply }
+  return { toasts, clock, written, writes, agents, spawnReply, vars }
 }
 
 let n = 0
