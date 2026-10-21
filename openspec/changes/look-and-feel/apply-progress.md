@@ -181,3 +181,33 @@ The look wrapper alone takes about 1.1 s (1155, 1083, 1131 ms); it runs in paral
 - `/band clear` (registered in `session.start`, served by `command.run`) dismisses every alert (store keys) and clears running items and shell-failure rows. The spec names only alerts and running items; shell-failure rows are included so the dim rows have a way out. Revisit if unwanted.
 - The 5 s tick starts from `session.start` only (no `$` at module load, as for the other timers) and the store is also read once at start. The atom is replaced only when the set of sources changes.
 - A stale entry (older than 30 days or without a valid `at`) is deleted on the next tick.
+
+
+## PR 5: CI polling (tasks 5.1-5.2) - done
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 5.1 / 5.2 | `bash plugins/look/tests/look.test.sh`: 40 pass, 10 fail (new `tests/ci.test.ts` did not load: `lib/ci` missing; 9 `tests/ci-poll.test.tsx` cases failed, nothing polled) | same command: 52 pass, 1 fail (layout test still expected the running glyph), then 53 pass, 0 fail | `apply` in `register/ci.ts` rewritten to one rule per atom (ci, alerts, running) |
+| 5.2 | n/a | `make check`: All checks passed (7 steps), 61 s; `taskset -c 0 bash plugins/look/tests/look.test.sh`: 53 pass, 5.4 s | |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test | `bash plugins/look/tests/look.test.sh` (validate passed, 53 tests) |
+| Runtime harness | `on('process.run')` standing in for git and gh (`{ deny }` makes the call reject), `on('session.cwd')`, in-memory store, `mock.clock` |
+| Rollback boundary | `plugins/look/hooks/lib/ci.ts`, `hooks/register/ci.ts`, `hooks/register.tsx`, `tests/{ci,ci-poll}.test.ts(x)` |
+
+### Deviations and notes
+
+- Tests: `ci.test.ts` (pure) and `ci-poll.test.tsx` (JSX helpers), as for earlier slices.
+- There is no `session.cwd` change event in the API (`session.cwd` is the call `$.session.cwd()`). The root is re-resolved on every poll from `$.session.cwd()`, and the classic `CwdChanged` hook (`classic.CwdChanged`) schedules an extra poll with `$.clock.after(0, ...)`. A request that arrives during a poll runs one more pass when it ends.
+- The 60 s `$.clock.every` only checks the shared cache; gh runs only when the entry is stale (60 s with pending checks, 5 min otherwise). A branch with no open PR is cached as `pr: 0`, so no session re-polls it within 5 min.
+- gh missing, non-zero (other than "no pull requests found") or timing out keeps what the same root and branch showed and logs once under the `ci` tag (debug log); state of another branch is dropped. Not a repo, detached HEAD, and a PR that is not OPEN drop all CI state.
+- Alert: `{ source: 'ci:<root>:<branch>:<pr>:<sha>', kind: 'ci', text: 'CI #17 · lint failed' }` (or `N checks failed`). A failed check with others pending shows both the alert and the running item. The running item is `ci:<root>:<branch>:<pr>` with label `CI #<pr>`; `/band clear` removes it until the next poll.
+- The CI activity glyph is now U+F407 (`G.ci`, the plan's CI glyph) instead of the running glyph; `layout.test.ts` updated.
+- Validator note: `classic.CwdChanged` is listed as a "gating hook without .catch"; it never denies.
+- Cancelled, timed out and similar conclusions count as failed; NEUTRAL and SKIPPED count as ok.
+- Not verified against a real `gh` and a real PR; the first real run is in the PR 7 manual checks.
