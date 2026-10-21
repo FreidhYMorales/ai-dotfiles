@@ -110,7 +110,7 @@ assert 'ai-update is linked into ~/.local/bin' \
 assert 'missing ~/.local/bin on PATH is reported' rg -q 'not on PATH' <<<"$LAST_OUTPUT"
 assert 'marketplace is added' test -f "$home/state/marketplace"
 assert 'all plugins are installed' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
-  'flow@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '
+  'flow@ai-dotfiles look@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '
 
 first=$(snapshot "$home")
 before=$(call_count "$home")

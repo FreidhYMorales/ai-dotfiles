@@ -9,7 +9,7 @@
 #   - Symlinks systemd/* user units and enables the engram backup timer once
 #     engram-backup is configured.
 #   - Registers this repo as a plugin marketplace and installs the `flow`,
-#     `sdd` and `toolkit` plugins.
+#     `sdd`, `toolkit` and `look` plugins.
 #
 # Usage: ./install.sh [--dry-run]
 set -euo pipefail
@@ -18,7 +18,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
-PLUGINS=(flow sdd toolkit)
+PLUGINS=(flow sdd toolkit look)
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 

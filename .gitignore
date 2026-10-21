@@ -9,3 +9,5 @@
 .engram/
 .atl/
 plugins/*/evals/results/
+# Types the engine lays beside a mod at load; regenerated, never committed
+plugins/*/.claude-plugin/types/
