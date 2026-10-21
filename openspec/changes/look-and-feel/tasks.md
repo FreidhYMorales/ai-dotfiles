@@ -71,8 +71,8 @@ Chain strategy: stacked-to-main
 
 ## PR 5: CI polling
 
-- [ ] 5.1 RED: `tests/ci.test.ts`: `normalizeRollup` (CheckRun, StatusContext), no-PR stderr, detached HEAD, gh missing/non-zero/timeout, cwd outside repo, cwd with spaces, cwd change, branch switch drops alert, recovery, fresh vs stale cache (60 s/5 min), no overlap.
-- [ ] 5.2 GREEN: `lib/ci.ts` first, then `register/ci.ts` polling. REFACTOR. Check: `claude plugin test`.
+- [x] 5.1 RED: `tests/ci.test.ts`: `normalizeRollup` (CheckRun, StatusContext), no-PR stderr, detached HEAD, gh missing/non-zero/timeout, cwd outside repo, cwd with spaces, cwd change, branch switch drops alert, recovery, fresh vs stale cache (60 s/5 min), no overlap.
+- [x] 5.2 GREEN: `lib/ci.ts` first, then `register/ci.ts` polling. REFACTOR. Check: `claude plugin test`.
 
 ## PR 6: Backup alert
 
