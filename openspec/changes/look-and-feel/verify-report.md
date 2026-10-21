@@ -2,9 +2,9 @@
 
 Mode: openspec, Strict TDD. Date 2026-10-20. Claude Code installed 2.1.306 (pin 2.1.305; the wrapper warns, tests still run).
 
-## Verdict: FAIL (1 CRITICAL, 5 WARNING, 4 SUGGESTION)
+## Verdict: PASS WITH WARNINGS (0 CRITICAL, 3 WARNING, 4 SUGGESTION)
 
-The only CRITICAL is a scenario with no covering test (Survey). The behavior is one line in `band.tsx` and is fixed by one test; everything else passes.
+Re-verified on branch test/look-verify-gaps (commit 3b6a884). The earlier CRITICAL (Survey untested) is resolved by the test "the band yields to a survey, even with a failing alert" in `agent.test.tsx` (a mutation check removing the guard made it fail). "Different commands" is now covered by "commands sharing a first word but not words 2-3 fail as separate rows" in `ingest.test.tsx`. The `docs/look.md` checklist is split (live CI #28 done; failing CI and collapsed band open). Re-run: `bash plugins/look/tests/look.test.sh` 74 pass, 0 fail (11 files); `make check` exit 0, All checks passed (7 steps).
 
 ## Completeness
 
@@ -35,7 +35,7 @@ No tautologies, no ghost loops. Heavy use of `toBeDefined()` / `toBeUndefined()`
 | Spec | Requirements | Scenarios compliant | Partial | Untested |
 |---|---|---|---|---|
 | statusline | 9 | 15/15 | 0 | 0 |
-| look-band | 18 | 31/34 | 2 | 1 |
+| look-band | 18 | 33/34 | 1 (hot reload) | 0 |
 
 Statusline: every scenario maps to a passing case in `scripts/tests/statusline.test.sh` (order, 0%, 42%, 1/47/48 steps, colors 49/50/79/80, reset 80/79, 7d, model strip, `*`, truncation 15+`…`/19+`…`, worst case, no git, no rate_limits, one quota missing, no zellij) and `make check` (gate).
 
@@ -43,9 +43,9 @@ Look-band mapping (test file): Idle `idle.test.tsx`; Error fallback `ingest.test
 
 Non-compliant or partial scenarios:
 
-- Survey (yield while `hasSurvey`): UNTESTED. Code at `plugins/look/hooks/register/band.tsx:19`; every test passes `hasSurvey: false`.
+- Survey: RESOLVED, covered in `agent.test.tsx`.
 - Hot reload: PARTIAL. The test runs `session.start` repeatedly and checks one tick; the atoms-survive-reload assumption rests on the docs and was not verified in a live session (manual box still open in `docs/look.md`).
-- Different commands (two rows): PARTIAL. `label.test.ts` proves the keys differ; no test asserts two separate rows in the band.
+- Different commands (two rows): RESOLVED, covered in `ingest.test.tsx`.
 
 ## Manual evidence (2026-10-20, Claude Code 2.1.305, two zellij panes, in docs/look.md)
 
@@ -60,14 +60,14 @@ Matches, with documented deviations: agent code lives in `register/ingest.ts` no
 ## Issues
 
 CRITICAL
-1. Scenario "Survey" (look-band, Idle and yielding) has no covering test. Add a case mounting the band with an alert and `hasSurvey: true` and assert it yields (`next(e)`).
+None. (Resolved: Survey scenario now tested.)
 
 WARNING
 1. Requirement clause "collapsed band (ctrl+x ctrl+a) keeps alerts hidden" has no code, scenario or test. It relies on the host not rendering `AbovePrompt` when collapsed (plan: "user intent"). Not verified live.
 2. Hot reload (atoms survive, no double tick after reload) not verified live; documentation-only assumption.
-3. "Different commands" has no band-level assertion of two rows.
+3. (Resolved) "Different commands" now has a band-level test.
 4. Status line worst case exceeds the spec's "about 100" (~106 to 108 columns); accepted by the user, but the spec text still says 100.
-5. `docs/look.md` manual checklist is stale: "Real PR CI" is unchecked although the live CI #28 item was observed (the failing-CI half was not). Split that line before archive.
+5. (Resolved) `docs/look.md` checklist split; failing CI and collapsed band remain open there.
 
 SUGGESTION
 1. Spec text for `/band clear`, 60 s no-PR cache and vanished agent should be synced to the delta specs at archive (code and docs already follow the final behavior).
