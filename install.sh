@@ -1,26 +1,61 @@
 #!/usr/bin/env bash
-# Install AI dotfiles for Claude Code.
-#   - Symlinks claude/CLAUDE.md and claude/statusline.sh into ~/.claude
-#     (existing files are backed up).
-#   - Merges claude/settings.json into ~/.claude/settings.json (Claude Code
-#     rewrites that file itself, so it is merged, never symlinked).
-#   - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
-#   - Symlinks bin/* (e.g. ai-update, engram-backup) into ~/.local/bin.
-#   - Symlinks systemd/* user units and enables the engram backup timer once
-#     engram-backup is configured.
-#   - Registers this repo as a plugin marketplace and installs the `flow`,
-#     `sdd`, `toolkit` and `look` plugins.
+# Install AI dotfiles for Claude Code, OpenCode, and Antigravity.
+#   - Common:
+#     - Symlinks bin/* (e.g. ai-update, engram-backup) into ~/.local/bin.
+#     - Symlinks systemd/* user units and enables the engram backup timer once
+#       engram-backup is configured.
+#     - Sets up global git hooks (gitleaks on pre-commit).
+#   - Claude Code:
+#     - Symlinks claude/CLAUDE.md and claude/statusline.sh into ~/.claude.
+#     - Merges claude/settings.json into ~/.claude/settings.json.
+#     - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
+#     - Registers this repo as a plugin marketplace and installs plugins.
+#   - OpenCode:
+#     - Symlinks AGENTS.md into ~/.config/opencode/AGENTS.md.
+#     - Symlinks all skills into ~/.config/opencode/skills/.
+#   - Antigravity:
+#     - Symlinks AGENTS.md into ~/.gemini/antigravity-cli/ and ~/.gemini/config/.
+#     - Symlinks all skills into ~/.gemini/antigravity-cli/skills/.
 #
-# Usage: ./install.sh [--dry-run]
+# Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+OPENCODE_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
+ANTIGRAVITY_DIR="${ANTIGRAVITY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}"
+GEMINI_CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow sdd toolkit look)
+
 DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+TARGET_ARG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    --target)
+      TARGET_ARG="${2:-}"
+      shift 2
+      ;;
+    --target=*)
+      TARGET_ARG="${1#*=}"
+      shift
+      ;;
+    -h | --help)
+      echo "Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]"
+      exit 0
+      ;;
+    *)
+      echo "unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+done
 
 run() {
   if ((DRY_RUN)); then echo "[dry-run] $*"; else "$@"; fi
@@ -106,6 +141,16 @@ link_bin() {
   esac
 }
 
+link_skills() {
+  local target_skills_dir="$1"
+  run mkdir -p "$target_skills_dir"
+  local skill
+  for skill in "$REPO_DIR"/plugins/*/skills/*; do
+    [[ -d "$skill" && -f "$skill/SKILL.md" ]] || continue
+    link_file "$skill" "$target_skills_dir/$(basename "$skill")"
+  done
+}
+
 # systemd user units (engram backup timer). The timer is enabled only once
 # engram-backup is configured, so it never fails daily on a fresh machine.
 install_units() {
@@ -163,19 +208,84 @@ install_plugins() {
   done
 }
 
-main() {
-  require jq
-  require rg
+install_claude() {
   require claude
   link_file "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
   link_file "$REPO_DIR/claude/statusline.sh" "$CLAUDE_DIR/statusline.sh"
   link_output_styles
+  merge_settings
+  install_plugins
+}
+
+install_opencode() {
+  link_file "$REPO_DIR/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
+  link_skills "$OPENCODE_DIR/skills"
+}
+
+install_antigravity() {
+  link_file "$REPO_DIR/AGENTS.md" "$ANTIGRAVITY_DIR/AGENTS.md"
+  if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
+    link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
+  fi
+  link_skills "$ANTIGRAVITY_DIR/skills"
+}
+
+resolve_targets() {
+  local raw="$1"
+  if [[ -n "$raw" ]]; then
+    local items
+    IFS=',' read -ra items <<<"$raw"
+    local item
+    for item in "${items[@]}"; do
+      case "$item" in
+        all)
+          TARGETS=(claude opencode antigravity)
+          return
+          ;;
+        claude | opencode | antigravity)
+          TARGETS+=("$item")
+          ;;
+        *)
+          echo "unknown target: $item" >&2
+          exit 1
+          ;;
+      esac
+    done
+  else
+    # Auto-detect installed agents
+    command -v claude >/dev/null && TARGETS+=(claude)
+    command -v opencode >/dev/null && TARGETS+=(opencode)
+    if command -v agy >/dev/null || command -v antigravity >/dev/null || [[ -d "$ANTIGRAVITY_DIR" ]]; then
+      TARGETS+=(antigravity)
+    fi
+    if [[ ${#TARGETS[@]} -eq 0 ]]; then
+      TARGETS=(claude)
+    fi
+  fi
+}
+
+TARGETS=()
+
+main() {
+  resolve_targets "$TARGET_ARG"
+
+  require jq
+  require rg
+
   link_bin
   install_units
-  merge_settings
   install_git_hooks
-  install_plugins
-  echo "done. Restart Claude Code to apply."
+
+  local target
+  for target in "${TARGETS[@]}"; do
+    case "$target" in
+      claude) install_claude ;;
+      opencode) install_opencode ;;
+      antigravity) install_antigravity ;;
+    esac
+  done
+
+  echo "done. Active targets: ${TARGETS[*]}."
 }
 
 main

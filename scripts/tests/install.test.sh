@@ -187,6 +187,27 @@ assert 'dry run writes nothing' test -z "$(snapshot "$home")"
 assert 'dry run calls no mutating claude command' \
   test -z "$(rg 'marketplace add|plugin (install|update)' "$home/state/calls" 2>/dev/null)"
 
+echo "== opencode target =="
+
+home=$(sandbox opencode)
+install "$home" --target opencode
+assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
+assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
+assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
+assert 'sdd skills are linked for opencode' test -L "$home/.config/opencode/skills/orchestrator"
+assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/judgment-day"
+
+echo "== antigravity target =="
+
+home=$(sandbox antigravity)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run succeeds' test "$LAST_EXIT" -eq 0
+assert 'AGENTS.md is linked for antigravity cli' test -L "$home/.gemini/antigravity-cli/AGENTS.md"
+assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
+assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
+assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/judgment-day"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"

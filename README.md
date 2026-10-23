@@ -1,12 +1,13 @@
 # ai-dotfiles
 
-Personal configuration for AI coding tools. Claude Code first; OpenCode and Gemini later.
+Personal configuration for AI coding tools. Planning-first and Spec-Driven Development across Claude Code, OpenCode, and Antigravity on top of engram memory.
 
 ## Layout
 
 | Path | What | How it is installed |
 |---|---|---|
-| `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` |
+| `AGENTS.md` | Canonical always-on rules (shared across agents) | Symlinked to `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, and `~/.gemini/` |
+| `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` (and repo root `AGENTS.md`) |
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
 | `plugins/flow/` | Workflow plugin | `claude plugin install flow@ai-dotfiles` |
@@ -55,10 +56,11 @@ Memory: [engram](https://github.com/Gentleman-Programming/engram) is the only me
 
 ```bash
 ./install.sh --dry-run   # preview
-./install.sh
+./install.sh             # auto-detects installed agents (claude, opencode, antigravity)
+./install.sh --target all # install all agent configurations
 ```
 
-Requires `jq`, `rg` and `claude`.
+Requires `jq`, `rg`, and at least one supported agent CLI (`claude`, `opencode`, or `agy`/`antigravity`). See [docs/multi-agent.md](docs/multi-agent.md) for details on multi-agent architecture and compatibility.
 
 ## Turning hooks off
 
@@ -120,4 +122,4 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets) and a cap on SessionStart context (low value today: the measured startup cost is ~3k tokens). Done elsewhere: one variable to disable hooks (`AI_HOOKS_OFF`); the minimal profile became opt-in packs. Its Memory Vault overlaps engram: reference only
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
-- [ ] OpenCode and Gemini support
+- [x] OpenCode and Antigravity support (rules, skills, and multi-target installer: see [docs/multi-agent.md](docs/multi-agent.md))
