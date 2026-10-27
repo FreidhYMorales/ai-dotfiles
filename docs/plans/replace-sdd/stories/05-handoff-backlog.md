@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given an approved solo plan, when I run `/flow:handoff`, then it ends in a `backlog.md` next to the plan (through `/flow:backlog`) and names `/flow:story 01` as the next step, never an `/sdd:*` command; a collaborative plan uses the `tasks.md` that `/flow:split` wrote (never rewrites it) and names `/flow:next`.
-- [ ] Given a plan folder, when I run `/flow:next`, then it lists from `tasks.md` when one exists (proyecto_san_sebastian keeps working), else the open backlog stories whose `Requires:` are all `[x]`.
-- [ ] Given a plan in `docs/plans/<feature>/` or only in legacy `openspec/changes/<change>/`, when any flow planning skill looks for it, then it finds `docs/plans/` first and the legacy folder second, and reviews and resolutions are still written next to a legacy plan.
+- [x] Given an approved solo plan, when I run `/flow:handoff`, then it ends in a `backlog.md` next to the plan (through `/flow:backlog`) and names `/flow:story 01` as the next step, never an `/sdd:*` command; a collaborative plan uses the `tasks.md` that `/flow:split` wrote (never rewrites it) and names `/flow:next`.
+- [x] Given a plan folder, when I run `/flow:next`, then it lists from `tasks.md` when one exists (proyecto_san_sebastian keeps working), else the open backlog stories whose `Requires:` are all `[x]`.
+- [x] Given a plan in `docs/plans/<feature>/` or only in legacy `openspec/changes/<change>/`, when any flow planning skill looks for it, then it finds `docs/plans/` first and the legacy folder second, and reviews and resolutions are still written next to a legacy plan.
 
 ## Plan
 
