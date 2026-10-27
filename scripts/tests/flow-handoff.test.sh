@@ -49,6 +49,14 @@ assert 'next falls back to the backlog' has "$NEXT" 'else read `<plan-dir>/backl
 # shellcheck disable=SC2016
 assert 'backlog story is ready when every Requires is done' has "$NEXT" 'every `Requires: #N` is `[x]`'
 
+# The one plan lookup order every planning skill states.
+# shellcheck disable=SC2016
+LOOKUP='Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write).'
+echo "== plan lookup order: plan, plan-review, fill-gaps =="
+for s in plan plan-review fill-gaps; do
+  assert "$s states the lookup order" has "$SKILLS/$s/SKILL.md" "$LOOKUP"
+done
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
