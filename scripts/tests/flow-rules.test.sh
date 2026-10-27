@@ -41,6 +41,14 @@ assert 'workflow names the loop' has "$RULES" '`/flow:backlog` -> `/flow:story` 
 assert 'verifier only for high risk' has "$RULES" 'verifier only for a high-risk story'
 assert 'planning chain kept for new or large projects' has "$RULES" 'New or large projects start with planning'
 
+echo "== rules: kept from before (pin) =="
+assert 'never run parallel writers' has "$RULES" 'never run parallel writers'
+assert 'fresh worker for tests, builds and installs' has "$RULES" 'Tests, builds and installs may use a fresh worker each.'
+assert 'Strict TDD stays enabled' has "$RULES" 'Strict TDD: enabled.'
+# The SDD sentence leaves with the sdd plugin (story 07), not before.
+# shellcheck disable=SC2016
+assert 'SDD sentence stays until story 07' has "$RULES" 'before any SDD routing load the `sdd:orchestrator` skill'
+
 echo "== rules: risk comes from the single high-risk list =="
 # Named by skill, not repo path: the rules load in every project.
 # Backticks in the expected string are literal markdown.
