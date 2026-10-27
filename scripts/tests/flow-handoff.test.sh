@@ -48,7 +48,8 @@ echo "== next: tasks.md first, else the backlog =="
 # shellcheck disable=SC2016
 assert 'next reads tasks.md when it exists' has "$NEXT" 'If `<plan-dir>/tasks.md` exists, use it'
 # shellcheck disable=SC2016
-assert 'next falls back to the backlog' has "$NEXT" 'else read `<plan-dir>/backlog.md`'
+assert 'next falls back to the backlog' has "$NEXT" 'Otherwise read `<plan-dir>/backlog.md`'
+assert 'next step 1 reads cleanly' lacks "$NEXT" 'Otherwise (solo), else'
 # shellcheck disable=SC2016
 assert 'backlog story is ready when every Requires is done' has "$NEXT" 'every `Requires: #N` is `[x]`'
 
