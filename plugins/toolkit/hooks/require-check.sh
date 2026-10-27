@@ -3,7 +3,8 @@
 # Runs from the git root of the cwd when the repo has uncommitted changes and a
 # root Makefile that defines a `check` target. Exit 2 feeds the failure tail
 # back to Claude. A tree identical to the last green run is skipped (cache in
-# ~/.cache/require-check). Opt out with SKIP_REQUIRE_CHECK=1.
+# ~/.cache/require-check). Opt out with SKIP_REQUIRE_CHECK=1. A branch-bound
+# /flow:pair red marker turns the block into a systemMessage (see below).
 set -u
 # shellcheck source=plugins/toolkit/hooks/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
@@ -39,6 +40,23 @@ has_check=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
        { skip = 0 }
        END { print found ? "yes" : "no" }')
 [[ $has_check == yes ]] || exit 0
+
+# /flow:pair commits a failing test on purpose before the code that makes it
+# pass. While that red test is committed it writes a marker (branch name, then
+# the red test commit sha) at `git rev-parse --git-path flow-pair-red`, which
+# resolves per worktree. Honour it only for the same branch with that commit
+# in HEAD, so a stale marker never disables the gate.
+marker=$(cd "$dir" && git rev-parse --path-format=absolute --git-path flow-pair-red 2>/dev/null)
+if [[ -n $marker && -f $marker ]]; then
+  { IFS= read -r red_branch && IFS= read -r red_sha; } <"$marker"
+  branch=$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null)
+  if [[ -n ${red_branch:-} && -n ${red_sha:-} && $branch == "$red_branch" ]] &&
+    git -C "$dir" merge-base --is-ancestor "$red_sha" HEAD 2>/dev/null; then
+    jq -n --arg m "require-check: a red test is committed on purpose by /flow:pair on $branch ($red_sha); make check is expected to fail until it is green." \
+      '{systemMessage: $m}'
+    exit 0
+  fi
+fi
 
 # Skip when the tree is exactly the one that last passed: HEAD, every staged
 # and unstaged change, and the content of untracked files. Any edit reruns it;
