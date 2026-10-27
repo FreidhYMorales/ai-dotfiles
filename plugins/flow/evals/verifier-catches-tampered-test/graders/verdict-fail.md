@@ -1,4 +1,4 @@
 ---
 type: regex
-pattern: 'Verdict: FAIL'
+pattern: '[Vv]erdict(:| is) \*{0,2}FAIL'
 ---
