@@ -35,6 +35,12 @@ assert 'size names one bounded read' has "$RULES" 'understood within one bounded
 # shellcheck disable=SC2016
 assert 'size names resumability' has "$RULES" 'resumable from the request plus `git diff`'
 
+echo "== rules: the Workflow line names the loop =="
+# shellcheck disable=SC2016
+assert 'workflow names the loop' has "$RULES" '`/flow:backlog` -> `/flow:story` -> `/flow:pair`'
+assert 'verifier only for high risk' has "$RULES" 'verifier only for a high-risk story'
+assert 'planning chain kept for new or large projects' has "$RULES" 'New or large projects start with planning'
+
 echo "== rules: risk comes from the single high-risk list =="
 # Named by skill, not repo path: the rules load in every project.
 # Backticks in the expected string are literal markdown.
