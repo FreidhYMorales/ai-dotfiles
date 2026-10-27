@@ -11,7 +11,7 @@
 
 ## Backlog
 
-01. [ ] As a developer, I want `flow:backlog` to turn an idea or a plan into a numbered one-line story list in `backlog.md` so that I start from a walking skeleton instead of a full spec.
+01. [x] 6cb8212 As a developer, I want `flow:backlog` to turn an idea or a plan into a numbered one-line story list in `backlog.md` so that I start from a walking skeleton instead of a full spec.
 02. [ ] As a developer, I want `flow:story` to refine one story into 2-3 acceptance criteria, a short plan, out of scope and a size/risk line so that I plan only what I build next. Requires: #01
 03. [ ] As a developer, I want `flow:pair` to build a story in red→green steps that commit the test before the code and stop on the stop rules so that I review small diffs and catch test tampering. Requires: #02
 04. [ ] As a developer, I want a story that names a high-risk item to get a fresh read-only verifier so that risky changes get a second look and small ones do not. Requires: #03

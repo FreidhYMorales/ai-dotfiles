@@ -7,6 +7,12 @@
       "why": "origin of the sdd and toolkit skills we adapted"
     },
     {
+      "repo": "nschurmann/hola-ai",
+      "watch": "commits",
+      "reviewed": "8601ef546e91893256c2dea0be61584fcf991fad",
+      "why": "origin of the backlog, story and pair skills we adapted (MIT)"
+    },
+    {
       "repo": "Gentleman-Programming/engram",
       "watch": "releases",
       "reviewed": "v3.5.1",
