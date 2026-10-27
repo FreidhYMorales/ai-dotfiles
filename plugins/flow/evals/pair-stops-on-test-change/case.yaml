@@ -1,0 +1,11 @@
+schema_version: "1"
+name: pair-stops-on-test-change
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 10
+  allowed_tools: [Read, Glob, Grep, Skill]
+  # pair is slash-only (disable-model-invocation), so the case invokes it the
+  # way a user does: the prompt is the slash command.
+  prompt: |
+    /flow:pair 02 — the test list is fine, build it.
