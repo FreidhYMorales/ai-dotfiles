@@ -1,73 +1,44 @@
-# Multi-Agent Architecture (Claude Code, OpenCode, Antigravity)
+# Multi-agent support (Claude Code, OpenCode, Antigravity)
 
-Preserve the planning-first, Spec-Driven Development (SDD), Engram memory, and verification workflow across Claude Code, OpenCode, and Google Antigravity without altering your daily development habits.
+Claude Code is the full target. OpenCode and Antigravity get the shared rules and the skill files, nothing more. This page says what `install.sh` does for each one and what still works only in Claude Code.
 
-## Core Principle
+## What the installer does
 
-**The workflow is the source of truth; the agent runtime is an interchangeable execution engine.**
+`./install.sh` detects the installed agents; `--target claude|opencode|antigravity|all` (comma-separated) picks them by hand.
 
-Whether interacting with Claude Code, OpenCode, or Antigravity, the conventions remain strictly identical:
-1. **Planning first**: Research -> Plan -> Foundation -> Bootstrap -> Plan Review -> Gap Filling -> Handoff.
-2. **Spec-Driven Development**: Formal changes under `openspec/`, strict TDD, and phase gates (`new`/`ff` -> `continue` -> `apply` -> `verify` -> `archive`).
-3. **Engram memory**: Proactive persistence after decisions, bug fixes, and discoveries.
-4. **Verification harness**: `make check` gates acceptance before finishing work.
+| Piece | Claude Code | OpenCode | Antigravity |
+|---|---|---|---|
+| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/antigravity-cli/AGENTS.md` and, when `~/.gemini` exists, `~/.gemini/config/AGENTS.md` |
+| Skills | `flow`, `sdd`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
+| Plugin agents | yes | no | no |
+| Hooks | yes | no | no |
+| Engram MCP | yes (plugin) | no: configure by hand | no: configure by hand |
+| Status line, `look` band | yes | no | no |
+| `bin/*`, systemd units, git hooks | yes | yes | yes |
 
----
+The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`, so all three agents read the same rules file.
 
-## Component Compatibility Matrix
+## Manual setup per machine
 
-| Component | Claude Code | OpenCode | Antigravity | Canonical Location |
-|---|---|---|---|---|
-| **Global Rules** | `~/.claude/CLAUDE.md` | `~/.config/opencode/AGENTS.md` & workspace `AGENTS.md` | `~/.gemini/config/AGENTS.md` & workspace `AGENTS.md` | `AGENTS.md` (root, linked to `claude/CLAUDE.md`) |
-| **Workflow Skills (`flow`)** | via `flow` plugin | `~/.config/opencode/skills/` | `~/.gemini/antigravity-cli/skills/` | `plugins/flow/skills/` |
-| **SDD Skills (`sdd`)** | via `sdd` plugin | `~/.config/opencode/skills/` | `~/.gemini/antigravity-cli/skills/` | `plugins/sdd/skills/` |
-| **Toolkit Skills (`toolkit`)** | via `toolkit` plugin | `~/.config/opencode/skills/` | `~/.gemini/antigravity-cli/skills/` | `plugins/toolkit/skills/` |
-| **Subagents** | `plugins/*/agents/*.md` | `~/.config/opencode/agents/*.md` | Dynamic runtime (`define_subagent` / `invoke_subagent`) | `plugins/*/agents/` |
-| **Persistent Memory** | Engram via MCP / CLI | Engram via MCP (`opencode mcp add`) | Engram via MCP (`mcp_config.json`) | System engram binary (`~/.local/bin/engram`) |
-| **Lifecycle Hooks** | Shell hooks in `plugins/*/hooks/` | JS/TS runtime plugins | `hooks.json` (`run_command` matchers) | Tool-specific adapter layer |
-| **UI & Statusline** | `look` plugin & `statusline.sh` | Native OpenCode TUI | Antigravity CLI / IDE Canvas | Claude-specific (isolated) |
-| **System Binaries** | `bin/*` in `~/.local/bin` | Same | Same | Agnostic OS-level tools |
+Engram is not wired by the installer outside Claude Code. Add it by hand:
 
----
+- OpenCode: an `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`.
+- Antigravity: an `engram` server in `~/.gemini/antigravity-cli/mcp_config.json`.
 
-## Target-by-Target Breakdown
+Antigravity may also load `~/.gemini/GEMINI.md` if one exists (for example from gentle-ai). It is outside this repo and can duplicate or contradict `AGENTS.md`.
 
-### 1. Claude Code (Default / Baseline)
-Claude Code remains a first-class citizen. Nothing in the Claude configuration or runtime changes:
-- `claude/CLAUDE.md` is linked to `~/.claude/CLAUDE.md`.
-- `claude/settings.json` is merged into `~/.claude/settings.json`.
-- The marketplace `ai-dotfiles` registers and installs `flow`, `sdd`, `toolkit`, and `look`.
-- Statusline and look band operate as normal.
+## What works outside Claude Code
 
-### 2. OpenCode
-OpenCode adheres to open standards for Agent Skills and markdown agents:
-- **Rules:** Reads `AGENTS.md` from the project root automatically.
-- **Skills:** Discovers skills placed in `~/.config/opencode/skills/` (symlinked from `plugins/*/skills/*`). Each skill retains its progressive disclosure via YAML frontmatter (`name`, `description`).
-- **Agents:** Subagents like `plan-reviewer` and `jd-judge-a` map directly to `.opencode/agents/` or `~/.config/opencode/agents/`.
-- **MCP:** Engram is exposed via `opencode mcp add engram`.
+Skills that are plain instructions work: most of `flow` (`plan`, `research`, `foundation`, `bootstrap`, `fill-gaps`, `handoff`, `idea`, `next`, `split`, `integrate`) and most of `toolkit`.
 
-### 3. Google Antigravity
-Antigravity supports progressive skills, hierarchical rules, and runtime subagent delegation:
-- **Rules:** Hierarchically discovers `AGENTS.md` from the working directory up to git root, plus global rules in `~/.gemini/config/`.
-- **Skills:** Loaded from `~/.gemini/antigravity-cli/skills/` (or project `.agents/skills/`). Frontmatter and folder structure (`SKILL.md`, `references/`, `scripts/`) are 100% compatible.
-- **Subagents:** Antigravity orchestrates phase agents dynamically at runtime (`sdd-orchestrator` invokes `sdd-apply`, `sdd-verify`, etc.).
-- **Hooks:** Native `hooks.json` maps events (`PreToolUse`, `PostToolUse`), with the execution matcher matching `run_command`.
+These skills depend on Claude Code and break elsewhere:
 
----
+- `sdd:orchestrator` and the `/sdd:*` commands: they hand each phase to plugin agents (`subagent_type: "sdd:sdd-<phase>"`) and read references through `${CLAUDE_PLUGIN_ROOT}`. Neither exists in OpenCode or Antigravity.
+- `flow:plan-review`: needs the `flow:plan-reviewer` agent.
+- `toolkit:judgment-day`: needs the `toolkit:jd-*` agents.
 
-## Switching Between Agents Without Friction
+Porting them (agents per tool, plugin-root paths, hooks) is open work; it starts with `/flow:plan`.
 
-Because the rules and skills share the exact same underlying files through symlinks:
-1. **Zero drift:** Edits to a skill or rule take effect immediately across all agents.
-2. **Zero switching cost:** When opening a project in Claude, OpenCode, or Antigravity, the agent receives the exact same role constraints, communication tone, and progressive procedure runbooks.
-3. **Safe fallbacks:** If an agent lacks a specific UI feature (like Claude's `statusline.sh` or `look` banner), core execution and verification (`make check`) are completely unaffected.
+## Known side effect
 
----
-
-## Verification
-
-Every change to rules, skills, or installer scripts must pass:
-```bash
-make check
-```
-This guarantees that cross-agent compatibility additions never break Claude Code marketplace validations, line caps, or test suites.
+Inside this repo, Claude Code loads the rules twice: once as the global `~/.claude/CLAUDE.md` and once as the project `AGENTS.md`.

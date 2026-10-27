@@ -6,8 +6,8 @@ Personal configuration for AI coding tools. Planning-first and Spec-Driven Devel
 
 | Path | What | How it is installed |
 |---|---|---|
-| `AGENTS.md` | Canonical always-on rules (shared across agents) | Symlinked to `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, and `~/.gemini/` |
-| `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` (and repo root `AGENTS.md`) |
+| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | Symlinked to `~/.config/opencode/AGENTS.md` and `~/.gemini/antigravity-cli/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
+| `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
 | `plugins/flow/` | Workflow plugin | `claude plugin install flow@ai-dotfiles` |
@@ -122,4 +122,5 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets) and a cap on SessionStart context (low value today: the measured startup cost is ~3k tokens). Done elsewhere: one variable to disable hooks (`AI_HOOKS_OFF`); the minimal profile became opt-in packs. Its Memory Vault overlaps engram: reference only
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
-- [x] OpenCode and Antigravity support (rules, skills, and multi-target installer: see [docs/multi-agent.md](docs/multi-agent.md))
+- [x] OpenCode and Antigravity basics: shared rules, skill files and a multi-target installer ([docs/multi-agent.md](docs/multi-agent.md))
+- [ ] Port the Claude-only parts to OpenCode and Antigravity: SDD phase agents, `plan-review` and `judgment-day` agents, `${CLAUDE_PLUGIN_ROOT}` paths, hooks, engram MCP setup
