@@ -37,13 +37,15 @@ write_makefile() {
 }
 
 # expect EXPECTED_EXIT LABEL STDIN [ENV...]: run the hook and compare its exit code.
-# The hook's stderr is kept in $LAST_STDERR for content assertions.
+# The hook's stdout and stderr are kept in $LAST_STDOUT and $LAST_STDERR.
+LAST_STDOUT=""
 LAST_STDERR=""
 expect() {
-  local expected=$1 label=$2 input=$3 actual errfile="$TMP_ROOT/stderr"
+  local expected=$1 label=$2 input=$3 actual errfile="$TMP_ROOT/stderr" outfile="$TMP_ROOT/stdout"
   shift 3
-  printf '%s' "$input" | env "$@" bash "$HOOK" >/dev/null 2>"$errfile"
+  printf '%s' "$input" | env "$@" bash "$HOOK" >"$outfile" 2>"$errfile"
   actual=$?
+  LAST_STDOUT=$(<"$outfile")
   LAST_STDERR=$(<"$errfile")
   if [[ $actual -eq $expected ]]; then
     printf 'PASS  [exit %d] %s\n' "$actual" "$label"
@@ -169,6 +171,60 @@ write_makefile "$repo" "echo run >>$counter" 'exit 1'
 expect 2 'failing check blocks' "$(payload "$repo")"
 expect 2 'failing check blocks again' "$(payload "$repo")"
 assert 'a failing run is never cached' test "$(runs "$counter")" -eq 2
+
+echo "== /flow:pair red marker =="
+
+# red_repo NAME: repo on branch story/03-x with a failing check and a committed
+# red test; leaves an uncommitted edit so the hook would normally run.
+red_repo() {
+  local dir
+  dir=$(new_repo "$1")
+  git -C "$dir" checkout -qb story/03-x
+  write_makefile "$dir" 'exit 1'
+  printf 'red\n' >"$dir/red.test"
+  commit_all "$dir"
+  printf 'wip\n' >"$dir/wip.txt"
+  printf '%s\n' "$dir"
+}
+
+# write_marker DIR BRANCH SHA: the marker /flow:pair writes while a test is red.
+write_marker() {
+  printf '%s\n%s\n' "$2" "$3" >"$(git -C "$1" rev-parse --path-format=absolute --git-path flow-pair-red)"
+}
+
+has_system_message() { jq -e '.systemMessage | test("flow:pair")' >/dev/null 2>&1 <<<"$1"; }
+
+repo=$(red_repo marker-ok)
+write_marker "$repo" story/03-x "$(git -C "$repo" rev-parse HEAD)"
+expect 0 'marker for this branch and a sha in HEAD does not block' "$(payload "$repo")"
+assert 'honoured marker reports a systemMessage' has_system_message "$LAST_STDOUT"
+
+repo=$(red_repo marker-stale)
+write_marker "$repo" story/03-x 0123456789abcdef0123456789abcdef01234567
+expect 2 'marker whose sha is not in HEAD still blocks' "$(payload "$repo")"
+assert 'stale marker reports no systemMessage' test -z "$LAST_STDOUT"
+
+repo=$(red_repo marker-branch)
+write_marker "$repo" story/99-other "$(git -C "$repo" rev-parse HEAD)"
+expect 2 'marker for another branch still blocks' "$(payload "$repo")"
+
+repo=$(red_repo marker-orphan)
+sha=$(git -C "$repo" rev-parse HEAD)
+git -C "$repo" checkout -q --orphan story/03-x-rewritten
+git -C "$repo" rm -rqf --cached . >/dev/null
+write_marker "$repo" story/03-x-rewritten "$sha"
+expect 2 'marker on the right branch whose sha left HEAD still blocks' "$(payload "$repo")"
+
+# A linked worktree has its own git dir; the marker must be found there.
+repo=$(red_repo marker-main)
+sha=$(git -C "$repo" rev-parse HEAD)
+git -C "$repo" checkout -q -b main-line
+wt="$TMP_ROOT/marker-worktree"
+git -C "$repo" worktree add -q "$wt" story/03-x
+printf 'wip\n' >"$wt/wip.txt"
+write_marker "$wt" story/03-x "$sha"
+expect 0 'marker in a linked worktree git dir is honoured' "$(payload "$wt")"
+expect 2 'worktree marker does not leak to the main checkout' "$(payload "$repo")"
 
 echo
 if [[ $failures -gt 0 ]]; then

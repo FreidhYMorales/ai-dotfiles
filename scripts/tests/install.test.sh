@@ -196,6 +196,24 @@ assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS
 assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
 assert 'sdd skills are linked for opencode' test -L "$home/.config/opencode/skills/orchestrator"
 assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/judgment-day"
+for skill in backlog story pair; do
+  assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
+done
+
+echo "== opencode cleanup of Claude-only skills =="
+
+home=$(sandbox opencode-cleanup)
+skills=$home/.config/opencode/skills
+mkdir -p "$skills" "$home/foreign/story"
+ln -s "$ROOT/plugins/flow/skills/pair" "$skills/pair"
+ln -s "$ROOT/plugins/flow/skills/backlog" "$skills/backlog"
+ln -s "$home/foreign/story" "$skills/story"
+install "$home" --target opencode
+assert 'opencode cleanup run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a left-over repo link named pair is removed' test ! -e "$skills/pair" -a ! -L "$skills/pair"
+assert 'a left-over repo link named backlog is removed' test ! -e "$skills/backlog" -a ! -L "$skills/backlog"
+assert 'a foreign link named story is left alone' same "$(readlink "$skills/story")" "$home/foreign/story"
+assert 'cleanup makes no backup of removed links' test -z "$(find "$skills" -name '*.bak-*')"
 
 echo "== antigravity target =="
 
@@ -207,6 +225,17 @@ assert 'AGENTS.md is linked for antigravity cli' test -L "$home/.gemini/antigrav
 assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
 assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
 assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/judgment-day"
+for skill in backlog story pair; do
+  assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
+done
+
+home=$(sandbox antigravity-cleanup)
+skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$skills/pair"
+printf 'mine\n' >"$skills/pair/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
 
 echo "== target without a value =="
 

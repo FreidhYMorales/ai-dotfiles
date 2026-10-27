@@ -31,6 +31,12 @@ Use it for:
 | Future PR-ready | Each commit should be a candidate chained PR when the change grows. |
 | SDD workload guard | If SDD tasks forecast a >400-line change, group commits into chained PR slices before implementation. |
 
+## Exception: `/flow:pair`
+
+Under `/flow:pair`, a `test:` commit followed by its `feat:`/`fix:` commit is one work unit (an optional `refactor:` may follow).
+The red `test:` commit is intentional evidence that the test existed and failed before the code: do not squash it into the code commit or rewrite that history.
+"Keep tests with code" applies to the pair of commits, not to each commit alone.
+
 ## Work Unit Checklist
 
 Before committing, confirm:

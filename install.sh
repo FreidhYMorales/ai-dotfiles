@@ -28,6 +28,10 @@ GEMINI_CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow sdd toolkit look)
+# Claude-only skills: the daily loop (flow:backlog, flow:story, flow:pair) relies
+# on Claude Code hooks and agents, so link_skills keeps it out of OpenCode and
+# Antigravity until it is ported (multi-agent-port).
+CLAUDE_ONLY_SKILLS="backlog story pair"
 
 DRY_RUN=0
 TARGET_ARG=""
@@ -148,10 +152,23 @@ link_bin() {
 link_skills() {
   local target_skills_dir="$1"
   run mkdir -p "$target_skills_dir"
-  local skill
+  local skill name dst target repo_real
   for skill in "$REPO_DIR"/plugins/*/skills/*; do
     [[ -d "$skill" && -f "$skill/SKILL.md" ]] || continue
-    link_file "$skill" "$target_skills_dir/$(basename "$skill")"
+    name=$(basename "$skill")
+    [[ " $CLAUDE_ONLY_SKILLS " == *" $name "* ]] && continue
+    link_file "$skill" "$target_skills_dir/$name"
+  done
+  # Remove Claude-only links an earlier run left behind, but only our own
+  # symlinks: real directories and links pointing elsewhere are the user's.
+  repo_real=$(readlink -f "$REPO_DIR")
+  for name in $CLAUDE_ONLY_SKILLS; do
+    dst="$target_skills_dir/$name"
+    [[ -L "$dst" ]] || continue
+    target=$(readlink "$dst")
+    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]] || continue
+    run rm "$dst"
+    echo "removed Claude-only skill: $dst"
   done
 }
 

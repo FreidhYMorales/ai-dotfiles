@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "flow",
-      "description": "Planning-first workflow: research, scope + UX planning, review, gap filling, a backlog of one-line vertical stories, just-in-time story refinement with a size/risk line, and handoff to implementation.",
-      "version": "0.7.0",
+      "description": "Planning-first workflow: research, scope + UX planning, review, gap filling, a backlog of one-line vertical stories, just-in-time story refinement with a size/risk line, Strict TDD pair programming (/flow:pair) that commits each test before its code, and handoff to implementation.",
+      "version": "0.8.0",
       "source": "./plugins/flow",
       "category": "productivity"
     },
@@ -23,7 +23,7 @@
     {
       "name": "toolkit",
       "description": "Engineering skills: Judgment Day dual review, work-unit commits, chained PRs, comment writing, doc design, skill authoring, Go testing.",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "source": "./plugins/toolkit",
       "category": "development"
     },
