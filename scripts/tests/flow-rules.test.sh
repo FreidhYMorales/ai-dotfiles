@@ -23,7 +23,10 @@ assert() {
 has() { [[ -f $1 ]] && grep -qF -- "$2" "$1"; }
 
 echo "== rules: risk comes from the single high-risk list =="
-assert 'rules point to the high-risk list' has "$RULES" 'plugins/flow/skills/pair/references/high-risk.md'
+# Named by skill, not repo path: the rules load in every project.
+# Backticks in the expected string are literal markdown.
+# shellcheck disable=SC2016
+assert 'rules point to the high-risk list' has "$RULES" '`references/high-risk.md` of the `flow:pair` skill'
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
