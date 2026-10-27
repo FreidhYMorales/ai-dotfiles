@@ -39,7 +39,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --target)
-      TARGET_ARG="${2:-}"
+      if [[ -z "${2:-}" || "$2" == -* ]]; then
+        echo "--target needs a value: claude|opencode|antigravity|all" >&2
+        exit 1
+      fi
+      TARGET_ARG="$2"
       shift 2
       ;;
     --target=*)

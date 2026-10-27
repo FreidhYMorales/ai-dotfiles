@@ -208,6 +208,13 @@ assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/confi
 assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
 assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/judgment-day"
 
+echo "== target without a value =="
+
+home=$(sandbox notarget)
+install "$home" --target
+assert 'missing target value fails' test "$LAST_EXIT" -ne 0
+assert 'missing target value explains why' rg -q -- '--target needs a value' <<<"$LAST_OUTPUT"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
