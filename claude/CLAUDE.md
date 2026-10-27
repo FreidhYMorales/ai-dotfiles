@@ -31,7 +31,7 @@ SDD commands are `/sdd:*`; before any SDD routing load the `sdd:orchestrator` sk
 
 ## Delegation
 
-- Risk: the high-risk items live only in `plugins/flow/skills/pair/references/high-risk.md` (flow plugin); any item there makes work not small and gets a fresh read-only verifier.
+- Risk: the high-risk items live only in `references/high-risk.md` of the `flow:pair` skill; any item there makes work not small and gets a fresh read-only verifier.
 - Read 1–3 files inline to decide or verify; understanding that needs 4+ files → one exploration sub-agent.
 - Writing 2+ non-trivial files → one writer sub-agent; never run parallel writers.
 - Tests, builds and installs may use a fresh worker each.
