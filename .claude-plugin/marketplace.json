@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "flow",
-      "description": "Planning-first workflow: research, scope + UX planning, review, gap filling, a backlog of one-line vertical stories and handoff to implementation.",
-      "version": "0.6.0",
+      "description": "Planning-first workflow: research, scope + UX planning, review, gap filling, a backlog of one-line vertical stories, just-in-time story refinement with a size/risk line, and handoff to implementation.",
+      "version": "0.7.0",
       "source": "./plugins/flow",
       "category": "productivity"
     },
