@@ -20,7 +20,7 @@ The caller gives you the story ID and the plan folder. Read all of these before 
 - The story file `docs/plans/<feature>/stories/NN-<slug>.md` (legacy: next to the backlog): acceptance criteria, `## Size` with the `Risk:` line, `## Log`.
 - The backlog `## Context` for `Test command:` and `Single test:`.
 - The branch diff: `git diff main...HEAD` and `git log --oneline main..HEAD`.
-- The pair references: `plugins/flow/skills/pair/references/strict-tdd.md` and `plugins/flow/skills/pair/references/high-risk.md`.
+- The pair references `strict-tdd.md` and `high-risk.md`, at the absolute paths the caller gives. They live in the flow plugin, not in the project under review; without paths, read them from `${CLAUDE_PLUGIN_ROOT}/skills/pair/references/`. If you cannot read them, the assertion and security checks are `NEEDS DECISION`.
 
 ## Checks
 
