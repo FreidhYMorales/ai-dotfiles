@@ -57,6 +57,11 @@ for s in plan plan-review fill-gaps; do
   assert "$s states the lookup order" has "$SKILLS/$s/SKILL.md" "$LOOKUP"
 done
 
+echo "== plan lookup order: research, foundation, handoff =="
+for s in research foundation handoff; do
+  assert "$s states the lookup order" has "$SKILLS/$s/SKILL.md" "$LOOKUP"
+done
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
