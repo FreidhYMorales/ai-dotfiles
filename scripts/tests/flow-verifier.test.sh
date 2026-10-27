@@ -51,7 +51,10 @@ assert 'one recheck by the verifier' has "$PAIR" 'one recheck'
 assert 'second FAIL hands it to the user' has "$PAIR" 'a second FAIL ends with NEEDS DECISION'
 
 echo "== pair: verifier only for high risk =="
+# The backticks below are literal markdown, not command substitution.
+# shellcheck disable=SC2016
 assert 'calls the verifier when Risk names an item' has "$PAIR" 'High-risk story (any item): invoke the `flow:verifier` agent'
+# shellcheck disable=SC2016
 assert 'never calls it for Risk: none' has "$PAIR" '`Risk: none`: no verifier'
 
 echo
