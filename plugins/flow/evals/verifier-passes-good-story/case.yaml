@@ -1,0 +1,11 @@
+schema_version: "1"
+name: verifier-passes-good-story
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 14
+  allowed_tools: [Read, Glob, Grep, Bash, Agent]
+  prompt: |
+    Story 02 in docs/plans/temp-convert/ is green on branch story/02-fahrenheit
+    and its Risk line names item 3. Run the flow:verifier agent on it and show
+    me its report.
