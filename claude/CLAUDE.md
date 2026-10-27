@@ -25,12 +25,16 @@ Engram is the only memory system; native auto-memory is disabled.
 
 ## Workflow
 
-New features start with planning, not code: `/flow:research` (optional) -> `/flow:plan` -> `/flow:foundation` -> `/flow:bootstrap` (both for new projects) -> `/flow:plan-review` -> `/flow:fill-gaps` -> `/flow:plan-review` -> `/flow:split` (collaborative only) -> `/flow:handoff`. Merge teammates' work with `/flow:integrate`; finished early? `/flow:next`; new idea? `/flow:idea`.
+Work runs one story at a time: `/flow:backlog` -> `/flow:story` -> `/flow:pair` (verifier only for a high-risk story).
+
+New or large projects start with planning, not code: `/flow:research` (optional) -> `/flow:plan` -> `/flow:foundation` -> `/flow:bootstrap` (both for new projects) -> `/flow:plan-review` -> `/flow:fill-gaps` -> `/flow:plan-review` -> `/flow:split` (collaborative only) -> `/flow:handoff`, which ends in the backlog. Merge teammates' work with `/flow:integrate`; finished early? `/flow:next`; new idea? `/flow:idea`.
 
 SDD commands are `/sdd:*`; before any SDD routing load the `sdd:orchestrator` skill. Strict TDD: enabled.
 
 ## Delegation
 
-- Read 1–3 files inline to decide or verify; understanding that needs 4+ files → one exploration sub-agent.
-- Writing 2+ non-trivial files → one writer sub-agent; never run parallel writers.
+- Size: small = understood within one bounded read, risk contained, resumable from the request plus `git diff`; file counts never decide.
+- Risk: the high-risk items live only in `references/high-risk.md` of the `flow:pair` skill; any item there makes work not small and gets a fresh read-only verifier.
+- Understanding that fits one bounded read: work inline; anything broader → one exploration sub-agent.
+- Writing beyond one bounded change → one writer sub-agent; never run parallel writers.
 - Tests, builds and installs may use a fresh worker each.
