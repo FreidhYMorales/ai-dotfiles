@@ -30,6 +30,11 @@ assert 'no inline-read file count' lacks "$RULES" '1–3 files'
 assert 'no exploration file count' lacks "$RULES" '4+ files'
 assert 'no writer file count' lacks "$RULES" '2+ non-trivial files'
 
+echo "== rules: size by understanding, risk and resumability =="
+assert 'size names one bounded read' has "$RULES" 'understood within one bounded read'
+# shellcheck disable=SC2016
+assert 'size names resumability' has "$RULES" 'resumable from the request plus `git diff`'
+
 echo "== rules: risk comes from the single high-risk list =="
 # Named by skill, not repo path: the rules load in every project.
 # Backticks in the expected string are literal markdown.
