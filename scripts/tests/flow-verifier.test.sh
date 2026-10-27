@@ -36,6 +36,14 @@ assert 'reads the story file' has "$AGENT" 'stories/NN-<slug>.md'
 assert 'reads the branch diff against main' has "$AGENT" 'git diff main...HEAD'
 assert 'reads the pair references' has "$AGENT" 'pair/references/'
 
+echo "== agent: report shape pair parses =="
+assert 'has a fixed report section' has "$AGENT" '## Report'
+assert 'one row per acceptance criterion' has "$AGENT" '| Criterion | Result | Evidence |'
+assert 'checks test commit before code commit' has "$AGENT" 'Commit order'
+assert 'checks committed tests were not changed' has "$AGENT" 'Tamper check'
+assert 'security checklist for item 2' has "$AGENT" 'Security (item 2)'
+assert 'verdict line format' has "$AGENT" 'Verdict: PASS | FAIL | NEEDS DECISION'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
