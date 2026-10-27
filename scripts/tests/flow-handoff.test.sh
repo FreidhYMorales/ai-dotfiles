@@ -33,6 +33,13 @@ assert 'handoff never recommends an /sdd command' lacks "$HANDOFF" '/sdd:'
 assert 'solo handoff goes through /flow:backlog' has "$HANDOFF" 'Solo plan: run `/flow:backlog`'
 assert 'solo handoff names /flow:story 01 next' has "$HANDOFF" '/flow:story 01'
 
+echo "== handoff: collaborative plans keep tasks.md =="
+# shellcheck disable=SC2016
+assert 'collaborative handoff writes tasks.md' has "$HANDOFF" 'Collaborative plan: write `<plan-dir>/tasks.md`'
+# shellcheck disable=SC2016
+assert 'collaborative handoff points to /flow:split' has "$HANDOFF" '| Collaborative plan | `tasks.md` in the plan dir, for `/flow:split` |'
+assert 'handoff no longer mentions SDD at all' lacks "$HANDOFF" 'SDD'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
