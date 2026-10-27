@@ -40,6 +40,15 @@ assert 'collaborative handoff writes tasks.md' has "$HANDOFF" 'Collaborative pla
 assert 'collaborative handoff points to /flow:split' has "$HANDOFF" '| Collaborative plan | `tasks.md` in the plan dir, for `/flow:split` |'
 assert 'handoff no longer mentions SDD at all' lacks "$HANDOFF" 'SDD'
 
+NEXT="$SKILLS/next/SKILL.md"
+echo "== next: tasks.md first, else the backlog =="
+# shellcheck disable=SC2016
+assert 'next reads tasks.md when it exists' has "$NEXT" 'If `<plan-dir>/tasks.md` exists, use it'
+# shellcheck disable=SC2016
+assert 'next falls back to the backlog' has "$NEXT" 'else read `<plan-dir>/backlog.md`'
+# shellcheck disable=SC2016
+assert 'backlog story is ready when every Requires is done' has "$NEXT" 'every `Requires: #N` is `[x]`'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
