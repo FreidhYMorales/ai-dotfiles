@@ -50,6 +50,10 @@ assert 'one correction batch on FAIL' has "$PAIR" 'one correction batch'
 assert 'one recheck by the verifier' has "$PAIR" 'one recheck'
 assert 'second FAIL hands it to the user' has "$PAIR" 'a second FAIL ends with NEEDS DECISION'
 
+echo "== pair: verifier only for high risk =="
+assert 'calls the verifier when Risk names an item' has "$PAIR" 'High-risk story (any item): invoke the `flow:verifier` agent'
+assert 'never calls it for Risk: none' has "$PAIR" '`Risk: none`: no verifier'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
