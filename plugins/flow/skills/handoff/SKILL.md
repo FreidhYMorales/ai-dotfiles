@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: "Trigger: handoff, start implementing, plan approved, turn plan into tasks, /flow:handoff. Turn the approved plan into a backlog (solo, via /flow:backlog) or an ordered MUST/SHOULD task list."
+description: "Trigger: handoff, start implementing, plan approved, turn plan into tasks, /flow:handoff. Turn the approved plan into a backlog (solo, via /flow:backlog) or the user's own tasks from split's tasks.md."
 license: MIT
 metadata:
   author: FreidhYMorales
@@ -24,7 +24,7 @@ Load when `/flow:plan-review` passes (and `/flow:split` is done for collaborativ
 | Project | Output |
 |---|---|
 | Solo plan | `backlog.md` next to the plan, through `/flow:backlog` |
-| Collaborative plan | `tasks.md` in the plan dir, for `/flow:split` |
+| Collaborative plan (after `/flow:split`) | your own tasks from `tasks.md`, then `/flow:next` |
 | Plan status is not reviewed/approved | Stop; recommend `/flow:plan-review` |
 
 ## Execution Steps
@@ -33,11 +33,11 @@ Load when `/flow:plan-review` passes (and `/flow:split` is done for collaborativ
 2. Check the verdict is PASS (or PASS WITH CHANGES with every finding resolved in `Plan-review resolutions`).
 3. List superseded items: earlier proposal/spec items the plan changes or drops.
 4. Solo plan: run `/flow:backlog` on the plan so it writes `backlog.md` next to it; pass the superseded items so no story carries them. Next step: `/flow:story 01`.
-5. Collaborative plan: write `<plan-dir>/tasks.md` (then `/flow:split`): tasks grouped MUST then SHOULD, ordered by dependency, each with files touched, acceptance check (state or test), and dev-day estimate. Contract/setup tasks go first; integration tasks for teammates' packages go where their dependencies are met.
+5. Collaborative plan: read the `tasks.md` that `/flow:split` wrote; never rewrite it (split owns owners, files and statuses). Hand off only the CLI user's own tasks, in dependency order, each with its acceptance check. No `tasks.md` yet: stop and recommend `/flow:split`. Next step: `/flow:next`.
 6. Mark the plan status `approved` and save the handoff to engram (type `decision`, topic `handoff/<feature>`).
 
 ## Output Contract
 
 - Solo: `<plan-dir>/backlog.md`, the superseded-items list, next step `/flow:story 01`.
-- Collaborative: `<plan-dir>/tasks.md`, next step `/flow:split`.
+- Collaborative: the user's own tasks from `<plan-dir>/tasks.md` (unchanged), next step `/flow:next`.
 - Final message: path or command, MUST task count and dev-days, first task to start.
