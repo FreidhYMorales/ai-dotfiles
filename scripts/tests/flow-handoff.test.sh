@@ -33,11 +33,13 @@ assert 'handoff never recommends an /sdd command' lacks "$HANDOFF" '/sdd:'
 assert 'solo handoff goes through /flow:backlog' has "$HANDOFF" 'Solo plan: run `/flow:backlog`'
 assert 'solo handoff names /flow:story 01 next' has "$HANDOFF" '/flow:story 01'
 
-echo "== handoff: collaborative plans keep tasks.md =="
+echo "== handoff: collaborative plans use split's tasks.md =="
+# split runs before handoff and owns tasks.md; handoff must not rewrite it.
 # shellcheck disable=SC2016
-assert 'collaborative handoff writes tasks.md' has "$HANDOFF" 'Collaborative plan: write `<plan-dir>/tasks.md`'
+assert 'collaborative handoff reads the tasks.md split wrote' has "$HANDOFF" 'Collaborative plan: read the `tasks.md` that `/flow:split` wrote'
 # shellcheck disable=SC2016
-assert 'collaborative handoff points to /flow:split' has "$HANDOFF" '| Collaborative plan | `tasks.md` in the plan dir, for `/flow:split` |'
+assert 'collaborative handoff hands off own tasks, then next' has "$HANDOFF" '| Collaborative plan (after `/flow:split`) | your own tasks from `tasks.md`, then `/flow:next` |'
+assert 'handoff never sends back to split' lacks "$HANDOFF" 'then `/flow:split`'
 assert 'handoff no longer mentions SDD at all' lacks "$HANDOFF" 'SDD'
 
 NEXT="$SKILLS/next/SKILL.md"
