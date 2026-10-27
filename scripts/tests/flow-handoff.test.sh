@@ -62,6 +62,12 @@ for s in research foundation handoff; do
   assert "$s states the lookup order" has "$SKILLS/$s/SKILL.md" "$LOOKUP"
 done
 
+IDEA="$SKILLS/idea/SKILL.md"
+echo "== idea points to the loop, not SDD =="
+assert 'idea no longer mentions SDD' lacks "$IDEA" 'SDD'
+# shellcheck disable=SC2016
+assert 'idea points implementation questions to /flow:story' has "$IDEA" '(that is `/flow:story` on a backlog story)'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
