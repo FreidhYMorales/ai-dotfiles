@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: "Trigger: handoff, start implementing, plan approved, turn plan into tasks, /flow:handoff. Turn the approved plan into SDD input or an ordered MUST/SHOULD task list."
+description: "Trigger: handoff, start implementing, plan approved, turn plan into tasks, /flow:handoff. Turn the approved plan into a backlog (solo, via /flow:backlog) or the user's own tasks from split's tasks.md."
 license: MIT
 metadata:
   author: FreidhYMorales
@@ -23,21 +23,21 @@ Load when `/flow:plan-review` passes (and `/flow:split` is done for collaborativ
 
 | Project | Output |
 |---|---|
-| SDD available (`sdd` plugin enabled, i.e. `/sdd:*` commands exist) | Recommend `/sdd:ff <change> <plan path>` (scope is clear) or `/sdd:new <change> <plan path>` (needs exploration) |
-| No SDD | Ordered task list in the plan dir |
+| Solo plan | `backlog.md` next to the plan, through `/flow:backlog` |
+| Collaborative plan (after `/flow:split`) | your own tasks from `tasks.md`, then `/flow:next` |
 | Plan status is not reviewed/approved | Stop; recommend `/flow:plan-review` |
 
 ## Execution Steps
 
-1. Locate the plan (`openspec/changes/<change>/plan.md`, else `docs/plans/<feature>/plan.md`) and the latest review file.
+1. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). Read it and the latest review file.
 2. Check the verdict is PASS (or PASS WITH CHANGES with every finding resolved in `Plan-review resolutions`).
 3. List superseded items: earlier proposal/spec items the plan changes or drops.
-4. SDD path: give the exact command, e.g. `/sdd:ff <change> <plan path>`, plus the instruction "Use <plan path> as the source of truth; it supersedes these proposal items: ...". Remind that the proposal/specs must reflect the superseded items before tasks are generated.
-5. Non-SDD path: write `<plan-dir>/tasks.md`: tasks grouped MUST then SHOULD, ordered by dependency, each with files touched, acceptance check (state or test), and dev-day estimate. Contract/setup tasks go first; integration tasks for teammates' packages go where their dependencies are met.
+4. Solo plan: run `/flow:backlog` on the plan so it writes `backlog.md` next to it; pass the superseded items so no story carries them. Next step: `/flow:story 01`.
+5. Collaborative plan: read the `tasks.md` that `/flow:split` wrote; never rewrite it (split owns owners, files and statuses). Hand off only the CLI user's own tasks, in dependency order, each with its acceptance check. No `tasks.md` yet: stop and recommend `/flow:split`. Next step: `/flow:next`.
 6. Mark the plan status `approved` and save the handoff to engram (type `decision`, topic `handoff/<feature>`).
 
 ## Output Contract
 
-- SDD: the exact command plus the superseded-items list.
-- Non-SDD: `<plan-dir>/tasks.md`.
+- Solo: `<plan-dir>/backlog.md`, the superseded-items list, next step `/flow:story 01`.
+- Collaborative: the user's own tasks from `<plan-dir>/tasks.md` (unchanged), next step `/flow:next`.
 - Final message: path or command, MUST task count and dev-days, first task to start.

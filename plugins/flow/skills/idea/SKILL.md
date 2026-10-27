@@ -9,7 +9,7 @@ metadata:
 
 ## Activation Contract
 
-Load when the user brings a new idea or feature and the question is "should we do it, and when?", at any point in the workflow. Also load when an idea surfaces mid-planning (e.g. during `/flow:plan`) that is outside current scope: park it here instead of derailing the plan. Not for "how to implement" inside existing code (that is SDD explore).
+Load when the user brings a new idea or feature and the question is "should we do it, and when?", at any point in the workflow. Also load when an idea surfaces mid-planning (e.g. during `/flow:plan`) that is outside current scope: park it here instead of derailing the plan. Not for "how to implement" inside existing code (that is `/flow:story` on a backlog story).
 
 ## Hard Rules
 

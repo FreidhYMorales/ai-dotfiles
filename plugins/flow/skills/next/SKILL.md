@@ -20,7 +20,7 @@ Load when the user finished their own tasks early, is waiting on teammates' pack
 
 ## Execution Steps
 
-1. Load `<plan-dir>/tasks.md` (from `/flow:split` or `/flow:handoff`) and the plan's cut line. If missing, rebuild the dependency graph from the plan and offer to write `tasks.md`.
+1. If `<plan-dir>/tasks.md` exists, use it (written by `/flow:split`) with the plan's cut line, and follow the steps below. Otherwise read `<plan-dir>/backlog.md` (solo projects): a story is Ready when it is `[ ]` and every `Requires: #N` is `[x]`; `[~]` is in progress. Recommend the lowest Ready ID with `/flow:story NN` (or `/flow:pair NN` if its story file is approved), list the rest as Blocked with what they wait for, and stop there. Neither file: offer `/flow:backlog`.
 2. Refresh statuses: check the repo/PRs for delivered packages (`gh pr list`, branches, files) and ask the user only about what cannot be verified.
 3. Classify every task not yet done:
 
