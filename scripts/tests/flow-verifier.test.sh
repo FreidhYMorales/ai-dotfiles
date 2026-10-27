@@ -44,6 +44,12 @@ assert 'checks committed tests were not changed' has "$AGENT" 'Tamper check'
 assert 'security checklist for item 2' has "$AGENT" 'Security (item 2)'
 assert 'verdict line format' has "$AGENT" 'Verdict: PASS | FAIL | NEEDS DECISION'
 
+PAIR="$ROOT/plugins/flow/skills/pair/SKILL.md"
+echo "== pair: bounded corrections =="
+assert 'one correction batch on FAIL' has "$PAIR" 'one correction batch'
+assert 'one recheck by the verifier' has "$PAIR" 'one recheck'
+assert 'second FAIL hands it to the user' has "$PAIR" 'a second FAIL ends with NEEDS DECISION'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
