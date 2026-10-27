@@ -29,7 +29,7 @@ Load when `/flow:plan-review` passes (and `/flow:split` is done for collaborativ
 
 ## Execution Steps
 
-1. Locate the plan (`openspec/changes/<change>/plan.md`, else `docs/plans/<feature>/plan.md`) and the latest review file.
+1. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). Read it and the latest review file.
 2. Check the verdict is PASS (or PASS WITH CHANGES with every finding resolved in `Plan-review resolutions`).
 3. List superseded items: earlier proposal/spec items the plan changes or drops.
 4. Solo plan: run `/flow:backlog` on the plan so it writes `backlog.md` next to it; pass the superseded items so no story carries them. Next step: `/flow:story 01`.
