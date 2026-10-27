@@ -21,7 +21,7 @@ Load when the user wants an idea or an approved plan (the `/flow:plan` handoff) 
 - **Vertical slices, never by layer.** Each story delivers value on its own through every layer it needs.
 - **No technical stories.** The actor is never the developer's tooling or "the system"; "set up the database" is built inside the first story that needs it.
 - 10-15 stories max (fewer is fine); one line each; no acceptance criteria, estimates or priorities.
-- Story 01 is the walking skeleton: the smallest slice usable end to end.
+- Story 01 is the walking skeleton: the smallest slice of the product's core value usable end to end (to-do app: "a user adds a task and sees it in the list"). Supporting concerns (sign-in, accounts, settings) are never story 01 on their own; build the minimum inside the first story that needs them, or give them a later story.
 - The file format below is a contract other skills parse (`story`, `pair`, `next`); never deviate from it.
 - Ignore old engram topics `sdd/*` and `sdd-init/*`.
 
