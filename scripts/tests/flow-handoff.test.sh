@@ -39,6 +39,7 @@ echo "== handoff: collaborative plans use split's tasks.md =="
 assert 'collaborative handoff reads the tasks.md split wrote' has "$HANDOFF" 'Collaborative plan: read the `tasks.md` that `/flow:split` wrote'
 # shellcheck disable=SC2016
 assert 'collaborative handoff hands off own tasks, then next' has "$HANDOFF" '| Collaborative plan (after `/flow:split`) | your own tasks from `tasks.md`, then `/flow:next` |'
+# shellcheck disable=SC2016
 assert 'handoff never sends back to split' lacks "$HANDOFF" 'then `/flow:split`'
 assert 'handoff no longer mentions SDD at all' lacks "$HANDOFF" 'SDD'
 
