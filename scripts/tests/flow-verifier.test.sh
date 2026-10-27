@@ -57,6 +57,14 @@ assert 'calls the verifier when Risk names an item' has "$PAIR" 'High-risk story
 # shellcheck disable=SC2016
 assert 'never calls it for Risk: none' has "$PAIR" '`Risk: none`: no verifier'
 
+echo "== references resolve outside this repo =="
+assert 'agent uses the reference paths the caller gives' has "$AGENT" 'absolute paths the caller gives'
+# The ${...} below is a literal path placeholder, not a shell expansion.
+# shellcheck disable=SC2016
+assert 'agent falls back to the plugin root' has "$AGENT" '${CLAUDE_PLUGIN_ROOT}/skills/pair/references/'
+# shellcheck disable=SC2016
+assert 'pair passes absolute reference paths to the verifier' has "$PAIR" 'absolute paths of `references/strict-tdd.md` and `references/high-risk.md`'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
