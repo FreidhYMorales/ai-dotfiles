@@ -31,6 +31,7 @@ SDD commands are `/sdd:*`; before any SDD routing load the `sdd:orchestrator` sk
 
 ## Delegation
 
+- Size: small = understood within one bounded read, risk contained, resumable from the request plus `git diff`; file counts never decide.
 - Risk: the high-risk items live only in `references/high-risk.md` of the `flow:pair` skill; any item there makes work not small and gets a fresh read-only verifier.
 - Understanding that fits one bounded read: work inline; anything broader → one exploration sub-agent.
 - Writing beyond one bounded change → one writer sub-agent; never run parallel writers.
