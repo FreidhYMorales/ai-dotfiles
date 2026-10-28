@@ -1,0 +1,39 @@
+# Story 19: session-start hooks in OpenCode
+
+## Story
+
+19. As a developer, I want the session-start hooks (host info, pack hint, backup status) in OpenCode so that OpenCode starts with the same context as Claude. Requires: #05
+
+## Acceptance criteria
+
+- [ ] Given a new OpenCode session in a project, when the model is called, then its system context carries one block with the same host info Claude gets, plus the pack hint and the backup notes whenever those hooks have something to say.
+- [ ] Given a session that keeps going, when the model is called again, then the same block is there without the hooks running again; a second session runs them once for itself.
+- [ ] Given every hook has nothing to say or fails, when the model is called, then the system context is left as it was and the session goes on normally.
+
+## Plan
+
+- Capture one real OpenCode 2.1.4 `context` hook call first (as story 05 did for `execute.before`), so the tests use its real shape.
+- Pin each criterion in tests first (red): the existing plugin test harness with a fake V2 context, the three Claude hooks steered by their switches and fakes, as in story 18.
+- The Claude hooks stay the single source; the existing toolkit plugin runs them once per session with the project directory, joins what they return, context and messages alike, and appends it to the system context on each model call of that session.
+- Nothing to say, a failing hook or an unreadable result leaves the system context untouched and never throws.
+- Update the Hooks row of `docs/multi-agent.md`; confirm once in a real `opencode run` that the model sees the host info.
+
+## Out of scope
+
+- `pause` (story 20); `update-check` (deferred by the plan); Antigravity (story 18, done).
+- Changing the Claude hooks or their tests; installer changes (the plugin is already linked by story 05).
+
+## Suggestions (your call)
+
+- none
+
+## Size
+
+normal
+Risk: item 6 (what the OpenCode model actually sees can only be confirmed in a real run)
+
+## Log
+
+- L1 request: "/flow:story 19"
+- L2 assumptions for approval: OpenCode V2 has no session-start event that can add context; its `context` hook runs on each model call with the system parts (engram.ts uses it the same way), so the plugin runs the hooks once per session id and appends the cached block on each call. The project directory comes from the plugin context (`ctx.location.directory`), `source` is `startup`. As in story 18, pack hint and backup notes go into the same block (OpenCode has no user-only channel the plugin can reach). No installer change: `toolkit.ts` is already linked.
+- L3 approved by the user ("si").
