@@ -247,6 +247,27 @@ install "$home" --target claude
 assert 'run over an installed sdd succeeds' test "$LAST_EXIT" -eq 0
 assert 'installed sdd is uninstalled' rg -qxF 'plugin uninstall sdd@ai-dotfiles' "$home/state/calls"
 
+# Links into the repo whose target is gone (a retired plugin's skills, an old
+# script or unit) are pruned in every place the installer links to.
+home=$(sandbox prune)
+broken=(
+  "$home/.claude/output-styles/retired.md:$ROOT/claude/output-styles/retired.md"
+  "$home/.config/opencode/skills/orchestrator:$ROOT/plugins/retired/skills/orchestrator"
+  "$home/.gemini/antigravity-cli/skills/orchestrator:$ROOT/plugins/retired/skills/orchestrator"
+  "$home/.local/bin/retired-tool:$ROOT/bin/retired-tool"
+  "$home/.config/systemd/user/retired.service:$ROOT/systemd/retired.service"
+)
+for pair in "${broken[@]}"; do
+  mkdir -p "$(dirname "${pair%%:*}")"
+  ln -s "${pair#*:}" "${pair%%:*}"
+done
+install "$home" --target all
+assert 'prune run succeeds' test "$LAST_EXIT" -eq 0
+for pair in "${broken[@]}"; do
+  link=${pair%%:*}
+  assert "broken repo link ${link#"$home"/} is pruned" test ! -L "$link"
+done
+
 echo "== target without a value =="
 
 home=$(sandbox notarget)
