@@ -14,7 +14,7 @@
 #     - Symlinks AGENTS.md into ~/.config/opencode/AGENTS.md.
 #     - Symlinks all skills into ~/.config/opencode/skills/.
 #   - Antigravity:
-#     - Symlinks AGENTS.md into ~/.gemini/antigravity-cli/ and ~/.gemini/config/.
+#     - Symlinks AGENTS.md into ~/.gemini/config/ (the global rules path agy reads).
 #     - Symlinks all skills into ~/.gemini/antigravity-cli/skills/.
 #
 # Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
@@ -269,7 +269,25 @@ install_opencode() {
 }
 
 install_antigravity() {
-  link_file "$REPO_DIR/AGENTS.md" "$ANTIGRAVITY_DIR/AGENTS.md"
+  # agy never reads antigravity-cli/AGENTS.md: drop the link an earlier run
+  # made there, but only our own symlink; anything else is the user's.
+  local dst="$ANTIGRAVITY_DIR/AGENTS.md" target repo_real
+  repo_real=$(readlink -f "$REPO_DIR")
+  if [[ -L "$dst" ]]; then
+    target=$(readlink "$dst")
+    if [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]]; then
+      run rm "$dst"
+      echo "removed unread rules link: $dst"
+    fi
+  fi
+  # agy also loads ~/.gemini/GEMINI.md (gentle-ai) on top of these rules, so
+  # move it aside; the backup is never deleted.
+  local gemini_md="$HOME/.gemini/GEMINI.md" backup
+  if [[ -e "$gemini_md" || -L "$gemini_md" ]]; then
+    backup="$gemini_md.bak-$(date +%Y%m%d-%H%M%S)"
+    run mv "$gemini_md" "$backup"
+    echo "moved $gemini_md aside (agy loads it over these rules); restore: mv '$backup' '$gemini_md'"
+  fi
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi

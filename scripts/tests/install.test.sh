@@ -223,13 +223,48 @@ home=$(sandbox antigravity)
 mkdir -p "$home/.gemini/config"
 install "$home" --target antigravity
 assert 'antigravity run succeeds' test "$LAST_EXIT" -eq 0
-assert 'AGENTS.md is linked for antigravity cli' test -L "$home/.gemini/antigravity-cli/AGENTS.md"
+# agy 1.4.7 never reads antigravity-cli/AGENTS.md (sentinel check, story 01).
+assert 'AGENTS.md is not linked where agy never reads it' test ! -e "$home/.gemini/antigravity-cli/AGENTS.md" -a ! -L "$home/.gemini/antigravity-cli/AGENTS.md"
 assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
+assert 'output names the agy rules path' rg -qF "linked: $home/.gemini/config/AGENTS.md -> " <<<"$LAST_OUTPUT"
+assert 'output names no unread agy rules path' test -z "$(rg -F "$home/.gemini/antigravity-cli/AGENTS.md" <<<"$LAST_OUTPUT")"
 assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
 assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/judgment-day"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
+
+echo "== antigravity cleanup of the unread rules link =="
+
+home=$(sandbox antigravity-rules-link)
+mkdir -p "$home/.gemini/config" "$home/.gemini/antigravity-cli"
+ln -s "$ROOT/AGENTS.md" "$home/.gemini/antigravity-cli/AGENTS.md"
+install "$home" --target antigravity
+assert 'a left-over repo link at antigravity-cli/AGENTS.md is removed' test ! -e "$home/.gemini/antigravity-cli/AGENTS.md" -a ! -L "$home/.gemini/antigravity-cli/AGENTS.md"
+
+home=$(sandbox antigravity-rules-file)
+mkdir -p "$home/.gemini/config" "$home/.gemini/antigravity-cli"
+printf 'my own notes\n' >"$home/.gemini/antigravity-cli/AGENTS.md"
+install "$home" --target antigravity
+assert 'a user file at antigravity-cli/AGENTS.md is left alone' same "$(<"$home/.gemini/antigravity-cli/AGENTS.md")" 'my own notes'
+
+echo "== antigravity moves a GEMINI.md that agy loads over the rules =="
+
+home=$(sandbox antigravity-gemini-md)
+mkdir -p "$home/.gemini/config"
+printf 'gentle rules\n' >"$home/.gemini/GEMINI.md"
+install "$home" --target antigravity
+backups=("$home"/.gemini/GEMINI.md.bak-*)
+assert 'GEMINI.md is no longer loaded' test ! -e "$home/.gemini/GEMINI.md"
+assert 'exactly one GEMINI.md backup exists' test "${#backups[@]}" -eq 1 -a -f "${backups[0]}"
+assert 'the backup keeps the content' same "$(<"${backups[0]}")" 'gentle rules'
+assert 'output says how to restore it' rg -qF "restore: mv '${backups[0]}' '$home/.gemini/GEMINI.md'" <<<"$LAST_OUTPUT"
+
+home=$(sandbox antigravity-no-gemini-md)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'no GEMINI.md means no backup' test -z "$(find "$home/.gemini" -maxdepth 1 -name 'GEMINI.md.bak-*')"
+assert 'no GEMINI.md means no restore hint' test -z "$(rg -F 'GEMINI.md' <<<"$LAST_OUTPUT")"
 
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills

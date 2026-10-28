@@ -8,7 +8,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 
 | Piece | Claude Code | OpenCode | Antigravity |
 |---|---|---|---|
-| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/antigravity-cli/AGENTS.md` and, when `~/.gemini` exists, `~/.gemini/config/AGENTS.md` |
+| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
 | Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
 | Plugin agents | yes | no | no |
 | Hooks | yes | no | no |
@@ -25,7 +25,18 @@ Engram is not wired by the installer outside Claude Code. Add it by hand:
 - OpenCode: an `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`.
 - Antigravity: an `engram` server in `~/.gemini/antigravity-cli/mcp_config.json`.
 
-Antigravity may also load `~/.gemini/GEMINI.md` if one exists (for example from gentle-ai). It is outside this repo and can duplicate or contradict `AGENTS.md`.
+### Which rules files Antigravity loads
+
+Checked on 2026-10-27 with agy 1.4.7: a unique sentinel line in each candidate file, then `agy -p` from a directory outside any repo, run twice with the same result.
+
+| File | Loaded |
+|---|---|
+| `~/.gemini/config/AGENTS.md` | yes |
+| `~/.gemini/AGENTS.md` | yes |
+| `~/.gemini/GEMINI.md` | yes |
+| `~/.gemini/antigravity-cli/AGENTS.md` | no |
+
+`install.sh` links the rules only at `~/.gemini/config/AGENTS.md` (the global root agy's own docs name) and removes the link earlier runs made under `antigravity-cli/`. Because agy loads `~/.gemini/GEMINI.md` on top of these rules (gentle-ai writes one), the installer moves it to `~/.gemini/GEMINI.md.bak-<timestamp>` and prints the `mv` command that restores it.
 
 ## What works outside Claude Code
 
