@@ -57,6 +57,10 @@ expect 'host info, pack hint and backup note arrive as one system message' \
     contains(\"Fakedistro 1\") and contains(\"pack: try the web pack\") and contains(\"no engram backup recorded yet\"))" \
   "$(session_payload "$WS")" PATH="$TMP_ROOT/bin:$PATH"
 
+echo "== agy: nothing to say injects nothing =="
+expect 'all hooks silent injects nothing' '. == {}' \
+  "$(session_payload "$WS")" AI_HOOKS_OFF=host-info,pack-hint,backup-status
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
