@@ -234,6 +234,15 @@ assert 'missing opencode config says engram is not registered' \
   rg -qF 'engram is not registered in OpenCode' <<<"$LAST_OUTPUT"
 assert 'missing opencode config names the manual step' rg -qF 'engram setup opencode' <<<"$LAST_OUTPUT"
 
+home=$(sandbox opencode-engram-disabled)
+mkdir -p "$home/.config/opencode"
+printf '{"mcp": {"engram": {"type": "local", "command": ["engram", "mcp"], "enabled": false}}}\n' \
+  >"$home/.config/opencode/opencode.json"
+install "$home" --target opencode
+assert 'opencode run with engram disabled succeeds' test "$LAST_EXIT" -eq 0
+assert 'a disabled engram entry counts as not registered' \
+  rg -qF 'engram is not registered in OpenCode; run: engram setup opencode' <<<"$LAST_OUTPUT"
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
