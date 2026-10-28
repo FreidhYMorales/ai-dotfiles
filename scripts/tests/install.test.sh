@@ -423,7 +423,15 @@ assert 'antigravity hooks run succeeds' test "$LAST_EXIT" -eq 0
 assert 'the herdr key keeps its value' same "$(jq -S -c .herdr "$hooks")" "$herdr_before"
 # shellcheck disable=SC2016 # $cmd is a jq variable, not a shell one.
 assert 'a toolkit key runs the agy adapter on run_command' json_true "$hooks" --arg cmd "bash '$ROOT/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
-  '.toolkit == {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]}'
+  '.toolkit.PreToolUse == [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]'
+# Stop handlers are a flat list (no matcher); the 330 s timeout covers
+# require-check's 300 s make check.
+# shellcheck disable=SC2016 # $pre and $stop are jq variables, not shell ones.
+assert 'the toolkit key holds exactly the PreToolUse and Stop hooks' json_true "$hooks" \
+  --arg pre "bash '$ROOT/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
+  --arg stop "bash '$ROOT/plugins/toolkit/hooks/agy/require-check.sh'" \
+  '.toolkit == {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $pre}]}],
+    Stop: [{type: "command", command: $stop, timeout: 330}]}'
 assert 'hooks.json has only the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
 merged=$(sha256sum <"$hooks")
 install "$home" --target antigravity
