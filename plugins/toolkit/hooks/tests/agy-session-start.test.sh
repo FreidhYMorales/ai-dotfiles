@@ -60,6 +60,9 @@ expect 'host info, pack hint and backup note arrive as one system message' \
 echo "== agy: nothing to say injects nothing =="
 expect 'all hooks silent injects nothing' '. == {}' \
   "$(session_payload "$WS")" AI_HOOKS_OFF=host-info,pack-hint,backup-status
+# The host-info hook alone would speak here, so these are not trivially empty.
+expect 'an empty payload injects nothing' '. == {}' '' AI_HOOKS_OFF=pack-hint,backup-status
+expect 'a payload that is not JSON injects nothing' '. == {}' 'not json {' AI_HOOKS_OFF=pack-hint,backup-status
 
 echo
 if [[ $failures -gt 0 ]]; then
