@@ -27,6 +27,6 @@
 15. [ ] As a developer, I want the README, the install.sh header and `docs/multi-agent.md` to describe the port so that I know how each agent is set up. Requires: #13
 16. [x] 1b835b8 As a developer, I want the Antigravity subagent format recorded (agents dir, frontmatter, tool names agy resolves, engram through `mcpServers:`) so that the agents I port later use names agy accepts.
 17. [ ] As a developer, I want the Antigravity checks that need agy quota run in a real agy session (a subagent returns a real engram observation; the PreToolUse payload and the `ask` answer of the toolkit hook; the Stop gate continues on a failing check and lets a cancel stop; the session-start context arrives) so that the agy port rests on proven behaviour. Requires: #16, #06, #18
-18. [~] As a developer, I want the session-start hooks (host info, pack hint, backup status) in Antigravity so that agy starts with the same context as Claude. Requires: #05
+18. [x] a671015 As a developer, I want the session-start hooks (host info, pack hint, backup status) in Antigravity so that agy starts with the same context as Claude. Requires: #05
 19. [ ] As a developer, I want the session-start hooks (host info, pack hint, backup status) in OpenCode so that OpenCode starts with the same context as Claude. Requires: #05
 20. [ ] As a developer, I want `pause` in OpenCode so that I can stop an OpenCode session safely with a checkpoint saved. Requires: #19

@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a new agy session in a workspace, when the toolkit SessionStart hook runs, then agy receives one injected system message with the same host info Claude gets, plus the pack hint and the backup notes whenever those hooks have something to say.
-- [ ] Given every hook has nothing to say, fails, or the payload is empty or malformed, when the SessionStart hook runs, then the session starts normally with nothing injected.
-- [ ] Given `./install.sh --target antigravity` (once or twice), when it runs, then the `toolkit` key of agy's `hooks.json` also holds the SessionStart hook with a timeout that covers the Claude hooks' own (5 + 2 + 5 s), and every other key (herdr) keeps its value.
+- [x] Given a new agy session in a workspace, when the toolkit SessionStart hook runs, then agy receives one injected system message with the same host info Claude gets, plus the pack hint and the backup notes whenever those hooks have something to say.
+- [x] Given every hook has nothing to say, fails, or the payload is empty or malformed, when the SessionStart hook runs, then the session starts normally with nothing injected.
+- [x] Given `./install.sh --target antigravity` (once or twice), when it runs, then the `toolkit` key of agy's `hooks.json` also holds the SessionStart hook with a timeout that covers the Claude hooks' own (5 + 2 + 5 s), and every other key (herdr) keeps its value.
 
 ## Plan
 
@@ -41,3 +41,6 @@ Risk: item 5 (runtime config written by the installer), item 6 (what agy shows f
 - L5 test list approved: 4 adapter tests (`plugins/toolkit/hooks/tests/agy-session-start.test.sh`, fake os-release, fake `ai-pack`, throwaway XDG dirs), 1 installer test; SessionStart timeout 15 s; story 06's exact whole-key assertion relaxed to `.toolkit.Stop == …` (user-approved up front, stop rule 3) with a new exact assertion including SessionStart.
 - L6 cycles (mode C): 4beada9→3dad84b host info arrives as one system message; 24ec01f all three hooks join into one message (test-only, green on first run; running only host-info was shown to fail it); eb53b90→35d3443 nothing to say injects `{}`; 476a6a8→90e9d46 an unreadable payload injects `{}`; 6e6a632→3a3d619 the agy `toolkit` key holds SessionStart with timeout 15.
 - L7 verifier: FAIL on C2 (no test for "a hook fails"; a JSON payload without a usable `workspacePaths` still injected the host info). User decision: such a payload is malformed and injects nothing. Correction batch: a32ce32 a failing hook injects nothing (test-only, green on first run; the code already dropped it); 65eea8a→a671015 a missing, non-list or empty `workspacePaths` injects `{}`.
+- L8 verifier recheck: Verdict: PASS. Optional edge left as a suggestion: `workspacePaths: [""]` still injects the host info (an empty string passes `strings`).
+- L9 tests: `bash plugins/toolkit/hooks/tests/agy-session-start.test.sh` (10 cases) and `bash scripts/tests/install.test.sh` → All cases passed; `make check` → All checks passed (7 steps).
+- L10 Risk: item 5 (runtime config written by the installer), item 6 (what agy shows from an injected step can only be confirmed by hand).
