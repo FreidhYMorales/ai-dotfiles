@@ -226,6 +226,8 @@ assert 'antigravity run succeeds' test "$LAST_EXIT" -eq 0
 # agy 1.4.7 never reads antigravity-cli/AGENTS.md (sentinel check, story 01).
 assert 'AGENTS.md is not linked where agy never reads it' test ! -e "$home/.gemini/antigravity-cli/AGENTS.md" -a ! -L "$home/.gemini/antigravity-cli/AGENTS.md"
 assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
+assert 'output names the agy rules path' rg -qF "linked: $home/.gemini/config/AGENTS.md -> " <<<"$LAST_OUTPUT"
+assert 'output names no unread agy rules path' test -z "$(rg -F "$home/.gemini/antigravity-cli/AGENTS.md" <<<"$LAST_OUTPUT")"
 assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
 assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/judgment-day"
 for skill in backlog story pair; do
