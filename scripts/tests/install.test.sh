@@ -426,12 +426,19 @@ assert 'a toolkit key runs the agy adapter on run_command' json_true "$hooks" --
   '.toolkit.PreToolUse == [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]'
 # Stop handlers are a flat list (no matcher); the 330 s timeout covers
 # require-check's 300 s make check.
-# shellcheck disable=SC2016 # $pre and $stop are jq variables, not shell ones.
-assert 'the toolkit key holds exactly the PreToolUse and Stop hooks' json_true "$hooks" \
+# shellcheck disable=SC2016 # $stop is a jq variable, not a shell one.
+assert 'the toolkit key holds the Stop gate' json_true "$hooks" \
+  --arg stop "bash '$ROOT/plugins/toolkit/hooks/agy/require-check.sh'" \
+  '.toolkit.Stop == [{type: "command", command: $stop, timeout: 330}]'
+# SessionStart is a flat list too; 15 s covers the three hooks' 5 + 2 + 5 s.
+# shellcheck disable=SC2016 # $pre, $stop and $start are jq variables, not shell ones.
+assert 'the toolkit key holds exactly the PreToolUse, Stop and SessionStart hooks' json_true "$hooks" \
   --arg pre "bash '$ROOT/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
   --arg stop "bash '$ROOT/plugins/toolkit/hooks/agy/require-check.sh'" \
+  --arg start "bash '$ROOT/plugins/toolkit/hooks/agy/session-start.sh'" \
   '.toolkit == {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $pre}]}],
-    Stop: [{type: "command", command: $stop, timeout: 330}]}'
+    Stop: [{type: "command", command: $stop, timeout: 330}],
+    SessionStart: [{type: "command", command: $start, timeout: 15}]}'
 assert 'hooks.json has only the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
 merged=$(sha256sum <"$hooks")
 install "$home" --target antigravity

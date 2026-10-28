@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Antigravity SessionStart adapter for the Claude session-start hooks: runs
+# them with agy's workspace and joins what they say into one injected system
+# message (agy has no user-only channel, so messages go there too).
+
+input=$(cat)
+hooks="$(dirname "${BASH_SOURCE[0]}")/.."
+# An unreadable payload, one without a workspace included (agy always sends
+# one), injects nothing; the session itself is never blocked.
+if ! dir=$(jq -er '.workspacePaths | arrays | .[0] | strings' <<<"$input" 2>/dev/null); then
+  echo '{}'
+  exit 0
+fi
+payload=$(jq -n --arg cwd "$dir" '{source: "startup", cwd: $cwd}')
+
+parts=()
+for hook in host-info pack-hint backup-status; do
+  out=$(bash "$hooks/$hook.sh" <<<"$payload" 2>/dev/null)
+  text=$(jq -r '.hookSpecificOutput.additionalContext // .systemMessage // empty' <<<"$out" 2>/dev/null)
+  [[ -n $text ]] && parts+=("$text")
+done
+
+if ((${#parts[@]} == 0)); then
+  echo '{}'
+  exit 0
+fi
+message=$(printf '%s\n\n' "${parts[@]}")
+jq -n --arg m "${message%$'\n\n'}" '{injectSteps: [{systemMessage: {systemMessage: $m}}]}'
