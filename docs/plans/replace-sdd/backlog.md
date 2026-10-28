@@ -20,4 +20,4 @@
 07. [-] split → #09, #10
 08. [ ] As a developer, I want the `multi-agent-port` plan to drop the SDD port so that it ports the new loop instead. Requires: #10
 09. [x] 3bbe68a As a developer, I want the `sdd` plugin removed from the repo, the marketplace and my machine so that only the new loop is installed. Requires: #03, #05, #06
-10. [ ] As a developer, I want every reference to SDD gone outside history so that there is one workflow to read and maintain. Requires: #09
+10. [~] As a developer, I want every reference to SDD gone outside history so that there is one workflow to read and maintain. Requires: #09
