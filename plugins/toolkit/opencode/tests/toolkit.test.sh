@@ -55,6 +55,15 @@ expect 'a read call passes' 'pass' \
 expect 'a non-shell tool with a command field passes' 'pass' \
   '{"tool": "task", "sessionID": "ses_1", "id": "call_3", "input": {"command": "ls -la"}}'
 
+# Unlike the Claude hook, the OpenCode plugin fails closed.
+echo "== opencode: a malformed shell call is blocked =="
+expect 'a shell call without input is blocked' 'blocked: toolkit: malformed shell call' \
+  '{"tool": "shell", "sessionID": "ses_1", "id": "call_4"}'
+expect 'a shell call without a command is blocked' 'blocked: toolkit: malformed shell call' \
+  '{"tool": "shell", "sessionID": "ses_1", "id": "call_5", "input": {}}'
+expect 'a shell call with a non-string command is blocked' 'blocked: toolkit: malformed shell call' \
+  '{"tool": "shell", "sessionID": "ses_1", "id": "call_6", "input": {"command": ["ls"]}}'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
