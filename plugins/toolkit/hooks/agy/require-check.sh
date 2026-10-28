@@ -11,7 +11,8 @@ stop() {
 
 # Only a normal turn end is gated: a cancel or a limit must never be held.
 [[ $(jq -r '.terminationReason' <<<"$input") == "NO_TOOL_CALL" ]] || stop
-dir=$(jq -r '.workspacePaths[0]' <<<"$input")
+# No workspace means nothing to gate; never fall back to the hook's own cwd.
+dir=$(jq -er '.workspacePaths[0] | strings' <<<"$input" 2>/dev/null) || stop
 # A later execution is agy continuing because of this gate: Claude's
 # stop_hook_active, so the gate lets go instead of trapping the session.
 active=$(jq '.executionNum > 1' <<<"$input")
