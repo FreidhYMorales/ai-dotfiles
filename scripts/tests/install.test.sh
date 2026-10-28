@@ -110,8 +110,9 @@ assert 'ai-update is linked into ~/.local/bin' \
   same "$(readlink "$home/.local/bin/ai-update")" "$ROOT/bin/ai-update"
 assert 'missing ~/.local/bin on PATH is reported' rg -q 'not on PATH' <<<"$LAST_OUTPUT"
 assert 'marketplace is added' test -f "$home/state/marketplace"
-assert 'all plugins are installed' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
-  'flow@ai-dotfiles look@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '
+assert 'all shipped plugins are installed, sdd is not' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
+  'flow@ai-dotfiles look@ai-dotfiles toolkit@ai-dotfiles '
+assert 'a fresh run uninstalls nothing' test -z "$(rg 'plugin uninstall' "$home/state/calls")"
 
 first=$(snapshot "$home")
 before=$(call_count "$home")
