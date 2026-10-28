@@ -27,6 +27,14 @@ for name in flow:backlog flow:story flow:pair flow:verifier; do
   assert "plan names $name" grep -qF "\`$name\`" "$PLAN"
 done
 
+echo "== multi-agent-port cites only paths that exist =="
+# Backticked repo paths under plugins/, globs excluded.
+mapfile -t paths < <(grep -oE '`plugins/[^`*]+`' "$PLAN" | tr -d '`' | sort -u)
+assert 'plan cites plugin paths' test "${#paths[@]}" -gt 0
+for path in "${paths[@]}"; do
+  assert "cited path exists: $path" test -e "$ROOT/$path"
+done
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
