@@ -313,6 +313,10 @@ install_antigravity() {
     run mv "$old" "$new"
     echo "moved skill backup: $old -> $new"
   done
+  # Ask agy, not its files: two mcp_config.json exist and only one is read.
+  if ! agy mcp list 2>/dev/null | rg -q '^engram\s'; then
+    echo "warning: engram is not registered in Antigravity; run: engram setup antigravity-cli"
+  fi
 }
 
 resolve_targets() {
