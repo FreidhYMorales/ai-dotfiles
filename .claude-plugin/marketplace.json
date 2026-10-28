@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ai-dotfiles",
-  "description": "Personal AI tooling: planning-first workflow, Spec-Driven Development, and an engineering toolkit on top of engram memory",
+  "description": "Personal AI tooling: planning-first workflow, a story-by-story Strict TDD loop, and an engineering toolkit on top of engram memory",
   "owner": {
     "name": "FreidhYMorales"
   },
@@ -12,13 +12,6 @@
       "version": "0.9.0",
       "source": "./plugins/flow",
       "category": "productivity"
-    },
-    {
-      "name": "sdd",
-      "description": "Spec-Driven Development: /sdd:* commands, lazy orchestrator skill, and phase sub-agents with engram/openspec persistence and Strict TDD.",
-      "version": "0.1.0",
-      "source": "./plugins/sdd",
-      "category": "development"
     },
     {
       "name": "toolkit",
