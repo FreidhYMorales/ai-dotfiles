@@ -243,6 +243,16 @@ assert 'opencode run with engram disabled succeeds' test "$LAST_EXIT" -eq 0
 assert 'a disabled engram entry counts as not registered' \
   rg -qF 'engram is not registered in OpenCode; run: engram setup opencode' <<<"$LAST_OUTPUT"
 
+home=$(sandbox opencode-engram)
+config=$home/.config/opencode/opencode.json
+mkdir -p "$home/.config/opencode"
+printf '{"mcp": {"engram": {"type": "local", "command": ["engram", "mcp"], "enabled": true}}}\n' >"$config"
+before=$(sha256sum <"$config")
+install "$home" --target opencode
+assert 'opencode run with engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'registered engram prints no engram warning' test -z "$(rg -F 'engram is not registered' <<<"$LAST_OUTPUT")"
+assert 'the engram check leaves opencode.json unchanged' same "$(sha256sum <"$config")" "$before"
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
