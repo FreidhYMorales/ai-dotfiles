@@ -28,7 +28,9 @@ for name in flow:backlog flow:story flow:pair flow:verifier; do
 done
 
 echo "== multi-agent-port cites only paths that exist =="
-# Backticked repo paths under plugins/, globs excluded.
+# Backticked repo paths under plugins/, globs excluded. Backticks in the
+# pattern are literal markdown.
+# shellcheck disable=SC2016
 mapfile -t paths < <(grep -oE '`plugins/[^`*]+`' "$PLAN" | tr -d '`' | sort -u)
 assert 'plan cites plugin paths' test "${#paths[@]}" -gt 0
 for path in "${paths[@]}"; do
