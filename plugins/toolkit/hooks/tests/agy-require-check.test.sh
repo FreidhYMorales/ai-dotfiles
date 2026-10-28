@@ -48,6 +48,10 @@ expect 'a failing check continues with the failure tail' \
   '.decision == "continue" and (.reason | startswith("make check failed")) and (.reason | contains("lint: broken thing"))' \
   "$(stop_payload "$red" NO_TOOL_CALL 1)"
 
+echo "== agy: a passing make check lets agy stop =="
+green=$(repo green 0)
+expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$green" NO_TOOL_CALL 1)"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
