@@ -23,6 +23,7 @@ case "$1 $2 ${3:-}" in
 "plugin marketplace add") touch "$state/marketplace" ;;
 "plugin list "*) cat "$state/plugins" 2>/dev/null ;;
 "plugin install "*) printf '%s\n' "$3" >>"$state/plugins" ;;
+"plugin uninstall "*) rg -vxF "$3" "$state/plugins" >"$state/plugins.new"; mv "$state/plugins.new" "$state/plugins" ;;
 esac
 exit 0
 EOF
@@ -109,8 +110,9 @@ assert 'ai-update is linked into ~/.local/bin' \
   same "$(readlink "$home/.local/bin/ai-update")" "$ROOT/bin/ai-update"
 assert 'missing ~/.local/bin on PATH is reported' rg -q 'not on PATH' <<<"$LAST_OUTPUT"
 assert 'marketplace is added' test -f "$home/state/marketplace"
-assert 'all plugins are installed' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
-  'flow@ai-dotfiles look@ai-dotfiles sdd@ai-dotfiles toolkit@ai-dotfiles '
+assert 'all shipped plugins are installed, sdd is not' same "$(sort "$home/state/plugins" | tr '\n' ' ')" \
+  'flow@ai-dotfiles look@ai-dotfiles toolkit@ai-dotfiles '
+assert 'a fresh run uninstalls nothing' test -z "$(rg 'plugin uninstall' "$home/state/calls")"
 
 first=$(snapshot "$home")
 before=$(call_count "$home")
@@ -194,7 +196,7 @@ install "$home" --target opencode
 assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
 assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
-assert 'sdd skills are linked for opencode' test -L "$home/.config/opencode/skills/orchestrator"
+assert 'no sdd skill is linked for opencode' test ! -e "$home/.config/opencode/skills/orchestrator" -a ! -L "$home/.config/opencode/skills/orchestrator"
 assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/judgment-day"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
@@ -236,6 +238,49 @@ printf 'mine\n' >"$skills/pair/SKILL.md"
 install "$home" --target antigravity
 assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
 assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
+
+echo "== retired sdd plugin =="
+
+home=$(sandbox sdd-installed)
+printf '%s\n' flow@ai-dotfiles sdd@ai-dotfiles >"$home/state/plugins"
+touch "$home/state/marketplace"
+install "$home" --target claude
+assert 'run over an installed sdd succeeds' test "$LAST_EXIT" -eq 0
+assert 'installed sdd is uninstalled' rg -qxF 'plugin uninstall sdd@ai-dotfiles' "$home/state/calls"
+
+# Links into the repo whose target is gone (a retired plugin's skills, an old
+# script or unit) are pruned in every place the installer links to.
+home=$(sandbox prune)
+broken=(
+  "$home/.claude/output-styles/retired.md:$ROOT/claude/output-styles/retired.md"
+  "$home/.config/opencode/skills/retired-skill:$ROOT/plugins/retired/skills/retired-skill"
+  "$home/.gemini/antigravity-cli/skills/retired-skill:$ROOT/plugins/retired/skills/retired-skill"
+  "$home/.local/bin/retired-tool:$ROOT/bin/retired-tool"
+  "$home/.config/systemd/user/retired.service:$ROOT/systemd/retired.service"
+)
+for pair in "${broken[@]}"; do
+  mkdir -p "$(dirname "${pair%%:*}")"
+  ln -s "${pair#*:}" "${pair%%:*}"
+done
+install "$home" --target all
+assert 'prune run succeeds' test "$LAST_EXIT" -eq 0
+for pair in "${broken[@]}"; do
+  link=${pair%%:*}
+  assert "broken repo link ${link#"$home"/} is pruned" test ! -L "$link"
+done
+
+# The prune touches only broken links into the repo.
+home=$(sandbox prune-keeps)
+skills=$home/.config/opencode/skills
+mkdir -p "$skills" "$home/.local/bin"
+ln -s "$ROOT/README.md" "$skills/resolving"
+ln -s "$home/gone" "$skills/foreign"
+printf 'mine\n' >"$home/.local/bin/notes"
+install "$home" --target opencode
+assert 'prune-keeps run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a resolving repo link stays' same "$(readlink "$skills/resolving")" "$ROOT/README.md"
+assert 'a broken foreign link stays' same "$(readlink "$skills/foreign")" "$home/gone"
+assert 'a real file stays' same "$(<"$home/.local/bin/notes")" 'mine'
 
 echo "== target without a value =="
 

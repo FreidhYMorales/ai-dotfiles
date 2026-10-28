@@ -27,7 +27,9 @@ ANTIGRAVITY_DIR="${ANTIGRAVITY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}"
 GEMINI_CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
-PLUGINS=(flow sdd toolkit look)
+PLUGINS=(flow toolkit look)
+# Plugins this marketplace no longer ships: uninstalled when found.
+RETIRED_PLUGINS=(sdd)
 # Claude-only skills: the daily loop (flow:backlog, flow:story, flow:pair) relies
 # on Claude Code hooks and agents, so link_skills keeps it out of OpenCode and
 # Antigravity until it is ported (multi-agent-port).
@@ -129,8 +131,24 @@ merge_settings() {
   fi
 }
 
+# prune_links DIR: remove links in DIR that point into this repo but no longer
+# resolve (e.g. a retired plugin's skills). Other links and files are the user's.
+prune_links() {
+  local dir="$1" dst target repo_real
+  [[ -d "$dir" ]] || return 0
+  repo_real=$(readlink -f "$REPO_DIR")
+  for dst in "$dir"/*; do
+    [[ -L "$dst" && ! -e "$dst" ]] || continue
+    target=$(readlink "$dst")
+    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]] || continue
+    run rm "$dst"
+    echo "pruned broken link: $dst"
+  done
+}
+
 link_output_styles() {
   local src
+  prune_links "$CLAUDE_DIR/output-styles"
   for src in "$REPO_DIR"/claude/output-styles/*.md; do
     [[ -e "$src" ]] || continue
     link_file "$src" "$CLAUDE_DIR/output-styles/$(basename "$src")"
@@ -139,6 +157,7 @@ link_output_styles() {
 
 link_bin() {
   local src
+  prune_links "$BIN_DIR"
   for src in "$REPO_DIR"/bin/*; do
     [[ -f "$src" && -x "$src" ]] || continue
     link_file "$src" "$BIN_DIR/$(basename "$src")"
@@ -152,6 +171,7 @@ link_bin() {
 link_skills() {
   local target_skills_dir="$1"
   run mkdir -p "$target_skills_dir"
+  prune_links "$target_skills_dir"
   local skill name dst target repo_real
   for skill in "$REPO_DIR"/plugins/*/skills/*; do
     [[ -d "$skill" && -f "$skill/SKILL.md" ]] || continue
@@ -177,6 +197,7 @@ link_skills() {
 install_units() {
   local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
   local backup_env="${XDG_CONFIG_HOME:-$HOME/.config}/restic/engram.env"
+  prune_links "$unit_dir"
   for src in "$REPO_DIR"/systemd/*.{service,timer}; do
     [[ -e "$src" ]] || continue
     link_file "$src" "$unit_dir/$(basename "$src")"
@@ -226,6 +247,10 @@ install_plugins() {
     else
       run claude plugin install "$plugin@$MARKETPLACE"
     fi
+  done
+  for plugin in "${RETIRED_PLUGINS[@]}"; do
+    rg -qF "$plugin@$MARKETPLACE" <<<"$installed" || continue
+    run claude plugin uninstall "$plugin@$MARKETPLACE"
   done
 }
 
