@@ -43,6 +43,20 @@ expect 'host info alone arrives as one system message' \
   "$one_message and (.injectSteps[0].systemMessage.systemMessage | contains(\"Fakedistro 1\"))" \
   "$(session_payload "$WS")" AI_HOOKS_OFF=pack-hint,backup-status
 
+# A fake ai-pack that hints only for this workspace, and a configured backup
+# that never ran: all three hooks speak.
+cat >"$TMP_ROOT/bin/ai-pack" <<EOF
+#!/usr/bin/env bash
+[[ "\$*" == "hint --cwd $WS" ]] && printf 'v1\tpack: try the web pack\n'
+EOF
+chmod +x "$TMP_ROOT/bin/ai-pack"
+mkdir -p "$XDG_CONFIG_HOME/restic"
+touch "$XDG_CONFIG_HOME/restic/engram.env"
+expect 'host info, pack hint and backup note arrive as one system message' \
+  "$one_message and (.injectSteps[0].systemMessage.systemMessage |
+    contains(\"Fakedistro 1\") and contains(\"pack: try the web pack\") and contains(\"no engram backup recorded yet\"))" \
+  "$(session_payload "$WS")" PATH="$TMP_ROOT/bin:$PATH"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
