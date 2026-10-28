@@ -1,6 +1,6 @@
 # Plan: multi-agent-port
 
-- Status: draft (gaps filled after plan-review-1, -2 and -3; awaiting plan-review-4)
+- Status: approved (gaps filled after plan-review-1, -2 and -3; plan-review-4 after backlog stories 01-03 with spike data)
 - Deadline: none
 - Mode: solo
 - Supersedes: the "Port the Claude-only parts" roadmap item in `README.md`; corrects the Antigravity rules path in `docs/multi-agent.md` (commit 498f131)
