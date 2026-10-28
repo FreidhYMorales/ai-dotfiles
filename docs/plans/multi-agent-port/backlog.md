@@ -12,7 +12,7 @@
 
 01. [x] e56a79d As a developer, I want Antigravity to load my rules from the paths it really reads so that it follows the same rules as Claude when my quota runs out.
 02. [x] 02cfca9 As a developer, I want gentle-ai's moved-aside skills kept outside the skills discovery dirs so that they never shadow the repo skills and nothing of gentle-ai is lost. Requires: #01
-03. [ ] As a developer, I want an Antigravity subagent that can read my engram memory so that the agents I port later can use it.
+03. [~] As a developer, I want an Antigravity subagent that can read my engram memory so that the agents I port later can use it.
 04. [ ] As a developer, I want install.sh to tell me when engram is not registered in OpenCode or Antigravity so that memory is shared across all three agents.
 05. [ ] As a developer, I want `prefer-modern-cli` to block legacy tools in OpenCode and Antigravity so that every agent follows the same tool rules.
 06. [ ] As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
