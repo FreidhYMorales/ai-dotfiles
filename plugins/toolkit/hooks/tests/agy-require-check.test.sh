@@ -83,6 +83,19 @@ done
 expect 'a missing executionNum lets agy stop on a failing check' '. == {decision: "stop"}' \
   "$(stop_payload "$red" NO_TOOL_CALL 1 | jq -c 'del(.executionNum)')"
 
+# Run from inside the failing repo: an empty or relative workspace must not
+# resolve against the hook's own cwd.
+for ws in '' '.' 'red'; do
+  label="workspace path '$ws' lets agy stop, even inside a failing repo"
+  out=$(cd "$red" && stop_payload "$ws" NO_TOOL_CALL 1 | bash "$ADAPTER" 2>/dev/null)
+  if jq -e '. == {decision: "stop"}' >/dev/null 2>&1 <<<"$out"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s (got: %s)\n' "$label" "$out"
+    failures=$((failures + 1))
+  fi
+done
+
 echo "== agy: a /flow:pair red step goes through =="
 pair=$(repo pair 1)
 git -C "$pair" add -A
