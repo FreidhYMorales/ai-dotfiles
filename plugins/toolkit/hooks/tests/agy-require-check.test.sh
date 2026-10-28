@@ -74,6 +74,17 @@ else
   failures=$((failures + 1))
 fi
 
+echo "== agy: a /flow:pair red step goes through =="
+pair=$(repo pair 1)
+git -C "$pair" add -A
+git -C "$pair" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm 'test: red'
+printf 'wip\n' >"$pair/wip.txt"
+# Same failing repo without the marker: the gate holds, so the marker is what lets go.
+expect 'without the marker the red repo continues' '.decision == "continue"' "$(stop_payload "$pair" NO_TOOL_CALL 1)"
+marker=$(cd "$pair" && git rev-parse --path-format=absolute --git-path flow-pair-red)
+printf '%s\n%s\n' "$(git -C "$pair" branch --show-current)" "$(git -C "$pair" rev-parse HEAD)" >"$marker"
+expect 'a red marker on the branch lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$pair" NO_TOOL_CALL 1)"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
