@@ -44,6 +44,16 @@ expect() {
 
 echo "== opencode: legacy tools are blocked =="
 expect 'ls is blocked with the Claude message' 'blocked: Use eza instead of ls.' "$(shell_call 'ls -la')"
+expect 'grep is blocked with the Claude message' 'blocked: Use rg instead of grep.' "$(shell_call 'git log | grep fix')"
+
+echo "== opencode: everything else passes =="
+expect 'a modern tool passes' 'pass' "$(shell_call 'rg foo')"
+expect 'the legacy-cli marker passes' 'pass' "$(shell_call 'ls # legacy-cli')"
+expect 'a read call passes' 'pass' \
+  '{"tool": "read", "sessionID": "ses_1", "id": "call_2", "input": {"filePath": "/tmp/ls"}}'
+# Only the shell tool is checked, whatever another tool's input holds.
+expect 'a non-shell tool with a command field passes' 'pass' \
+  '{"tool": "task", "sessionID": "ses_1", "id": "call_3", "input": {"command": "ls -la"}}'
 
 echo
 if [[ $failures -gt 0 ]]; then
