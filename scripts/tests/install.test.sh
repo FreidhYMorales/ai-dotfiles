@@ -412,6 +412,14 @@ merged=$(sha256sum <"$hooks")
 install "$home" --target antigravity
 assert 'a second install leaves hooks.json unchanged' same "$(sha256sum <"$hooks")" "$merged"
 
+home=$(sandbox antigravity-no-hooks)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run without hooks.json succeeds' test "$LAST_EXIT" -eq 0
+assert 'a missing hooks.json is created with only the toolkit key' same "$(jq -c 'keys' "$hooks")" '["toolkit"]'
+assert 'the created toolkit key gates run_command' json_true "$hooks" '.toolkit.PreToolUse[0].matcher == "run_command"'
+
 echo "== retired sdd plugin =="
 
 home=$(sandbox sdd-installed)
