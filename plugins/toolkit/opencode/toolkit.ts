@@ -10,11 +10,14 @@ import { fileURLToPath } from "node:url";
 // to its real path in the repo.
 const HOOKS = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "hooks");
 
-type Call = { tool: string; input: { command: string } };
+type Call = { tool: string; input?: { command?: unknown } };
 
+// Unlike the Claude hook, fails closed: a shell call it cannot read is blocked.
 async function preferModernCli(call: Call): Promise<void> {
   if (call.tool !== "shell") return;
-  const payload = JSON.stringify({ tool_name: "Bash", tool_input: { command: call.input.command } });
+  const command = call.input?.command;
+  if (typeof command !== "string") throw new Error("toolkit: malformed shell call");
+  const payload = JSON.stringify({ tool_name: "Bash", tool_input: { command } });
   const result = spawnSync("bash", [join(HOOKS, "prefer-modern-cli.sh")], { input: payload, encoding: "utf8" });
   if (result.status === 2) throw new Error(result.stderr.trim());
 }
