@@ -38,3 +38,7 @@ Risk: none
 - L2 assumptions for approval: item 5 becomes "(A) Loop: `backlog`, `story`, `pair` skills and the `verifier` agent through the generator" with its estimate cut from 2 to 1 dev-day (3 skills + 1 agent instead of 10 agents + orchestrator); item 7 keeps `/flow:*` only; the data-gap example `sdd:new` becomes `flow:story` → `flow-story`; the plan stays `Status: draft`.
 - L3 approved by the user ("si").
 - L4 test list approved (3 structural tests, 1 manual). Red: `9c6efeb`, `plan names no sdd` failed. Plan rewritten (uncommitted): the new test passes, but `no-sdd.test.sh` fails because the new test file names sdd and is not on its allowlist. Stop rule 3 (an existing test would change): waiting for the user.
+- L5 user delegated the call ("lo que sea mas recomendable"): `8b8ebff` adds the new test to the `no-sdd.test.sh` allowlist, like the other tests that assert sdd is absent. Green: `995a114` plan rewritten (item 5 ports the loop, 1 dev-day; total 7.75; smoke and demo run one loop story; research refreshed).
+- L6 `16b41d5` loop names and `250daa0` cited paths exist: both pass on arrival (plan already rewritten); each fails against the pre-story plan from `9c6efeb` (4 and 1 failures). `250daa0` was committed with shellcheck red (SC2016, a piped `tail` hid the exit code); `c97cd28` is the comment-only fix.
+- L7 tests: `bash scripts/tests/multi-agent-plan.test.sh` → All cases passed; `make check` → All checks passed (7 steps). Manual check of the rewritten plan approved by the user ("si").
+- L8 Risk: none (no verifier).
