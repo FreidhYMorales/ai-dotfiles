@@ -52,6 +52,11 @@ echo "== agy: a passing make check lets agy stop =="
 green=$(repo green 0)
 expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$green" NO_TOOL_CALL 1)"
 
+# A later execution means agy is already continuing because of this gate.
+echo "== agy: the gate never traps a session =="
+expect 'a failing check on a later execution lets agy stop' '. == {decision: "stop"}' \
+  "$(stop_payload "$red" NO_TOOL_CALL 2)"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
