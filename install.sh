@@ -266,6 +266,10 @@ install_claude() {
 install_opencode() {
   link_file "$REPO_DIR/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
   link_skills "$OPENCODE_DIR/skills"
+  # Verify only: engram setup may rewrite the user's config, so it stays manual.
+  if ! jq -e '.mcp.engram != null and .mcp.engram.enabled != false' "$OPENCODE_DIR/opencode.json" >/dev/null 2>&1; then
+    echo "warning: engram is not registered in OpenCode; run: engram setup opencode"
+  fi
 }
 
 install_antigravity() {
