@@ -404,6 +404,7 @@ herdr_before=$(jq -S -c .herdr "$hooks")
 install "$home" --target antigravity
 assert 'antigravity hooks run succeeds' test "$LAST_EXIT" -eq 0
 assert 'the herdr key keeps its value' same "$(jq -S -c .herdr "$hooks")" "$herdr_before"
+# shellcheck disable=SC2016 # $cmd is a jq variable, not a shell one.
 assert 'a toolkit key runs the agy adapter on run_command' json_true "$hooks" --arg cmd "bash '$ROOT/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
   '.toolkit == {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]}'
 assert 'hooks.json has only the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
