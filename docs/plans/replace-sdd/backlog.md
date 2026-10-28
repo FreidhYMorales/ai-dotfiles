@@ -18,6 +18,6 @@
 05. [x] bbf2e39 As a developer, I want `/flow:plan`'s handoff to write `backlog.md` and `next`/`split` to read it so that large projects end in the same loop. Requires: #01
 06. [x] 68a738f As a developer, I want the always-on rules to size work by understanding, risk and resumability so that delegation and verification no longer depend on file counts. Requires: #04
 07. [-] split → #09, #10
-08. [ ] As a developer, I want the `multi-agent-port` plan to drop the SDD port so that it ports the new loop instead. Requires: #10
+08. [x] 995a114 As a developer, I want the `multi-agent-port` plan to drop the SDD port so that it ports the new loop instead. Requires: #10
 09. [x] 3bbe68a As a developer, I want the `sdd` plugin removed from the repo, the marketplace and my machine so that only the new loop is installed. Requires: #03, #05, #06
 10. [x] e3d1647 As a developer, I want every reference to SDD gone outside history so that there is one workflow to read and maintain. Requires: #09
