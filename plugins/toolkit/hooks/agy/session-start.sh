@@ -5,12 +5,12 @@
 
 input=$(cat)
 hooks="$(dirname "${BASH_SOURCE[0]}")/.."
-# An unreadable payload injects nothing; the session itself is never blocked.
-if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
+# An unreadable payload, one without a workspace included (agy always sends
+# one), injects nothing; the session itself is never blocked.
+if ! dir=$(jq -er '.workspacePaths | arrays | .[0] | strings' <<<"$input" 2>/dev/null); then
   echo '{}'
   exit 0
 fi
-dir=$(jq -r '.workspacePaths[0]' <<<"$input")
 payload=$(jq -n --arg cwd "$dir" '{source: "startup", cwd: $cwd}')
 
 parts=()
