@@ -69,6 +69,13 @@ expect 'a failing hook injects nothing' '. == {}' \
 # The host-info hook alone would speak here, so these are not trivially empty.
 expect 'an empty payload injects nothing' '. == {}' '' AI_HOOKS_OFF=pack-hint,backup-status
 expect 'a payload that is not JSON injects nothing' '. == {}' 'not json {' AI_HOOKS_OFF=pack-hint,backup-status
+# agy always sends workspacePaths; without a usable one the payload is malformed.
+expect 'a payload without workspacePaths injects nothing' '. == {}' '{"conversationId": "c1"}' \
+  AI_HOOKS_OFF=pack-hint,backup-status
+expect 'a payload whose workspacePaths is not a list injects nothing' '. == {}' \
+  '{"conversationId": "c1", "workspacePaths": "x"}' AI_HOOKS_OFF=pack-hint,backup-status
+expect 'a payload with an empty workspace list injects nothing' '. == {}' \
+  '{"conversationId": "c1", "workspacePaths": []}' AI_HOOKS_OFF=pack-hint,backup-status
 
 echo
 if [[ $failures -gt 0 ]]; then
