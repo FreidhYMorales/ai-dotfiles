@@ -31,7 +31,15 @@ EOF
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CLAUDE_STATE/systemctl"
 EOF
-  chmod +x "$home/bin/claude" "$home/bin/systemctl"
+  # `agy mcp list` prints state/agy-mcp-list; engram is registered by default.
+  printf 'NAME    TYPE   STATUS   COMMAND/URL\nengram  stdio  enabled  engram mcp --tools=agent\n' \
+    >"$home/state/agy-mcp-list"
+  cat >"$home/bin/agy" <<'EOF'
+#!/usr/bin/env bash
+[[ "$*" == "mcp list" ]] && cat "$FAKE_CLAUDE_STATE/agy-mcp-list"
+exit 0
+EOF
+  chmod +x "$home/bin/claude" "$home/bin/systemctl" "$home/bin/agy"
   printf '%s\n' "$home"
 }
 
@@ -216,6 +224,15 @@ assert 'a left-over repo link named pair is removed' test ! -e "$skills/pair" -a
 assert 'a left-over repo link named backlog is removed' test ! -e "$skills/backlog" -a ! -L "$skills/backlog"
 assert 'a foreign link named story is left alone' same "$(readlink "$skills/story")" "$home/foreign/story"
 assert 'cleanup makes no backup of removed links' test -z "$(find "$skills" -name '*.bak-*')"
+
+echo "== opencode engram registration =="
+
+home=$(sandbox opencode-no-engram)
+install "$home" --target opencode
+assert 'opencode run without engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'missing opencode config says engram is not registered' \
+  rg -qF 'engram is not registered in OpenCode' <<<"$LAST_OUTPUT"
+assert 'missing opencode config names the manual step' rg -qF 'engram setup opencode' <<<"$LAST_OUTPUT"
 
 echo "== antigravity target =="
 
