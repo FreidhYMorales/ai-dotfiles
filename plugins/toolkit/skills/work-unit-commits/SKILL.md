@@ -17,7 +17,7 @@ Use it for:
 - Preparing commits before opening a PR.
 - Turning a large change into chained or stacked PRs.
 - Keeping reviewer cognitive load healthy.
-- Applying SDD tasks without accidentally producing a PR above 400 changed lines.
+- Building a planned change (a story or task list) without accidentally producing a PR above 400 changed lines.
 
 ## Critical Rules
 
@@ -29,7 +29,7 @@ Use it for:
 | Keep docs with the user-visible change | Docs belong with the feature or workflow they explain. |
 | Tell a story | A reviewer should understand why each commit exists from its diff and message. |
 | Future PR-ready | Each commit should be a candidate chained PR when the change grows. |
-| SDD workload guard | If SDD tasks forecast a >400-line change, group commits into chained PR slices before implementation. |
+| Workload guard | If a story or task list expects a >400-line change, group commits into chained PR slices before implementation. |
 
 ## Exception: `/flow:pair`
 
@@ -68,16 +68,16 @@ Use work-unit commits as the foundation for chained PRs:
 3. Commit it with a Conventional Commit message.
 4. If the PR approaches 400 changed lines, promote commits or groups of commits into chained PRs.
 
-## SDD Relationship
+## Planned Work Relationship
 
-When `sdd-tasks` produces a Review Workload Forecast:
+When a story or task list estimates the size of a change:
 
-- Low risk: keep work-unit commits inside one PR.
-- Medium risk: commit by work unit and monitor changed lines before PR creation.
-- High risk: follow SDD `delivery_strategy` — ask on `ask-on-risk`, auto-slice on `auto-chain`, require `size:exception` on over-budget `single-pr`, or record accepted `size:exception` on `exception-ok`.
+- Well under 400 lines: keep work-unit commits inside one PR.
+- Near 400 lines: commit by work unit and monitor changed lines before PR creation.
+- Over 400 lines: ask whether to split into chained PRs or accept `size:exception`, and record the answer.
 - Count authored additions plus deletions for the `>400` threshold. Exclude generated files (goldens, lockfiles, snapshots) from that authored count.
 
-Each SDD work unit should map cleanly to a commit or PR with:
+Each planned work unit should map cleanly to a commit or PR with:
 
 - clear start state,
 - clear finished state,

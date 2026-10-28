@@ -1,6 +1,6 @@
 # ai-dotfiles
 
-Personal configuration for AI coding tools. Planning-first and Spec-Driven Development across Claude Code, OpenCode, and Antigravity on top of engram memory.
+Personal configuration for AI coding tools. Planning-first workflow and a story-by-story Strict TDD loop across Claude Code, OpenCode, and Antigravity on top of engram memory.
 
 ## Layout
 
@@ -11,10 +11,9 @@ Personal configuration for AI coding tools. Planning-first and Spec-Driven Devel
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
 | `plugins/flow/` | Workflow plugin | `claude plugin install flow@ai-dotfiles` |
-| `plugins/flow/skills/` | `research`, `idea`, `plan`, `foundation`, `bootstrap`, `plan-review`, `fill-gaps`, `split`, `handoff`, `next`, `integrate` (templates in `<skill>/templates/`) | via plugin |
-| `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review` | via plugin |
-| `plugins/sdd/` | Spec-Driven Development: `/sdd:*` commands, lazy `sdd:orchestrator` skill, phase agents `sdd:sdd-*` (engram/openspec persistence, Strict TDD) | `claude plugin install sdd@ai-dotfiles` |
-| `plugins/sdd/upstream/` | Upstream origin of `sdd`/`toolkit` (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
+| `plugins/flow/skills/` | `research`, `idea`, `plan`, `foundation`, `bootstrap`, `plan-review`, `fill-gaps`, `split`, `handoff`, `next`, `integrate`, `backlog`, `story`, `pair` (templates in `<skill>/templates/`) | via plugin |
+| `plugins/flow/agents/` | `plan-reviewer`: blind read-only reviewer used by `/flow:plan-review`; `verifier`: fresh read-only check of a high-risk story built with `/flow:pair` | via plugin |
+| `docs/upstream/` | Upstream origin of the `toolkit` skills and the retired spec workflow (vendored from gentle-ai, adapted); reference only, see its `README.md` | - |
 | `plugins/toolkit/` | Skills: `judgment-day` (agents `toolkit:jd-*`), `work-unit-commits`, `chained-pr`, `comment-writer`, `cognitive-doc-design`, `skill-creator`, `skill-improver`, `go-testing`, `cli-tools`, `ship` (make check -> work-unit commits -> push -> watch CI until green). Hook: `prefer-modern-cli` (PreToolUse on Bash; blocks `grep`/`find`/`ls`/`sed`/`cat` in favor of `rg`/`fd`/`eza`/`sd`/`bat`), `require-check` (Stop; runs `make check` from the git root when the tree is dirty and blocks finishing on failure; skipped when the tree is identical to the last green run; `SKIP_REQUIRE_CHECK=1` opts out), `update-check` (SessionStart on startup; notify-only: installed plugins older than their marketplace, engram older than its latest release, checked once a day; `SKIP_UPDATE_CHECK=1` opts out), `host-info` (SessionStart on startup/clear/compact; one line with the dev machine OS/distro, package managers, shell and a curated list of installed tools (docker, gh, ffmpeg, yt-dlp...) so commands fit the host; `SKIP_HOST_INFO=1` opts out), `pause` (UserPromptSubmit; a prompt starting with "pausa"/"pause" saves an engram checkpoint in ~0.5 s and makes Claude stop and report in a few lines; `SKIP_PAUSE_HOOK=1` opts out), `backup-status` (SessionStart on startup; warns only when the last engram backup or verify failed, the backup is older than 2 days, the verify older than 8, or none was recorded; `SKIP_BACKUP_STATUS=1` opts out), `pack-hint` (SessionStart on startup; suggests `ai-pack add web` when the project root has `index.html` or a web framework in `package.json`; once per project and pack, then every 30 days; costs no tokens; `AI_HOOKS_OFF=pack-hint` opts out, `PACK_HINT_TIMEOUT` sets the wait, default 1.5 s) | `claude plugin install toolkit@ai-dotfiles` |
 | `plugins/look/` | Band above the prompt: failing CI, backup and agent alerts pinned red, running agents and shells, toasts; digit hotkeys and `/band clear` to dismiss. Needs a Nerd Font. Pinned Claude Code version, see [docs/look.md](docs/look.md) | `claude plugin install look@ai-dotfiles` |
 | `claude/output-styles/` | Output styles (e.g. `gentleman`) | Symlinked into `~/.claude/output-styles/` |
@@ -31,7 +30,7 @@ Personal configuration for AI coding tools. Planning-first and Spec-Driven Devel
 research (optional) -> plan (scope + UX in parallel) -> foundation -> bootstrap (both for new projects) -> plan-review
   -> fill-gaps -> plan-review -> split (collaborative only) -> handoff -> implement -> integrate (teammates' packages)
 
-implement (SDD): /sdd:new | /sdd:ff -> /sdd:continue -> /sdd:apply -> /sdd:verify -> /sdd:archive
+implement (loop): /flow:backlog -> /flow:story NN -> /flow:pair NN (verifier only for high-risk stories)
 
 idea: enters at any time to triage a new idea (GO / DEFER / DROP / SPIKE)
 ```
@@ -46,7 +45,10 @@ idea: enters at any time to triage a new idea (GO / DEFER / DROP / SPIKE)
 | `/flow:plan-review` | Blind review by the `plan-reviewer` agent: verdict, gaps, MUST/SHOULD/LATER cut |
 | `/flow:fill-gaps` | Resolves findings one question at a time; appends `Plan-review resolutions` |
 | `/flow:split` | Freezes contracts; writes paste-able work packages for teammates using browser AI |
-| `/flow:handoff` | Approved plan -> `/sdd:ff` / `/sdd:new` seeded with the plan, or ordered task list |
+| `/flow:handoff` | Approved plan -> `backlog.md` through `/flow:backlog` (solo), or your own tasks from the `tasks.md` that `/flow:split` wrote |
+| `/flow:backlog` | Idea or plan -> `backlog.md`: 10-15 one-line vertical stories, story 01 the walking skeleton, plus the test command |
+| `/flow:story` | Refines one story just before building it: 2-3 Given/When/Then criteria, a short plan, out of scope, size and `Risk:` line |
+| `/flow:pair` | Builds a story in Strict TDD steps that commit each test before its code; high-risk stories get the `verifier` |
 | `/flow:integrate` | Checks a delivered package against its contract and tests |
 | `/flow:next` | Lists tasks you can start now without waiting for delegated work |
 
@@ -84,7 +86,7 @@ make validate
 make test
 ```
 
-Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check that skills fire when they should, stay quiet when they should not, and change the outcome versus a no-plugin baseline. They run real sessions, so they are not part of `make check`: run `make eval PLUGIN=flow` (or `toolkit`, `sdd`) after changing a skill, or `make eval PLUGIN=toolkit CASE='go-testing-*'` for one skill. Every `toolkit` skill has a fires case (`toolkit:<skill>` via the Skill tool) plus one behavior grader; `delegate-local` also has a should-not-fire case, since it is explicit-only while a draft. Model-invoked triggering is not deterministic, so keep the default 3 runs per case and do not trust a single `--runs 1` pass or failure.
+Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check that skills fire when they should, stay quiet when they should not, and change the outcome versus a no-plugin baseline. They run real sessions, so they are not part of `make check`: run `make eval PLUGIN=flow` (or `toolkit`) after changing a skill, or `make eval PLUGIN=toolkit CASE='go-testing-*'` for one skill. Every `toolkit` skill has a fires case (`toolkit:<skill>` via the Skill tool) plus one behavior grader; `delegate-local` also has a should-not-fire case, since it is explicit-only while a draft. Model-invoked triggering is not deterministic, so keep the default 3 runs per case and do not trust a single `--runs 1` pass or failure.
 
 `make check` needs `shellcheck`; `shfmt` is used when installed. CI pins shfmt (v3.14.1) and actionlint (1.7.12) to the versions Arch ships; bump the `*_VERSION` and `*_SHA256` pairs in the workflow when Arch updates it, since releases format some constructs differently. CI runs `make check` on every push to `main` and every pull request.
 
@@ -95,12 +97,10 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] `host-info` hook and target platforms / dev environments in `flow`
 - [x] Session-start hook: notify-only update check
 - [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
-- [x] Fix SDD agents' engram tool names (`mcp__engram__*`)
 - [x] Verification harness: `make check` + `require-check` Stop hook
 - [x] Mutation testing for hooks (`make mutate`, `scripts/mutate.sh`; remaining survivors are equivalent mutants)
 - [x] `claude plugin eval` suite for `flow` (plan, idea, should-not-fire)
 - [x] Eval suite for `toolkit:ship`
-- [x] Eval suite for `sdd` routing (preflight gate, explore delegation with its model, no apply without tasks, should-not-fire)
 - [x] Eval suites for the other `toolkit` skills (one fires case each plus a behavior grader; `delegate-local` should-not-fire)
 - [x] CI running `make check` (`.github/workflows/check.yml`)
 - [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
@@ -114,7 +114,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] NPU: try OpenVINO for small models on the 47 TOPS NPU
 - [x] Backup observability: SessionStart notice when the last engram backup failed or is older than 2 days; weekly `engram-backup --verify`
 - [x] Fresh-machine recovery: `engram-backup --restore`, CI drill on a clean Arch container (`scripts/recovery-e2e.sh`), guide in [docs/recovery.md](docs/recovery.md)
-- [x] Upstream watch (`upstream-watch`, `upstreams.json`): list the repos we learn from (gentle-ai for sdd/toolkit, engram, gentle-shell (built on pi), Gentleman-Skills, gentle-agent-state, earendil-works/pi, affaan-m/ECC) with what we took and the last reviewed release; notify when they change and triage with `/flow:idea`
+- [x] Upstream watch (`upstream-watch`, `upstreams.json`): list the repos we learn from (gentle-ai for toolkit, engram, gentle-shell (built on pi), Gentleman-Skills, gentle-agent-state, earendil-works/pi, affaan-m/ECC) with what we took and the last reviewed release; notify when they change and triage with `/flow:idea`
 - [x] Status line (context, 5h and 7d bars, model, repo, branch with dirty mark)
 - [ ] Claude Code look and feel: theme, visual tweaks and TUI mods (panes, banners), keeping it functional first
 - [x] Permission hygiene: `claude-perms-audit` (manual; cleaned `python3 *` and dead rules on 2026-10-17)
@@ -123,4 +123,4 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
 - [x] OpenCode and Antigravity basics: shared rules, skill files and a multi-target installer ([docs/multi-agent.md](docs/multi-agent.md))
-- [ ] Port the Claude-only parts to OpenCode and Antigravity: SDD phase agents, `plan-review` and `judgment-day` agents, `${CLAUDE_PLUGIN_ROOT}` paths, hooks, engram MCP setup
+- [ ] Port the Claude-only parts to OpenCode and Antigravity: the loop skills (`backlog`, `story`, `pair`), the `verifier`, `plan-review` and `judgment-day` agents, `${CLAUDE_PLUGIN_ROOT}` paths, hooks, engram MCP setup

@@ -45,9 +45,10 @@ echo "== rules: kept from before (pin) =="
 assert 'never run parallel writers' has "$RULES" 'never run parallel writers'
 assert 'fresh worker for tests, builds and installs' has "$RULES" 'Tests, builds and installs may use a fresh worker each.'
 assert 'Strict TDD stays enabled' has "$RULES" 'Strict TDD: enabled.'
-# The SDD sentence leaves with the sdd plugin (story 07), not before.
+# The sdd plugin is retired (story 09), so the rules no longer route to it.
 # shellcheck disable=SC2016
-assert 'SDD sentence stays until story 07' has "$RULES" 'before any SDD routing load the `sdd:orchestrator` skill'
+assert 'SDD sentence is gone' lacks "$RULES" 'before any SDD routing load the `sdd:orchestrator` skill'
+assert 'rules name no sdd at all' test -f "$RULES" -a -z "$(grep -iw 'sdd' "$RULES")"
 
 echo "== rules: risk comes from the single high-risk list =="
 # Named by skill, not repo path: the rules load in every project.

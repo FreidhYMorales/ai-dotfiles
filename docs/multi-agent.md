@@ -9,7 +9,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 | Piece | Claude Code | OpenCode | Antigravity |
 |---|---|---|---|
 | Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/antigravity-cli/AGENTS.md` and, when `~/.gemini` exists, `~/.gemini/config/AGENTS.md` |
-| Skills | `flow`, `sdd`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
+| Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
 | Plugin agents | yes | no | no |
 | Hooks | yes | no | no |
 | Engram MCP | yes (plugin) | no: configure by hand | no: configure by hand |
@@ -33,7 +33,7 @@ Skills that are plain instructions work: most of `flow` (`plan`, `research`, `fo
 
 These skills depend on Claude Code and break elsewhere:
 
-- `sdd:orchestrator` and the `/sdd:*` commands: they hand each phase to plugin agents (`subagent_type: "sdd:sdd-<phase>"`) and read references through `${CLAUDE_PLUGIN_ROOT}`. Neither exists in OpenCode or Antigravity.
+- `flow:backlog`, `flow:story` and `flow:pair`: the loop relies on Claude Code hooks and the `flow:verifier` agent, so the installer does not link these three skills outside Claude Code.
 - `flow:plan-review`: needs the `flow:plan-reviewer` agent.
 - `toolkit:judgment-day`: needs the `toolkit:jd-*` agents.
 
