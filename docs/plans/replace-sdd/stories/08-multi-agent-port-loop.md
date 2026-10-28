@@ -37,3 +37,4 @@ Risk: none
 - L1 request: "si" (to "¿Arranco con `/flow:story 08`?").
 - L2 assumptions for approval: item 5 becomes "(A) Loop: `backlog`, `story`, `pair` skills and the `verifier` agent through the generator" with its estimate cut from 2 to 1 dev-day (3 skills + 1 agent instead of 10 agents + orchestrator); item 7 keeps `/flow:*` only; the data-gap example `sdd:new` becomes `flow:story` → `flow-story`; the plan stays `Status: draft`.
 - L3 approved by the user ("si").
+- L4 test list approved (3 structural tests, 1 manual). Red: `9c6efeb`, `plan names no sdd` failed. Plan rewritten (uncommitted): the new test passes, but `no-sdd.test.sh` fails because the new test file names sdd and is not on its allowlist. Stop rule 3 (an existing test would change): waiting for the user.
