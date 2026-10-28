@@ -294,6 +294,19 @@ assert 'the clashing backup sits next to it' test "${#copies[@]}" -eq 2
 assert 'the clashing backup keeps its content' rg -qx 'second copy' "${copies[@]/%//SKILL.md}"
 assert 'the clashing backup leaves the discovery dir' test ! -e "$skills/work-unit-commits.bak-1"
 
+# A real gentle-ai dir named like a repo skill is renamed to *.bak-* by the
+# link step itself; that backup must leave discovery in the same run.
+home=$(sandbox antigravity-skill-same-run)
+skills=$home/.gemini/antigravity-cli/skills
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/config" "$skills/judgment-day"
+printf 'gentle original\n' >"$skills/judgment-day/SKILL.md"
+install "$home" --target antigravity
+assert 'one install leaves no skill backup in discovery' test -z "$(find "$skills" -maxdepth 1 -name '*.bak-*')"
+assert 'the renamed original is in skills-backup' rg -qx 'gentle original' "$kept" -g 'SKILL.md'
+install "$home" --target antigravity
+assert 'a second install moves no skill backup' test -z "$(rg -F 'moved skill backup:' <<<"$LAST_OUTPUT")"
+
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$skills/pair"
