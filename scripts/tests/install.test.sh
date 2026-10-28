@@ -362,6 +362,19 @@ assert 'agy without engram says engram is not registered' \
   rg -qF 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT"
 assert 'agy without engram names the manual step' rg -qF 'engram setup antigravity-cli' <<<"$LAST_OUTPUT"
 
+# No agy at all: drop the stub and every PATH dir that has a real one.
+home=$(sandbox antigravity-no-agy)
+mkdir -p "$home/.gemini/config"
+rm "$home/bin/agy"
+no_agy_path=$(tr ':' '\n' <<<"$PATH" | while IFS= read -r dir; do [[ -x $dir/agy ]] || printf '%s\n' "$dir"; done | paste -sd:)
+PATH=$no_agy_path install "$home" --target antigravity
+assert 'antigravity run without agy succeeds' test "$LAST_EXIT" -eq 0
+assert 'without agy the engram check says it cannot check' \
+  rg -qF 'engram cannot be checked in Antigravity (agy not found)' <<<"$LAST_OUTPUT"
+assert 'without agy the output names the manual step' rg -qF 'engram setup antigravity-cli' <<<"$LAST_OUTPUT"
+assert 'without agy the output does not claim engram is unregistered' \
+  test -z "$(rg -F 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT")"
+
 echo "== retired sdd plugin =="
 
 home=$(sandbox sdd-installed)
