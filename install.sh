@@ -14,7 +14,7 @@
 #     - Symlinks AGENTS.md into ~/.config/opencode/AGENTS.md.
 #     - Symlinks all skills into ~/.config/opencode/skills/.
 #   - Antigravity:
-#     - Symlinks AGENTS.md into ~/.gemini/antigravity-cli/ and ~/.gemini/config/.
+#     - Symlinks AGENTS.md into ~/.gemini/config/ (the global rules path agy reads).
 #     - Symlinks all skills into ~/.gemini/antigravity-cli/skills/.
 #
 # Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
@@ -269,7 +269,6 @@ install_opencode() {
 }
 
 install_antigravity() {
-  link_file "$REPO_DIR/AGENTS.md" "$ANTIGRAVITY_DIR/AGENTS.md"
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi
