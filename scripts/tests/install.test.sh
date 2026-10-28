@@ -268,6 +268,19 @@ for pair in "${broken[@]}"; do
   assert "broken repo link ${link#"$home"/} is pruned" test ! -L "$link"
 done
 
+# The prune touches only broken links into the repo.
+home=$(sandbox prune-keeps)
+skills=$home/.config/opencode/skills
+mkdir -p "$skills" "$home/.local/bin"
+ln -s "$ROOT/README.md" "$skills/resolving"
+ln -s "$home/gone" "$skills/foreign"
+printf 'mine\n' >"$home/.local/bin/notes"
+install "$home" --target opencode
+assert 'prune-keeps run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a resolving repo link stays' same "$(readlink "$skills/resolving")" "$ROOT/README.md"
+assert 'a broken foreign link stays' same "$(readlink "$skills/foreign")" "$home/gone"
+assert 'a real file stays' same "$(<"$home/.local/bin/notes")" 'mine'
+
 echo "== target without a value =="
 
 home=$(sandbox notarget)
