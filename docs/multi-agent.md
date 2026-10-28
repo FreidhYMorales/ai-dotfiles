@@ -11,7 +11,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 | Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
 | Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
 | Plugin agents | yes | no | no |
-| Hooks | yes | no | no |
+| Hooks | yes | `prefer-modern-cli` only: plugin `toolkit.ts` → `~/.config/opencode/plugins/` | `prefer-modern-cli` only: a `toolkit` key merged into `~/.gemini/config/hooks.json` |
 | Engram MCP | yes (plugin) | configure by hand; the installer warns when missing | configure by hand; the installer warns when missing |
 | Status line, `look` band | yes | no | no |
 | `bin/*`, systemd units, git hooks | yes | yes | yes |
