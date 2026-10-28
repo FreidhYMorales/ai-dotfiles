@@ -10,7 +10,7 @@
 
 ## Backlog
 
-01. [ ] As a developer, I want Antigravity to load my rules from the paths it really reads so that it follows the same rules as Claude when my quota runs out.
+01. [~] As a developer, I want Antigravity to load my rules from the paths it really reads so that it follows the same rules as Claude when my quota runs out.
 02. [ ] As a developer, I want gentle-ai's moved-aside skills kept outside the skills discovery dirs so that they never shadow the repo skills and nothing of gentle-ai is lost. Requires: #01
 03. [ ] As a developer, I want an Antigravity subagent that can read my engram memory so that the agents I port later can use it.
 04. [ ] As a developer, I want install.sh to tell me when engram is not registered in OpenCode or Antigravity so that memory is shared across all three agents.
