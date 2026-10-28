@@ -23,6 +23,8 @@ no_sdd() { [[ -f $1 ]] && ! grep -qiw 'sdd' "$1"; }
 
 echo "== docs name only the loop =="
 assert 'README names no sdd' no_sdd "$ROOT/README.md"
+assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
+assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
