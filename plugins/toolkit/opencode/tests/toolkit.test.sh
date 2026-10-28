@@ -109,7 +109,10 @@ expect_context() {
   local label=$1 filter=$2 got
   shift 2
   local env=()
-  while [[ $1 != -- ]]; do env+=("$1"); shift; done
+  while [[ $1 != -- ]]; do
+    env+=("$1")
+    shift
+  done
   shift
   got=$(
     ((${#env[@]})) && export "${env[@]}"
