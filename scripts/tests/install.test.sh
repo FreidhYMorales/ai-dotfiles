@@ -31,7 +31,15 @@ EOF
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CLAUDE_STATE/systemctl"
 EOF
-  chmod +x "$home/bin/claude" "$home/bin/systemctl"
+  # `agy mcp list` prints state/agy-mcp-list; engram is registered by default.
+  printf 'NAME    TYPE   STATUS   COMMAND/URL\nengram  stdio  enabled  engram mcp --tools=agent\n' \
+    >"$home/state/agy-mcp-list"
+  cat >"$home/bin/agy" <<'EOF'
+#!/usr/bin/env bash
+[[ "$*" == "mcp list" ]] && cat "$FAKE_CLAUDE_STATE/agy-mcp-list"
+exit 0
+EOF
+  chmod +x "$home/bin/claude" "$home/bin/systemctl" "$home/bin/agy"
   printf '%s\n' "$home"
 }
 
@@ -217,6 +225,34 @@ assert 'a left-over repo link named backlog is removed' test ! -e "$skills/backl
 assert 'a foreign link named story is left alone' same "$(readlink "$skills/story")" "$home/foreign/story"
 assert 'cleanup makes no backup of removed links' test -z "$(find "$skills" -name '*.bak-*')"
 
+echo "== opencode engram registration =="
+
+home=$(sandbox opencode-no-engram)
+install "$home" --target opencode
+assert 'opencode run without engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'missing opencode config says engram is not registered' \
+  rg -qF 'engram is not registered in OpenCode' <<<"$LAST_OUTPUT"
+assert 'missing opencode config names the manual step' rg -qF 'engram setup opencode' <<<"$LAST_OUTPUT"
+
+home=$(sandbox opencode-engram-disabled)
+mkdir -p "$home/.config/opencode"
+printf '{"mcp": {"engram": {"type": "local", "command": ["engram", "mcp"], "enabled": false}}}\n' \
+  >"$home/.config/opencode/opencode.json"
+install "$home" --target opencode
+assert 'opencode run with engram disabled succeeds' test "$LAST_EXIT" -eq 0
+assert 'a disabled engram entry counts as not registered' \
+  rg -qF 'engram is not registered in OpenCode; run: engram setup opencode' <<<"$LAST_OUTPUT"
+
+home=$(sandbox opencode-engram)
+config=$home/.config/opencode/opencode.json
+mkdir -p "$home/.config/opencode"
+printf '{"mcp": {"engram": {"type": "local", "command": ["engram", "mcp"], "enabled": true}}}\n' >"$config"
+before=$(sha256sum <"$config")
+install "$home" --target opencode
+assert 'opencode run with engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'registered engram prints no engram warning' test -z "$(rg -F 'engram is not registered' <<<"$LAST_OUTPUT")"
+assert 'the engram check leaves opencode.json unchanged' same "$(sha256sum <"$config")" "$before"
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
@@ -314,6 +350,38 @@ printf 'mine\n' >"$skills/pair/SKILL.md"
 install "$home" --target antigravity
 assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
 assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
+
+echo "== antigravity engram registration =="
+
+home=$(sandbox antigravity-no-engram)
+mkdir -p "$home/.gemini/config"
+printf 'NAME     TYPE   STATUS   COMMAND/URL\ncontext7 stdio  enabled  npx context7-mcp\n' >"$home/state/agy-mcp-list"
+install "$home" --target antigravity
+assert 'antigravity run without engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy without engram says engram is not registered' \
+  rg -qF 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT"
+assert 'agy without engram names the manual step' rg -qF 'engram setup antigravity-cli' <<<"$LAST_OUTPUT"
+
+# No agy at all: drop the stub and every PATH dir that has a real one.
+home=$(sandbox antigravity-no-agy)
+mkdir -p "$home/.gemini/config"
+rm "$home/bin/agy"
+no_agy_path=$(tr ':' '\n' <<<"$PATH" | while IFS= read -r dir; do [[ -x $dir/agy ]] || printf '%s\n' "$dir"; done | paste -sd:)
+PATH=$no_agy_path install "$home" --target antigravity
+assert 'antigravity run without agy succeeds' test "$LAST_EXIT" -eq 0
+assert 'without agy the engram check says it cannot check' \
+  rg -qF 'engram cannot be checked in Antigravity (agy not found)' <<<"$LAST_OUTPUT"
+assert 'without agy the output names the manual step' rg -qF 'engram setup antigravity-cli' <<<"$LAST_OUTPUT"
+assert 'without agy the output does not claim engram is unregistered' \
+  test -z "$(rg -F 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT")"
+
+# The sandbox's default `agy mcp list` lists engram.
+home=$(sandbox antigravity-engram)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run with engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy with engram prints no engram warning' \
+  test -z "$(rg -F -e 'engram is not registered' -e 'engram cannot be checked' <<<"$LAST_OUTPUT")"
 
 echo "== retired sdd plugin =="
 

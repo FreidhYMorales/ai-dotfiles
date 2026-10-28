@@ -266,6 +266,10 @@ install_claude() {
 install_opencode() {
   link_file "$REPO_DIR/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
   link_skills "$OPENCODE_DIR/skills"
+  # Verify only: engram setup may rewrite the user's config, so it stays manual.
+  if ! jq -e '.mcp.engram != null and .mcp.engram.enabled != false' "$OPENCODE_DIR/opencode.json" >/dev/null 2>&1; then
+    echo "warning: engram is not registered in OpenCode; run: engram setup opencode"
+  fi
 }
 
 install_antigravity() {
@@ -309,6 +313,12 @@ install_antigravity() {
     run mv "$old" "$new"
     echo "moved skill backup: $old -> $new"
   done
+  # Ask agy, not its files: two mcp_config.json exist and only one is read.
+  if ! command -v agy >/dev/null; then
+    echo "warning: engram cannot be checked in Antigravity (agy not found); if missing, run: engram setup antigravity-cli"
+  elif ! agy mcp list 2>/dev/null | rg -q '^engram\s'; then
+    echo "warning: engram is not registered in Antigravity; run: engram setup antigravity-cli"
+  fi
 }
 
 resolve_targets() {
