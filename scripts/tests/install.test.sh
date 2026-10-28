@@ -248,6 +248,24 @@ printf 'my own notes\n' >"$home/.gemini/antigravity-cli/AGENTS.md"
 install "$home" --target antigravity
 assert 'a user file at antigravity-cli/AGENTS.md is left alone' same "$(<"$home/.gemini/antigravity-cli/AGENTS.md")" 'my own notes'
 
+echo "== antigravity moves a GEMINI.md that agy loads over the rules =="
+
+home=$(sandbox antigravity-gemini-md)
+mkdir -p "$home/.gemini/config"
+printf 'gentle rules\n' >"$home/.gemini/GEMINI.md"
+install "$home" --target antigravity
+backups=("$home"/.gemini/GEMINI.md.bak-*)
+assert 'GEMINI.md is no longer loaded' test ! -e "$home/.gemini/GEMINI.md"
+assert 'exactly one GEMINI.md backup exists' test "${#backups[@]}" -eq 1 -a -f "${backups[0]}"
+assert 'the backup keeps the content' same "$(<"${backups[0]}")" 'gentle rules'
+assert 'output says how to restore it' rg -qF "restore: mv '${backups[0]}' '$home/.gemini/GEMINI.md'" <<<"$LAST_OUTPUT"
+
+home=$(sandbox antigravity-no-gemini-md)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'no GEMINI.md means no backup' test -z "$(find "$home/.gemini" -maxdepth 1 -name 'GEMINI.md.bak-*')"
+assert 'no GEMINI.md means no restore hint' test -z "$(rg -F 'GEMINI.md' <<<"$LAST_OUTPUT")"
+
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$skills/pair"
