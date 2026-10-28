@@ -272,6 +272,27 @@ install_opencode() {
   fi
 }
 
+# agy reads every top-level key of hooks.json as a named hook set; herdr owns
+# its own key there, so only the "toolkit" key is ever written. A hooks.json
+# jq cannot parse stops the install instead of being overwritten.
+merge_agy_hooks() {
+  local target="$GEMINI_CONFIG_DIR/hooks.json" current='{}' merged
+  [[ -f "$target" ]] && current=$(<"$target")
+  merged=$(jq --arg cmd "bash '$REPO_DIR/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
+    '.toolkit = {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]}' <<<"$current")
+  if [[ "$merged" == "$current" ]]; then
+    echo "ok: $target"
+    return
+  fi
+  if ((DRY_RUN)); then
+    echo "[dry-run] would set the toolkit key in $target"
+    return
+  fi
+  mkdir -p "$GEMINI_CONFIG_DIR"
+  printf '%s\n' "$merged" >"$target.tmp" && mv "$target.tmp" "$target"
+  echo "merged toolkit hooks: $target"
+}
+
 install_antigravity() {
   # agy never reads antigravity-cli/AGENTS.md: drop the link an earlier run
   # made there, but only our own symlink; anything else is the user's.
@@ -294,6 +315,7 @@ install_antigravity() {
   fi
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
+    merge_agy_hooks
   fi
   link_skills "$ANTIGRAVITY_DIR/skills"
   # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
