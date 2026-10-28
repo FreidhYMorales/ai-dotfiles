@@ -22,6 +22,11 @@ assert() {
 echo "== multi-agent-port names no sdd =="
 assert 'plan names no sdd' test -f "$PLAN" -a -z "$(grep -iw 'sdd' "$PLAN")"
 
+echo "== multi-agent-port ports the loop =="
+for name in flow:backlog flow:story flow:pair flow:verifier; do
+  assert "plan names $name" grep -qF "\`$name\`" "$PLAN"
+done
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
