@@ -12,7 +12,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 | Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
 | Plugin agents | yes | no | no |
 | Hooks | yes | no | no |
-| Engram MCP | yes (plugin) | no: configure by hand | no: configure by hand |
+| Engram MCP | yes (plugin) | configure by hand; the installer warns when missing | configure by hand; the installer warns when missing |
 | Status line, `look` band | yes | no | no |
 | `bin/*`, systemd units, git hooks | yes | yes | yes |
 
@@ -20,10 +20,10 @@ The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`, so all three agent
 
 ## Manual setup per machine
 
-Engram is not wired by the installer outside Claude Code. Add it by hand:
+The installer never writes engram's MCP config outside Claude Code (`engram setup` may rewrite the agent's config); it only checks it and prints a warning naming the manual step:
 
-- OpenCode: an `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`.
-- Antigravity: an `engram` server in `~/.gemini/antigravity-cli/mcp_config.json`.
+- OpenCode: an enabled `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`. Missing or `"enabled": false` warns `run: engram setup opencode`.
+- Antigravity: `agy mcp list` must list `engram`. The installer asks `agy` instead of reading a file, because two `mcp_config.json` exist (`~/.gemini/config/` and `~/.gemini/antigravity-cli/`). Missing warns `run: engram setup antigravity-cli`; without `agy` on the PATH it says it cannot check.
 
 ### Which rules files Antigravity loads
 
