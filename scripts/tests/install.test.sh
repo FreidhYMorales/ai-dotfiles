@@ -253,6 +253,23 @@ assert 'opencode run with engram succeeds' test "$LAST_EXIT" -eq 0
 assert 'registered engram prints no engram warning' test -z "$(rg -F 'engram is not registered' <<<"$LAST_OUTPUT")"
 assert 'the engram check leaves opencode.json unchanged' same "$(sha256sum <"$config")" "$before"
 
+echo "== opencode links the toolkit plugin =="
+
+# engram and herdr install their own plugin files in the same dir.
+home=$(sandbox opencode-plugins)
+plugins=$home/.config/opencode/plugins
+mkdir -p "$plugins"
+printf 'export default { id: "engram" }\n' >"$plugins/engram.ts"
+printf 'export default { id: "herdr.opencode" }\n' >"$plugins/herdr-agent-state.js"
+others=$(sha256sum "$plugins/engram.ts" "$plugins/herdr-agent-state.js")
+install "$home" --target opencode
+assert 'opencode plugins run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the toolkit plugin is linked to the repo' \
+  same "$(readlink "$plugins/toolkit.ts")" "$ROOT/plugins/toolkit/opencode/toolkit.ts"
+assert 'engram and herdr plugins are untouched' same "$(sha256sum "$plugins/engram.ts" "$plugins/herdr-agent-state.js")" "$others"
+assert 'the plugins dir holds only the three plugins' \
+  same "$(cd "$plugins" && printf '%s\n' * | paste -sd' ')" 'engram.ts herdr-agent-state.js toolkit.ts'
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
