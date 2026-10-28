@@ -253,6 +253,23 @@ assert 'opencode run with engram succeeds' test "$LAST_EXIT" -eq 0
 assert 'registered engram prints no engram warning' test -z "$(rg -F 'engram is not registered' <<<"$LAST_OUTPUT")"
 assert 'the engram check leaves opencode.json unchanged' same "$(sha256sum <"$config")" "$before"
 
+echo "== opencode links the toolkit plugin =="
+
+# engram and herdr install their own plugin files in the same dir.
+home=$(sandbox opencode-plugins)
+plugins=$home/.config/opencode/plugins
+mkdir -p "$plugins"
+printf 'export default { id: "engram" }\n' >"$plugins/engram.ts"
+printf 'export default { id: "herdr.opencode" }\n' >"$plugins/herdr-agent-state.js"
+others=$(sha256sum "$plugins/engram.ts" "$plugins/herdr-agent-state.js")
+install "$home" --target opencode
+assert 'opencode plugins run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the toolkit plugin is linked to the repo' \
+  same "$(readlink "$plugins/toolkit.ts")" "$ROOT/plugins/toolkit/opencode/toolkit.ts"
+assert 'engram and herdr plugins are untouched' same "$(sha256sum "$plugins/engram.ts" "$plugins/herdr-agent-state.js")" "$others"
+assert 'the plugins dir holds only the three plugins' \
+  same "$(cd "$plugins" && printf '%s\n' * | paste -sd' ')" 'engram.ts herdr-agent-state.js toolkit.ts'
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
@@ -382,6 +399,43 @@ install "$home" --target antigravity
 assert 'antigravity run with engram succeeds' test "$LAST_EXIT" -eq 0
 assert 'agy with engram prints no engram warning' \
   test -z "$(rg -F -e 'engram is not registered' -e 'engram cannot be checked' <<<"$LAST_OUTPUT")"
+
+echo "== antigravity merges the toolkit hooks =="
+
+# herdr writes its own key into the same hooks.json (no trailing newline).
+home=$(sandbox antigravity-hooks)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+printf '%s' '{
+  "herdr": {
+    "PreInvocation": [
+      {
+        "command": "bash '\''/x/herdr-agent-state.sh'\'' session",
+        "timeout": 10,
+        "type": "command"
+      }
+    ]
+  }
+}' >"$hooks"
+herdr_before=$(jq -S -c .herdr "$hooks")
+install "$home" --target antigravity
+assert 'antigravity hooks run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the herdr key keeps its value' same "$(jq -S -c .herdr "$hooks")" "$herdr_before"
+# shellcheck disable=SC2016 # $cmd is a jq variable, not a shell one.
+assert 'a toolkit key runs the agy adapter on run_command' json_true "$hooks" --arg cmd "bash '$ROOT/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
+  '.toolkit == {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $cmd}]}]}'
+assert 'hooks.json has only the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
+merged=$(sha256sum <"$hooks")
+install "$home" --target antigravity
+assert 'a second install leaves hooks.json unchanged' same "$(sha256sum <"$hooks")" "$merged"
+
+home=$(sandbox antigravity-no-hooks)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run without hooks.json succeeds' test "$LAST_EXIT" -eq 0
+assert 'a missing hooks.json is created with only the toolkit key' same "$(jq -c 'keys' "$hooks")" '["toolkit"]'
+assert 'the created toolkit key gates run_command' json_true "$hooks" '.toolkit.PreToolUse[0].matcher == "run_command"'
 
 echo "== retired sdd plugin =="
 
