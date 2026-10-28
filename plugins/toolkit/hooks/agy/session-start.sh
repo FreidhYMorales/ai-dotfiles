@@ -15,5 +15,9 @@ for hook in host-info pack-hint backup-status; do
   [[ -n $text ]] && parts+=("$text")
 done
 
+if ((${#parts[@]} == 0)); then
+  echo '{}'
+  exit 0
+fi
 message=$(printf '%s\n\n' "${parts[@]}")
 jq -n --arg m "${message%$'\n\n'}" '{injectSteps: [{systemMessage: {systemMessage: $m}}]}'
