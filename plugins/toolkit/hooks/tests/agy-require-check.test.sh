@@ -56,6 +56,10 @@ expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload
 echo "== agy: the gate never traps a session =="
 expect 'a failing check on a later execution lets agy stop' '. == {decision: "stop"}' \
   "$(stop_payload "$red" NO_TOOL_CALL 2)"
+expect 'a cancel lets agy stop on a failing check' '. == {decision: "stop"}' \
+  "$(stop_payload "$red" USER_CANCELED 1)"
+expect 'hitting the invocation limit lets agy stop on a failing check' '. == {decision: "stop"}' \
+  "$(stop_payload "$red" MAX_INVOCATIONS 1)"
 
 echo
 if [[ $failures -gt 0 ]]; then
