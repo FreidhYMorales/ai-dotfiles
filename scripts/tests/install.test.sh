@@ -375,6 +375,14 @@ assert 'without agy the output names the manual step' rg -qF 'engram setup antig
 assert 'without agy the output does not claim engram is unregistered' \
   test -z "$(rg -F 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT")"
 
+# The sandbox's default `agy mcp list` lists engram.
+home=$(sandbox antigravity-engram)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run with engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy with engram prints no engram warning' \
+  test -z "$(rg -F -e 'engram is not registered' -e 'engram cannot be checked' <<<"$LAST_OUTPUT")"
+
 echo "== retired sdd plugin =="
 
 home=$(sandbox sdd-installed)
