@@ -38,6 +38,21 @@ Checked on 2026-10-27 with agy 1.4.7: a unique sentinel line in each candidate f
 
 `install.sh` links the rules only at `~/.gemini/config/AGENTS.md` (the global root agy's own docs name) and removes the link earlier runs made under `antigravity-cli/`. Because agy loads `~/.gemini/GEMINI.md` on top of these rules (gentle-ai writes one), the installer moves it to `~/.gemini/GEMINI.md.bak-<timestamp>` and prints the `mv` command that restores it.
 
+### Which skills dirs Antigravity discovers
+
+Checked on 2026-10-28 with agy 1.4.7, the same way: sentinel skills in each candidate dir, two `agy -p` runs plus a control run.
+
+| Dir or case | Result |
+|---|---|
+| `~/.gemini/config/skills/` | discovered |
+| `~/.gemini/antigravity-cli/skills/` | discovered |
+| `~/.gemini/skills/` | discovered |
+| a `<name>.bak-<timestamp>` dir in a skills dir | discovered, by its `name:` frontmatter |
+| two skills with the same `name:` | the copy in `~/.gemini/antigravity-cli/skills/` wins |
+| `~/.gemini/antigravity-cli/skills-backup/` | not discovered |
+
+The repo skills already live in the winning dir. `install.sh` moves every `*.bak-*` entry out of `~/.gemini/antigravity-cli/skills/` into `skills-backup/` (an earlier installer left gentle-ai's originals there under that name), adding a numeric suffix when the name is taken; nothing is deleted.
+
 ## What works outside Claude Code
 
 Skills that are plain instructions work: most of `flow` (`plan`, `research`, `foundation`, `bootstrap`, `fill-gaps`, `handoff`, `idea`, `next`, `split`, `integrate`) and most of `toolkit`.

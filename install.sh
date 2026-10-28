@@ -292,6 +292,23 @@ install_antigravity() {
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi
   link_skills "$ANTIGRAVITY_DIR/skills"
+  # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
+  # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
+  # the link step, which itself renames a clashing user dir to *.bak-*.
+  local old new n backup_dir="$ANTIGRAVITY_DIR/skills-backup"
+  for old in "$ANTIGRAVITY_DIR"/skills/*.bak-*; do
+    [[ -e "$old" || -L "$old" ]] || continue
+    # A taken name gets a numeric suffix, so no backup is ever overwritten.
+    new="$backup_dir/$(basename "$old")"
+    n=1
+    while [[ -e "$new" || -L "$new" ]]; do
+      new="$backup_dir/$(basename "$old").$n"
+      n=$((n + 1))
+    done
+    run mkdir -p "$backup_dir"
+    run mv "$old" "$new"
+    echo "moved skill backup: $old -> $new"
+  done
 }
 
 resolve_targets() {
