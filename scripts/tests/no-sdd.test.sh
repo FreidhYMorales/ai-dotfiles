@@ -56,6 +56,7 @@ allow=(
   -g '!plugins/flow/evals/handoff-solo-to-backlog/**'
   -g '!scripts/tests/install.test.sh' -g '!scripts/tests/plugins.test.sh' -g '!scripts/tests/no-sdd.test.sh'
   -g '!scripts/tests/flow-handoff.test.sh' -g '!scripts/tests/flow-pair.test.sh' -g '!scripts/tests/flow-rules.test.sh'
+  -g '!scripts/tests/multi-agent-plan.test.sh'
 )
 # Backticks in the pattern are literal markdown.
 # shellcheck disable=SC2016
