@@ -15,7 +15,7 @@
 03. [-] split → #16, #17
 04. [x] 1b42edf As a developer, I want install.sh to tell me when engram is not registered in OpenCode or Antigravity so that memory is shared across all three agents.
 05. [x] 9b9dd16 As a developer, I want `prefer-modern-cli` to block legacy tools in OpenCode and Antigravity so that every agent follows the same tool rules.
-06. [ ] As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
+06. [~] As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
 07. [ ] As a developer, I want the session-start hooks in OpenCode and Antigravity, and `pause` in OpenCode, so that both agents start with the same context as Claude. Requires: #05
 08. [ ] As a developer, I want `/flow-plan-review` to run its blind reviewer subagent in OpenCode and Antigravity so that I can review plans outside Claude. Requires: #16
 09. [ ] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the verifier in OpenCode and Antigravity so that I can build stories outside Claude. Requires: #06, #08
@@ -26,4 +26,4 @@
 14. [ ] As a developer, I want judgment-day and the remaining `flow-`/`toolkit-` commands in both agents so that nothing I use in Claude is missing. Requires: #10
 15. [ ] As a developer, I want the README, the install.sh header and `docs/multi-agent.md` to describe the port so that I know how each agent is set up. Requires: #13
 16. [x] 1b835b8 As a developer, I want the Antigravity subagent format recorded (agents dir, frontmatter, tool names agy resolves, engram through `mcpServers:`) so that the agents I port later use names agy accepts.
-17. [ ] As a developer, I want the Antigravity checks that need agy quota run in a real agy session (a subagent returns a real engram observation; the PreToolUse payload and the `ask` answer of the toolkit hook) so that the agy port rests on proven behaviour. Requires: #16, #05
+17. [ ] As a developer, I want the Antigravity checks that need agy quota run in a real agy session (a subagent returns a real engram observation; the PreToolUse payload and the `ask` answer of the toolkit hook; the Stop gate continues on a failing check and lets a cancel stop) so that the agy port rests on proven behaviour. Requires: #16, #06
