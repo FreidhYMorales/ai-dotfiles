@@ -280,6 +280,20 @@ assert 'the skill backup leaves the discovery dir' test ! -e "$skills/judgment-d
 assert 'the skill backup keeps its content' same "$(<"$moved/SKILL.md")" 'gentle judgment day'
 assert 'output names the skill backup move' rg -qF "moved skill backup: $skills/judgment-day.bak-20261023-170049 -> $moved" <<<"$LAST_OUTPUT"
 
+home=$(sandbox antigravity-skill-backup-clash)
+skills=$home/.gemini/antigravity-cli/skills
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/config" "$skills/work-unit-commits.bak-1" "$kept/work-unit-commits.bak-1"
+printf 'first copy\n' >"$kept/work-unit-commits.bak-1/SKILL.md"
+printf 'second copy\n' >"$skills/work-unit-commits.bak-1/SKILL.md"
+install "$home" --target antigravity
+copies=("$kept"/work-unit-commits.bak-1*)
+assert 'a taken backup name is not overwritten' same "$(<"$kept/work-unit-commits.bak-1/SKILL.md")" 'first copy'
+assert 'the clashing backup is not nested inside the taken one' test ! -e "$kept/work-unit-commits.bak-1/work-unit-commits.bak-1"
+assert 'the clashing backup sits next to it' test "${#copies[@]}" -eq 2
+assert 'the clashing backup keeps its content' rg -qx 'second copy' "${copies[@]/%//SKILL.md}"
+assert 'the clashing backup leaves the discovery dir' test ! -e "$skills/work-unit-commits.bak-1"
+
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$skills/pair"
