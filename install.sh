@@ -28,6 +28,8 @@ GEMINI_CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow sdd toolkit look)
+# Plugins this marketplace no longer ships: uninstalled when found.
+RETIRED_PLUGINS=(sdd)
 # Claude-only skills: the daily loop (flow:backlog, flow:story, flow:pair) relies
 # on Claude Code hooks and agents, so link_skills keeps it out of OpenCode and
 # Antigravity until it is ported (multi-agent-port).
@@ -226,6 +228,10 @@ install_plugins() {
     else
       run claude plugin install "$plugin@$MARKETPLACE"
     fi
+  done
+  for plugin in "${RETIRED_PLUGINS[@]}"; do
+    rg -qF "$plugin@$MARKETPLACE" <<<"$installed" || continue
+    run claude plugin uninstall "$plugin@$MARKETPLACE"
   done
 }
 
