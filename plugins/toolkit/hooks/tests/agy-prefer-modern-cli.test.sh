@@ -38,6 +38,13 @@ expect 'the legacy-cli marker is left to agy' '. == {decision: "ask"}' "$(comman
 expect 'another tool is left to agy' '. == {decision: "ask"}' \
   '{"toolCall": {"name": "view_file", "args": {"AbsolutePath": "/tmp/ws/ls"}}, "stepIdx": 1}'
 
+# Unlike the Claude hook, the agy adapter fails closed.
+echo "== agy: a malformed payload is denied =="
+expect 'a payload that is not JSON is denied' '.decision == "deny"' 'not json {'
+expect 'an empty payload is denied' '.decision == "deny"' ''
+expect 'a run_command without CommandLine is denied' '.decision == "deny"' \
+  '{"toolCall": {"name": "run_command", "args": {}}, "stepIdx": 2}'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
