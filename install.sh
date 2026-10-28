@@ -291,6 +291,15 @@ install_antigravity() {
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi
+  # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
+  # ours; skills-backup/ is outside discovery. Moved, never deleted.
+  local old backup_dir="$ANTIGRAVITY_DIR/skills-backup"
+  for old in "$ANTIGRAVITY_DIR"/skills/*.bak-*; do
+    [[ -e "$old" || -L "$old" ]] || continue
+    run mkdir -p "$backup_dir"
+    run mv "$old" "$backup_dir/"
+    echo "moved skill backup: $old -> $backup_dir/$(basename "$old")"
+  done
   link_skills "$ANTIGRAVITY_DIR/skills"
 }
 
