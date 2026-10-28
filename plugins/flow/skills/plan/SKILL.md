@@ -39,7 +39,7 @@ Load when the user starts a new feature or project, asks to plan, or runs `/flow
 ## Execution Steps
 
 1. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). If a plan exists, continue it where it is instead of restarting; a new plan always goes to `docs/plans/<feature>/plan.md`.
-2. Read existing proposal, specs, source docs and visual artifacts. Delegate broad reading (4+ files) to one research subagent.
+2. Read existing proposal, specs, source docs and visual artifacts. Delegate reading that does not fit one bounded read to one research subagent.
 3. Ask: is this project solo or collaborative? Record the answer (details come later in `/flow:split`).
 4. Ask for the deadline and what the demo/evaluation will prioritize; use it to rank SHOULD items by demo value.
 5. **Target platforms**: where the product runs (web/PWA, Android, iOS, Windows, macOS, Linux and which distros) and how it reaches users (URL, app stores, installer, AUR/Flatpak/package). Show the options as a checklist with a recommendation; state the cost of each extra platform vs the deadline (scope decision, not a stack decision). Never infer targets from the machine you run on. Record minimum versions and form factors (phone width ~32 cols, desktop ~70 cols) that drive the wireframes.

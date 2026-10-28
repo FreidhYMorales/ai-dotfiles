@@ -22,7 +22,7 @@ Load during planning of a greenfield project (or one with no established convent
 - Secrets never go in git: `.env.example` is committed, real `.env` is ignored, CI/deploy secrets live in the platform's secret store.
 - Three platform sets, never conflated: **target platforms** (where the product runs, from the plan), **dev environments** (every OS a contributor may develop on) and the **host** you run on (one dev environment, not the reference). Tooling, docs and `make check` must work on every supported dev environment, so anyone can reproduce the setup from `docs/development.md` alone.
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
-- Delegate broad reading (4+ files) or library/hosting research to one research subagent (context7 MCP for library docs); cite its findings.
+- Delegate reading beyond one bounded read, or library/hosting research, to one research subagent (context7 MCP for library docs); cite its findings.
 - Persist each decision to engram (`mcp__engram__mem_save`, type `decision`, topic `foundation/<project>/<area>`; one topic per decision, never reused for a different one, since a reused topic overwrites the earlier entry). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
 - Every project gets a `make check` quality gate (format check, lint, typecheck when the language has one, tests), whatever the stack. Record the exact commands in `docs/architecture.md`; `/flow:bootstrap` creates the Makefile and a smoke test. Read-only and non-interactive: no `--watch`, no auto-fix.
 - This skill writes only the docs and `.claude/settings.json`. Scaffolding, installs, file moves and remotes belong to `/flow:bootstrap`.

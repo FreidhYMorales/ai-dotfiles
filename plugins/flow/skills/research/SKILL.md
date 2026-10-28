@@ -14,7 +14,7 @@ Load before `/flow:plan` when a feature has open questions about prior art, comp
 ## Hard Rules
 
 - Talk to the user in their language; write the brief and engram entries in English.
-- Delegate broad reading (web, 4+ files, long source docs) to ONE read-only research subagent; keep only its compressed findings in this thread.
+- Delegate broad reading (web, more than one bounded read, long source docs) to ONE read-only research subagent; keep only its compressed findings in this thread.
 - Use the context7 MCP (`resolve-library-id`, then `query-docs`) for library and framework docs; never answer library APIs from memory.
 - Check external usage policies and limits that can block the plan (e.g. map-tile usage policies, API quotas, licensing, store rules).
 - Every finding carries a source (URL, file path, or doc id) and a tag: `v1` (affects what we build now), `v2` (later), or `info`.

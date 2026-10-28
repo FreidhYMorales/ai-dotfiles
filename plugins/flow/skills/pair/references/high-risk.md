@@ -35,7 +35,7 @@ The reason is a few words naming what is at risk, e.g. `Risk: item 2 (password r
 
 ## Security sub-checklist (item 2)
 
-Condensed from the sdd threat matrix. For each boundary the story touches, name the safe behaviour, the failure behaviour and one RED test; mark the rest N/A with a reason, and add no tests for N/A rows.
+Condensed from the threat matrix of the retired spec workflow. For each boundary the story touches, name the safe behaviour, the failure behaviour and one RED test; mark the rest N/A with a reason, and add no tests for N/A rows.
 
 - **Identity**: who may do this; unauthenticated and wrong-user requests are refused.
 - **Secrets**: never logged, committed or echoed; read from config or env.
