@@ -74,6 +74,15 @@ else
   failures=$((failures + 1))
 fi
 
+# Without a numeric executionNum the adapter cannot tell a re-entry apart, so
+# it must not risk continuing forever.
+for n in null 0 '"1"'; do
+  expect "executionNum $n lets agy stop on a failing check" '. == {decision: "stop"}' \
+    "$(stop_payload "$red" NO_TOOL_CALL 1 | jq -c --argjson n "$n" '.executionNum = $n')"
+done
+expect 'a missing executionNum lets agy stop on a failing check' '. == {decision: "stop"}' \
+  "$(stop_payload "$red" NO_TOOL_CALL 1 | jq -c 'del(.executionNum)')"
+
 echo "== agy: a /flow:pair red step goes through =="
 pair=$(repo pair 1)
 git -C "$pair" add -A
