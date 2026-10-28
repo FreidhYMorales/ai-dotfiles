@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a sentinel rule at each candidate path (`~/.gemini/config/AGENTS.md`, `~/.gemini/antigravity-cli/AGENTS.md`, `~/.gemini/AGENTS.md`, `~/.gemini/GEMINI.md`), when I run `agy -p` in a project outside this repo, then I get a recorded table of which paths agy 1.4.7 loads (manual check).
-- [ ] Given `./install.sh --target antigravity`, when it runs, then `AGENTS.md` is linked only at the paths the check proved, this repo's own link at an unread path is removed, and the output names the rules path.
-- [ ] Given an existing `~/.gemini/GEMINI.md`, when I install, then it is left untouched if the check showed agy ignores it; if agy loads it, it is moved to a backup and the output says how to restore it.
+- [x] Given a sentinel rule at each candidate path (`~/.gemini/config/AGENTS.md`, `~/.gemini/antigravity-cli/AGENTS.md`, `~/.gemini/AGENTS.md`, `~/.gemini/GEMINI.md`), when I run `agy -p` in a project outside this repo, then I get a recorded table of which paths agy 1.4.7 loads (manual check).
+- [x] Given `./install.sh --target antigravity`, when it runs, then `AGENTS.md` is linked only at the paths the check proved, this repo's own link at an unread path is removed, and the output names the rules path.
+- [x] Given an existing `~/.gemini/GEMINI.md`, when I install, then it is left untouched if the check showed agy ignores it; if agy loads it, it is moved to a backup and the output says how to restore it.
 
 ## Plan
 
@@ -39,3 +39,8 @@ Risk: item 1 (moves `~/.gemini/GEMINI.md` if agy loads it), item 5 (install scri
 - L1 request: "/flow:story 01"
 - L2 assumptions for approval: the sentinel check is a one-time manual run recorded in `docs/multi-agent.md`, not a committed probe script (it needs agy auth and spends quota); `AGENTS.md` (well under agy's 24 KB cap) is linked as it is today, with no rewrite.
 - L3 approved by the user ("si").
+- L4 test list approved, including flipping the pinned assertion 'AGENTS.md is linked for antigravity cli' (stop rule 3 cleared up front).
+- L5 manual sentinel check (C1), two `agy -p` runs from a non-git dir, same result: `~/.gemini/config/AGENTS.md` yes, `~/.gemini/AGENTS.md` yes, `~/.gemini/GEMINI.md` yes, `~/.gemini/antigravity-cli/AGENTS.md` no. All files restored from a backup (GEMINI.md sha256 unchanged). Recorded in `docs/multi-agent.md` (`b59dd8e`). Decided: link only `~/.gemini/config/AGENTS.md` (documented global root, already installed).
+- L6 cycles (mode C): 52c066b→d4b8c2f rules not linked under antigravity-cli; ecf0aa3→ec730a0 own unread link removed, user file kept; a1580de output names only the read path (passed on arrival, fails against main's installer); a0e297a→e56a79d GEMINI.md moved to a backup with a restore hint. `bash scripts/tests/install.test.sh` → All cases passed; `make check` → All checks passed (7 steps).
+- L7 verifier (`flow:verifier`): Verdict: PASS. Notes: dry-run still prints the "moved"/"removed" lines; same-second reruns would reuse a backup name.
+- L8 Risk: item 1 (moves `~/.gemini/GEMINI.md`), item 5 (install script), item 6 (manual-only check).
