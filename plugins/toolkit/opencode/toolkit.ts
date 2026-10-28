@@ -22,10 +22,28 @@ async function preferModernCli(call: Call): Promise<void> {
   if (result.status === 2) throw new Error(result.stderr.trim());
 }
 
+type SystemPart = { type: string; text: string };
+type ContextRequest = { sessionID: string; system: SystemPart[] };
+
+// Session start: OpenCode V2 has no session-start event that adds context, so
+// the Claude session-start hooks run here and their text joins the system.
+function sessionStart(directory: string): string {
+  const payload = JSON.stringify({ source: "startup", cwd: directory });
+  const result = spawnSync("bash", [join(HOOKS, "host-info.sh")], { input: payload, encoding: "utf8" });
+  return JSON.parse(result.stdout).hookSpecificOutput.additionalContext;
+}
+
 export default {
   id: "toolkit",
   async setup(ctx: any) {
-    const registration = await ctx.tool.hook("execute.before", preferModernCli);
-    return async () => registration.dispose();
+    const registrations = [
+      await ctx.tool.hook("execute.before", preferModernCli),
+      await ctx.session.hook("context", async (request: ContextRequest) => {
+        request.system.push({ type: "text", text: sessionStart(ctx.location.directory) });
+      }),
+    ];
+    return async () => {
+      await Promise.all(registrations.map((registration) => registration.dispose()));
+    };
   },
 };
