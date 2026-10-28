@@ -232,6 +232,20 @@ for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
 
+echo "== antigravity cleanup of the unread rules link =="
+
+home=$(sandbox antigravity-rules-link)
+mkdir -p "$home/.gemini/config" "$home/.gemini/antigravity-cli"
+ln -s "$ROOT/AGENTS.md" "$home/.gemini/antigravity-cli/AGENTS.md"
+install "$home" --target antigravity
+assert 'a left-over repo link at antigravity-cli/AGENTS.md is removed' test ! -e "$home/.gemini/antigravity-cli/AGENTS.md" -a ! -L "$home/.gemini/antigravity-cli/AGENTS.md"
+
+home=$(sandbox antigravity-rules-file)
+mkdir -p "$home/.gemini/config" "$home/.gemini/antigravity-cli"
+printf 'my own notes\n' >"$home/.gemini/antigravity-cli/AGENTS.md"
+install "$home" --target antigravity
+assert 'a user file at antigravity-cli/AGENTS.md is left alone' same "$(<"$home/.gemini/antigravity-cli/AGENTS.md")" 'my own notes'
+
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$skills/pair"
