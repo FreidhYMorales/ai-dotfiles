@@ -196,7 +196,7 @@ install "$home" --target opencode
 assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
 assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
-assert 'sdd skills are linked for opencode' test -L "$home/.config/opencode/skills/orchestrator"
+assert 'no sdd skill is linked for opencode' test ! -e "$home/.config/opencode/skills/orchestrator" -a ! -L "$home/.config/opencode/skills/orchestrator"
 assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/judgment-day"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
