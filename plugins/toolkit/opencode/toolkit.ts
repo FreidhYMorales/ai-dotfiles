@@ -13,6 +13,7 @@ const HOOKS = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", 
 type Call = { tool: string; input: { command: string } };
 
 async function preferModernCli(call: Call): Promise<void> {
+  if (call.tool !== "shell") return;
   const payload = JSON.stringify({ tool_name: "Bash", tool_input: { command: call.input.command } });
   const result = spawnSync("bash", [join(HOOKS, "prefer-modern-cli.sh")], { input: payload, encoding: "utf8" });
   if (result.status === 2) throw new Error(result.stderr.trim());
