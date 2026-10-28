@@ -26,6 +26,9 @@ assert 'README names no sdd' no_sdd "$ROOT/README.md"
 assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
 assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
+echo "== no SDD project config =="
+assert 'openspec/config.yaml is gone' test ! -e "$ROOT/openspec/config.yaml"
+
 echo "== flow names no sdd and counts no files =="
 FLOW="$ROOT/plugins/flow"
 assert 'high-risk list names no sdd' no_sdd "$FLOW/skills/pair/references/high-risk.md"
