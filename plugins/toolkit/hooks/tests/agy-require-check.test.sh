@@ -61,6 +61,19 @@ expect 'a cancel lets agy stop on a failing check' '. == {decision: "stop"}' \
 expect 'hitting the invocation limit lets agy stop on a failing check' '. == {decision: "stop"}' \
   "$(stop_payload "$red" MAX_INVOCATIONS 1)"
 
+# A Stop adapter never answers continue on input it cannot read.
+echo "== agy: an unreadable payload lets agy stop =="
+expect 'an empty payload lets agy stop' '. == {decision: "stop"}' ''
+expect 'a payload that is not JSON lets agy stop' '. == {decision: "stop"}' 'not json {'
+# Run from inside the failing repo: a missing workspace must not fall back to it.
+out=$(cd "$red" && jq -n '{executionNum: 1, terminationReason: "NO_TOOL_CALL"}' | bash "$ADAPTER" 2>/dev/null)
+if jq -e '. == {decision: "stop"}' >/dev/null 2>&1 <<<"$out"; then
+  printf 'PASS  %s\n' 'a payload without workspacePaths lets agy stop, even inside a failing repo'
+else
+  printf 'FAIL  %s (got: %s)\n' 'a payload without workspacePaths lets agy stop, even inside a failing repo' "$out"
+  failures=$((failures + 1))
+fi
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
