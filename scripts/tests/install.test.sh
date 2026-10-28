@@ -266,6 +266,20 @@ install "$home" --target antigravity
 assert 'no GEMINI.md means no backup' test -z "$(find "$home/.gemini" -maxdepth 1 -name 'GEMINI.md.bak-*')"
 assert 'no GEMINI.md means no restore hint' test -z "$(rg -F 'GEMINI.md' <<<"$LAST_OUTPUT")"
 
+echo "== antigravity moves skill backups out of discovery =="
+
+# agy 1.4.7 discovers a skill in a *.bak-* dir by its name: (story 02 check),
+# but never looks in antigravity-cli/skills-backup/.
+home=$(sandbox antigravity-skill-backups)
+skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$skills/judgment-day.bak-20261023-170049"
+printf 'gentle judgment day\n' >"$skills/judgment-day.bak-20261023-170049/SKILL.md"
+install "$home" --target antigravity
+moved=$home/.gemini/antigravity-cli/skills-backup/judgment-day.bak-20261023-170049
+assert 'the skill backup leaves the discovery dir' test ! -e "$skills/judgment-day.bak-20261023-170049"
+assert 'the skill backup keeps its content' same "$(<"$moved/SKILL.md")" 'gentle judgment day'
+assert 'output names the skill backup move' rg -qF "moved skill backup: $skills/judgment-day.bak-20261023-170049 -> $moved" <<<"$LAST_OUTPUT"
+
 home=$(sandbox antigravity-cleanup)
 skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$skills/pair"
