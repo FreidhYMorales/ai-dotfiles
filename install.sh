@@ -280,6 +280,14 @@ install_antigravity() {
       echo "removed unread rules link: $dst"
     fi
   fi
+  # agy also loads ~/.gemini/GEMINI.md (gentle-ai) on top of these rules, so
+  # move it aside; the backup is never deleted.
+  local gemini_md="$HOME/.gemini/GEMINI.md" backup
+  if [[ -e "$gemini_md" || -L "$gemini_md" ]]; then
+    backup="$gemini_md.bak-$(date +%Y%m%d-%H%M%S)"
+    run mv "$gemini_md" "$backup"
+    echo "moved $gemini_md aside (agy loads it over these rules); restore: mv '$backup' '$gemini_md'"
+  fi
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi
