@@ -269,6 +269,17 @@ install_opencode() {
 }
 
 install_antigravity() {
+  # agy never reads antigravity-cli/AGENTS.md: drop the link an earlier run
+  # made there, but only our own symlink; anything else is the user's.
+  local dst="$ANTIGRAVITY_DIR/AGENTS.md" target repo_real
+  repo_real=$(readlink -f "$REPO_DIR")
+  if [[ -L "$dst" ]]; then
+    target=$(readlink "$dst")
+    if [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]]; then
+      run rm "$dst"
+      echo "removed unread rules link: $dst"
+    fi
+  fi
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
     link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
   fi
