@@ -29,11 +29,11 @@ Read-only research run on 2026-10-26 (engram #701). Key findings:
 - Antigravity has `agy plugin import claude` / `agy plugin install` for Claude Code plugins; untested. (v1 spike)
 - Engram MCP is already configured by hand: `~/.config/opencode/opencode.json` and `~/.gemini/config/mcp_config.json`, command `engram mcp --tools=agent`. `engram setup <agent>` exists for opencode and antigravity-cli; untested. (v1)
 - 7 toolkit hooks read Claude snake_case JSON and answer with Claude keys (`hookSpecificOutput.additionalContext`, `systemMessage`, exit 2). (v1)
-- `${CLAUDE_PLUGIN_ROOT}` appears only in `plugins/sdd/skills/orchestrator/SKILL.md` (9×); "Agent tool"/"Skill tool" wording in the orchestrator, 9 sdd phase skills, judgment-day and sdd references; `flow:plan-reviewer` and `toolkit:jd-*` names in plan-review and judgment-day. Flat skill symlinks break relative paths (`../../agents/...`). (v1)
+- `${CLAUDE_PLUGIN_ROOT}` appears in skill and agent markdown only in `plugins/flow/agents/verifier.md` (1×, fallback path to the pair references); `plugins/toolkit/hooks/hooks.json` uses it for every hook command. "Agent tool"/"Skill tool" wording in judgment-day and the `jd-*` agents; `flow:plan-reviewer`, `flow:verifier` and `toolkit:jd-*` names in plan-review, story, pair and judgment-day. Flat skill symlinks break relative paths (`../../agents/...` in plan-review, `../pair/references/...` in story). (v1, refreshed 2026-10-27)
 
 ## Product vision
 
-- **v1:** when Claude quota runs out, open OpenCode or Antigravity in any project and keep the same workflow: same rules, engram memory, safety hooks, `/flow:plan` + `plan-review`, and the full SDD cycle with phase sub-agents.
+- **v1:** when Claude quota runs out, open OpenCode or Antigravity in any project and keep the same workflow: same rules, engram memory, safety hooks, `/flow:plan` + `plan-review`, and the story loop (`flow:backlog` → `flow:story` → `flow:pair`) with its `flow:verifier` sub-agent.
 - **v2 (later):** status line / band equivalents, `look` features, other OSes, Gemini CLI.
 
 ## Core model
@@ -71,12 +71,12 @@ Order fixed by priority C → B → A.
 | 2. (C) Engram MCP: installer verifies/registers engram per target (`engram setup` if it writes the expected config, else jq merge) | MUST | 0.5 | high |
 | 3. (C) Hooks: split the 7 toolkit hooks into core + adapters; Antigravity `hooks.json`, OpenCode TS plugin; `require-check` Claude + agy only | MUST | 2 | high |
 | 4. (B) Generator skeleton + `plan-reviewer` agent and `plan-review` skill for both targets | MUST | 1.5 | high: proves the agent format |
-| 5. (A) SDD: 10 sdd agents, orchestrator + phase skills + references, through the generator | MUST | 2 | high |
+| 5. (A) Loop: `flow:backlog`, `flow:story` and `flow:pair` skills (with pair's references) and the `flow:verifier` agent through the generator | MUST | 1 | high |
 | 6. (A) judgment-day: `jd-judge-a/b`, `jd-fix-agent` through the generator | SHOULD | 0.5 | medium |
-| 7. Slash-command equivalents: OpenCode `commands/*.md` for `/flow:*` and `/sdd:*` (agy exposes skills as `/name`) | SHOULD | 0.5 | medium |
-| 8. Manual smoke per target: run `/flow:plan`-review and an SDD `new`→`archive` on a toy repo in OpenCode and agy; record in `docs/multi-agent.md` | MUST | 1 | high |
+| 7. Slash-command equivalents: OpenCode `commands/*.md` for `/flow:*` (agy exposes skills as `/name`) | SHOULD | 0.5 | medium |
+| 8. Manual smoke per target: run `/flow:plan`-review and one `flow:backlog` → `flow:story` → `flow:pair` story on a toy repo in OpenCode and agy; record in `docs/multi-agent.md` | MUST | 1 | high |
 
-Total ≈ 8.75 dev-days.
+Total ≈ 7.75 dev-days.
 
 ## Demo data
 
@@ -89,7 +89,7 @@ A throwaway toy repo (e.g. a tiny CLI with one function) used for the manual smo
 | Does `agy` read `~/.gemini/config/AGENTS.md`? | No; link `~/.gemini/AGENTS.md` only | me | no (verify in item 0) |
 | Which `mcp_config.json` agy uses | `~/.gemini/config/mcp_config.json` (listed by `agy mcp list`) | me | no (item 2) |
 | OpenCode skills reading sibling files by relative path | Not supported; generator writes absolute paths | me | no |
-| OpenCode command names with a colon (`sdd:new`) | Not allowed; use `sdd-new` | me | no (item 7) |
+| OpenCode command names with a colon (`flow:story`) | Not allowed; use `flow-story` | me | no (item 7) |
 | What `engram setup opencode|antigravity-cli` writes | May overwrite hand config; test in a sandbox HOME first | me | no |
 | OpenCode plugin API v2 migration | Target the API of v2.1.4; pin in docs | me | no |
 | Exact agy tool names for each Claude tool | Build the table from `builtin/skills/agy-customizations/docs`; generator fails on unknown | me | no |
@@ -107,7 +107,7 @@ A throwaway toy repo (e.g. a tiny CLI with one function) used for the manual smo
 2. Engram memory saved in OpenCode is found from agy and Claude.
 3. `prefer-modern-cli` blocks `ls` in all three.
 4. `plan-review` runs its blind sub-agent in both targets.
-5. SDD `new` → `archive` on the toy repo in both targets.
+5. One `flow:backlog` → `flow:story` → `flow:pair` story on the toy repo in both targets.
 
 ## Collaboration
 
