@@ -26,6 +26,16 @@ assert 'README names no sdd' no_sdd "$ROOT/README.md"
 assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
 assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
+echo "== flow names no sdd and counts no files =="
+FLOW="$ROOT/plugins/flow"
+assert 'high-risk list names no sdd' no_sdd "$FLOW/skills/pair/references/high-risk.md"
+for skill in plan research foundation; do
+  assert "$skill delegates by understanding, not 4+ files" test -f "$FLOW/skills/$skill/SKILL.md" -a -z "$(grep -F '4+ files' "$FLOW/skills/$skill/SKILL.md")"
+done
+assert 'flow plugin is 0.10.0' test "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")" = 0.10.0
+assert 'marketplace lists flow 0.10.0' \
+  test "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")" = 0.10.0
+
 echo "== toolkit skills name no sdd =="
 TOOLKIT="$ROOT/plugins/toolkit"
 assert 'work-unit-commits names no sdd' no_sdd "$TOOLKIT/skills/work-unit-commits/SKILL.md"
