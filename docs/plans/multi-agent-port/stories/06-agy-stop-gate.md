@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given agy ends a turn normally in a repo whose `make check` fails, when the toolkit Stop hook runs, then agy is told to continue with the same failure tail Claude gets; when `make check` passes, or agy is already continuing from this gate, agy is let stop.
-- [ ] Given I cancel, agy stops for any other reason, the payload is missing or malformed, or a `/flow:pair` red marker is on the branch, when the Stop hook runs, then agy is let stop and never told to continue.
-- [ ] Given `./install.sh --target antigravity` (once or twice), when it runs, then the `toolkit` key of agy's `hooks.json` also holds the Stop hook with a timeout of at least 330 s, next to the PreToolUse hook, and every other key (herdr) keeps its value.
+- [x] Given agy ends a turn normally in a repo whose `make check` fails, when the toolkit Stop hook runs, then agy is told to continue with the same failure tail Claude gets; when `make check` passes, or agy is already continuing from this gate, agy is let stop.
+- [x] Given I cancel, agy stops for any other reason, the payload is missing or malformed, or a `/flow:pair` red marker is on the branch, when the Stop hook runs, then agy is let stop and never told to continue.
+- [x] Given `./install.sh --target antigravity` (once or twice), when it runs, then the `toolkit` key of agy's `hooks.json` also holds the Stop hook with a timeout of at least 330 s, next to the PreToolUse hook, and every other key (herdr) keeps its value.
 
 ## Plan
 
@@ -43,3 +43,6 @@ Risk: item 4 (re-entry: a gate that keeps telling agy to continue would trap the
 - L6 test 7 (user-approved, stop rule 3): story 05's exact `.toolkit == {PreToolUse: …}` assertion became `.toolkit.PreToolUse == …`; a new assertion pins the whole key with `Stop: [{type, command, timeout: 330}]` (flat list, per agy's docs). 50b126b→e135274.
 - L7 verifier: NEEDS DECISION. C1/C3 PASS, C2 PASS for documented payloads. Trap probe: a `NO_TOOL_CALL` payload with `executionNum` missing, `null` or `0` continues on every re-entry (jq `null > 1` is false), so only agy's forced-continuation limit would end it; `workspacePaths: [""]` or `["."]` falls back to the hook's cwd (normally `~/.gemini/config`, harmless). Open item 6: what `executionNum` counts is undocumented (story 17).
 - L8 correction batch (user: "si"): 27476e0→767b7f2 a `NO_TOOL_CALL` payload without a numeric `executionNum` ≥ 1 (missing, null, 0, string) stops; 0796d04→438f13f an empty or relative workspace path stops (only an absolute path is gated).
+- L9 verifier recheck: Verdict: PASS. Red/green replay of 27476e0 and 0796d04 against the pre-fix adapter failed as expected; trap probe at HEAD: only `NO_TOOL_CALL` with `executionNum` 1 and an absolute workspace answers continue. Open (story 17): agy's real Stop behaviour and what `executionNum` counts.
+- L10 tests: `bash plugins/toolkit/hooks/tests/agy-require-check.test.sh` and `bash scripts/tests/install.test.sh` → All cases passed; `make check` → All checks passed (7 steps).
+- L11 Risk: item 4 (re-entry: a gate that keeps telling agy to continue would trap the session), item 5 (runtime config written by the installer), item 6 (agy's real Stop behaviour can only be confirmed by hand).
