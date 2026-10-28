@@ -28,6 +28,15 @@ command_payload() {
 echo "== agy: legacy tools are denied =="
 expect 'ls is denied with the Claude message' \
   '.decision == "deny" and (.reason | startswith("Use eza instead of ls."))' "$(command_payload 'ls -la')"
+expect 'grep is denied with the Claude message' \
+  '.decision == "deny" and (.reason | startswith("Use rg instead of grep."))' "$(command_payload 'git log | grep fix')"
+
+# "ask" keeps agy's own permission flow; "allow" would skip the user's prompt.
+echo "== agy: everything else keeps the normal permission flow =="
+expect 'a modern tool is left to agy' '. == {decision: "ask"}' "$(command_payload 'rg foo')"
+expect 'the legacy-cli marker is left to agy' '. == {decision: "ask"}' "$(command_payload 'ls # legacy-cli')"
+expect 'another tool is left to agy' '. == {decision: "ask"}' \
+  '{"toolCall": {"name": "view_file", "args": {"AbsolutePath": "/tmp/ws/ls"}}, "stepIdx": 1}'
 
 echo
 if [[ $failures -gt 0 ]]; then
