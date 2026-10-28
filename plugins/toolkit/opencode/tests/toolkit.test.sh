@@ -1,18 +1,35 @@
 #!/usr/bin/env bash
 # Tests for the OpenCode toolkit plugin. Run: bash plugins/toolkit/opencode/tests/toolkit.test.sh
-# Calls follow a real OpenCode 2.1.4 `execute.before` capture (story 05).
+# Calls follow real OpenCode 2.1.4 captures: `execute.before` (story 05) and
+# the session `context` hook (story 19).
 set -u
 
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/toolkit.ts"
 failures=0
+TMP_ROOT=$(mktemp -d)
+trap 'rm -rf "$TMP_ROOT"' EXIT
+
+# Isolate the session-start hooks from this machine: fake os-release, empty XDG dirs.
+WS="$TMP_ROOT/project"
+mkdir -p "$WS" "$TMP_ROOT/home" "$TMP_ROOT/bin"
+printf 'PRETTY_NAME="Fakedistro 1"\n' >"$TMP_ROOT/os-release"
+export HOME="$TMP_ROOT/home" XDG_CONFIG_HOME="$TMP_ROOT/config" XDG_STATE_HOME="$TMP_ROOT/state"
+export OS_RELEASE_FILE="$TMP_ROOT/os-release"
+unset AI_HOOKS_OFF SKIP_HOST_INFO SKIP_BACKUP_STATUS
+
+# A fake V2 plugin context for the project $WS; registered hooks land in `hooks`.
+cat >"$TMP_ROOT/fake-ctx.mjs" <<EOF
+export const hooks = {};
+const register = async (name, cb) => { hooks[name] = cb; return { dispose: async () => {} }; };
+export const ctx = { location: { directory: "$WS" }, tool: { hook: register }, session: { hook: register } };
+EOF
 
 # before CALL_JSON: load the plugin with a fake V2 context, run its
 # execute.before hook on CALL_JSON; print "pass" or "blocked: <message>".
 before() {
-  node --input-type=module - "$PLUGIN" "$1" <<'EOF' 2>&1
-const [plugin, call] = process.argv.slice(2);
-const hooks = {};
-const ctx = { tool: { hook: async (name, cb) => { hooks[name] = cb; return { dispose: async () => {} }; } } };
+  node --input-type=module - "$PLUGIN" "$1" "$TMP_ROOT/fake-ctx.mjs" <<'EOF' 2>&1
+const [plugin, call, fake] = process.argv.slice(2);
+const { hooks, ctx } = await import(fake);
 const { default: def } = await import(plugin);
 await def.setup(ctx);
 try {
@@ -63,6 +80,54 @@ expect 'a shell call without a command is blocked' 'blocked: toolkit: malformed 
   '{"tool": "shell", "sessionID": "ses_1", "id": "call_5", "input": {}}'
 expect 'a shell call with a non-string command is blocked' 'blocked: toolkit: malformed shell call' \
   '{"tool": "shell", "sessionID": "ses_1", "id": "call_6", "input": {"command": ["ls"]}}'
+
+# context SESSION_ID...: load the plugin once, call its session `context` hook
+# once per id with a fresh base system; print the resulting systems as a JSON
+# array, or "threw: <message>".
+context() {
+  node --input-type=module - "$PLUGIN" "$TMP_ROOT/fake-ctx.mjs" "$@" <<'EOF' 2>&1
+const [plugin, fake, ...sessions] = process.argv.slice(2);
+const { hooks, ctx } = await import(fake);
+const { default: def } = await import(plugin);
+await def.setup(ctx);
+const systems = [];
+try {
+  for (const sessionID of sessions) {
+    const request = { sessionID, model: {}, system: [{ type: "text", text: "base" }], messages: [] };
+    await hooks["context"](request);
+    systems.push(request.system);
+  }
+  console.log(JSON.stringify(systems));
+} catch (error) {
+  console.log(`threw: ${error.message}`);
+}
+EOF
+}
+
+# expect_context LABEL FILTER [ENV...] -- SESSION_ID...: the systems satisfy the jq FILTER.
+expect_context() {
+  local label=$1 filter=$2 got
+  shift 2
+  local env=()
+  while [[ $1 != -- ]]; do env+=("$1"); shift; done
+  shift
+  got=$(
+    ((${#env[@]})) && export "${env[@]}"
+    context "$@"
+  )
+  if jq -e "$filter" >/dev/null 2>&1 <<<"$got"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s (got: %s)\n' "$label" "$got"
+    failures=$((failures + 1))
+  fi
+}
+
+echo "== opencode: the session starts with the host info =="
+expect_context 'host info alone is appended as one system part' \
+  '(.[0] | length) == 2 and .[0][0] == {type: "text", text: "base"} and .[0][1].type == "text"
+    and (.[0][1].text | contains("Fakedistro 1"))' \
+  AI_HOOKS_OFF=pack-hint,backup-status -- ses_1
 
 echo
 if [[ $failures -gt 0 ]]; then
