@@ -5,6 +5,11 @@
 
 input=$(cat)
 hooks="$(dirname "${BASH_SOURCE[0]}")/.."
+# An unreadable payload injects nothing; the session itself is never blocked.
+if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
+  echo '{}'
+  exit 0
+fi
 dir=$(jq -r '.workspacePaths[0]' <<<"$input")
 payload=$(jq -n --arg cwd "$dir" '{source: "startup", cwd: $cwd}')
 
