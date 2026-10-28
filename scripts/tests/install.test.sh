@@ -351,6 +351,17 @@ install "$home" --target antigravity
 assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
 assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
 
+echo "== antigravity engram registration =="
+
+home=$(sandbox antigravity-no-engram)
+mkdir -p "$home/.gemini/config"
+printf 'NAME     TYPE   STATUS   COMMAND/URL\ncontext7 stdio  enabled  npx context7-mcp\n' >"$home/state/agy-mcp-list"
+install "$home" --target antigravity
+assert 'antigravity run without engram succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy without engram says engram is not registered' \
+  rg -qF 'engram is not registered in Antigravity' <<<"$LAST_OUTPUT"
+assert 'agy without engram names the manual step' rg -qF 'engram setup antigravity-cli' <<<"$LAST_OUTPUT"
+
 echo "== retired sdd plugin =="
 
 home=$(sandbox sdd-installed)
