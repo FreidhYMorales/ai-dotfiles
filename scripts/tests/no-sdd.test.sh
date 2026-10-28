@@ -26,6 +26,14 @@ assert 'README names no sdd' no_sdd "$ROOT/README.md"
 assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
 assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
+echo "== toolkit skills name no sdd =="
+TOOLKIT="$ROOT/plugins/toolkit"
+assert 'work-unit-commits names no sdd' no_sdd "$TOOLKIT/skills/work-unit-commits/SKILL.md"
+assert 'chained-pr names no sdd' no_sdd "$TOOLKIT/skills/chained-pr/SKILL.md"
+assert 'toolkit plugin is 0.14.0' test "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")" = 0.14.0
+assert 'marketplace lists toolkit 0.14.0' \
+  test "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")" = 0.14.0
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
