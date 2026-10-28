@@ -23,6 +23,7 @@ case "$1 $2 ${3:-}" in
 "plugin marketplace add") touch "$state/marketplace" ;;
 "plugin list "*) cat "$state/plugins" 2>/dev/null ;;
 "plugin install "*) printf '%s\n' "$3" >>"$state/plugins" ;;
+"plugin uninstall "*) rg -vxF "$3" "$state/plugins" >"$state/plugins.new"; mv "$state/plugins.new" "$state/plugins" ;;
 esac
 exit 0
 EOF
@@ -236,6 +237,15 @@ printf 'mine\n' >"$skills/pair/SKILL.md"
 install "$home" --target antigravity
 assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
 assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
+
+echo "== retired sdd plugin =="
+
+home=$(sandbox sdd-installed)
+printf '%s\n' flow@ai-dotfiles sdd@ai-dotfiles >"$home/state/plugins"
+touch "$home/state/marketplace"
+install "$home" --target claude
+assert 'run over an installed sdd succeeds' test "$LAST_EXIT" -eq 0
+assert 'installed sdd is uninstalled' rg -qxF 'plugin uninstall sdd@ai-dotfiles' "$home/state/calls"
 
 echo "== target without a value =="
 
