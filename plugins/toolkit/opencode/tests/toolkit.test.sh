@@ -146,6 +146,27 @@ expect_context 'host info, pack hint and backup note are appended as one system 
     and contains("no engram backup recorded yet"))' \
   PATH="$TMP_ROOT/bin:$PATH" -- ses_1
 
+# A counting ai-pack: each run of the session-start hooks leaves one line.
+echo "== opencode: the hooks run once per session =="
+mkdir -p "$TMP_ROOT/counting"
+cat >"$TMP_ROOT/counting/ai-pack" <<EOF
+#!/usr/bin/env bash
+echo run >>"$TMP_ROOT/pack-calls"
+printf 'v1\tpack: try the web pack\n'
+EOF
+chmod +x "$TMP_ROOT/counting/ai-pack"
+expect_context 'every call of a session gets the same block' \
+  'length == 3 and all(.[]; length == 2) and .[0][1] == .[1][1] and .[0][1] == .[2][1]
+    and (.[0][1].text | contains("pack: try the web pack"))' \
+  PATH="$TMP_ROOT/counting:$PATH" -- ses_1 ses_1 ses_2
+calls=$(wc -l <"$TMP_ROOT/pack-calls" 2>/dev/null || echo 0)
+if [[ $calls -eq 2 ]]; then
+  printf 'PASS  %s\n' 'two calls in one session and one in another run the hooks twice'
+else
+  printf 'FAIL  %s (got: %s runs)\n' 'two calls in one session and one in another run the hooks twice' "$calls"
+  failures=$((failures + 1))
+fi
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
