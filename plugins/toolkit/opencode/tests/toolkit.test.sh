@@ -132,6 +132,20 @@ expect_context 'host info alone is appended as one system part' \
     and (.[0][1].text | contains("Fakedistro 1"))' \
   AI_HOOKS_OFF=pack-hint,backup-status -- ses_1
 
+# A fake ai-pack that hints only for this project, and a configured backup
+# that never ran: all three hooks speak.
+cat >"$TMP_ROOT/bin/ai-pack" <<EOF
+#!/usr/bin/env bash
+[[ "\$*" == "hint --cwd $WS" ]] && printf 'v1\tpack: try the web pack\n'
+EOF
+chmod +x "$TMP_ROOT/bin/ai-pack"
+mkdir -p "$XDG_CONFIG_HOME/restic"
+touch "$XDG_CONFIG_HOME/restic/engram.env"
+expect_context 'host info, pack hint and backup note are appended as one system part' \
+  '(.[0] | length) == 2 and (.[0][1].text | contains("Fakedistro 1") and contains("pack: try the web pack")
+    and contains("no engram backup recorded yet"))' \
+  PATH="$TMP_ROOT/bin:$PATH" -- ses_1
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
