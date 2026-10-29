@@ -11,7 +11,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 | Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
 | Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
 | Plugin agents | yes | no | no |
-| Hooks | yes | `prefer-modern-cli` only: plugin `toolkit.ts` → `~/.config/opencode/plugins/` | `prefer-modern-cli`, the `make check` Stop gate (`require-check`) and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, joined into one injected system message): a `toolkit` key merged into `~/.gemini/config/hooks.json` |
+| Hooks | yes | `prefer-modern-cli` and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, run once per session and joined into one block appended to the system on each model call): plugin `toolkit.ts` → `~/.config/opencode/plugins/` | `prefer-modern-cli`, the `make check` Stop gate (`require-check`) and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, joined into one injected system message): a `toolkit` key merged into `~/.gemini/config/hooks.json` |
 | Engram MCP | yes (plugin) | configure by hand; the installer warns when missing | configure by hand; the installer warns when missing |
 | Status line, `look` band | yes | no | no |
 | `bin/*`, systemd units, git hooks | yes | yes | yes |
@@ -19,6 +19,8 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`, so all three agents read the same rules file.
 
 ## Manual setup per machine
+
+OpenCode's background service (`opencode serve --service`) loads plugins when it starts and `opencode run` talks to it, so after updating `toolkit.ts` restart that service; `opencode run --standalone` uses a private server with the current plugin and your environment.
 
 The installer never writes engram's MCP config outside Claude Code (`engram setup` may rewrite the agent's config); it only checks it and prints a warning naming the manual step:
 
