@@ -26,11 +26,18 @@ type SystemPart = { type: string; text: string };
 type ContextRequest = { sessionID: string; system: SystemPart[] };
 
 // Session start: OpenCode V2 has no session-start event that adds context, so
-// the Claude session-start hooks run here and their text joins the system.
+// the Claude session-start hooks run here and their text joins the system as
+// one block (context and messages alike: OpenCode has no user-only channel).
 function sessionStart(directory: string): string {
   const payload = JSON.stringify({ source: "startup", cwd: directory });
-  const result = spawnSync("bash", [join(HOOKS, "host-info.sh")], { input: payload, encoding: "utf8" });
-  return JSON.parse(result.stdout).hookSpecificOutput.additionalContext;
+  const parts: string[] = [];
+  for (const hook of ["host-info", "pack-hint", "backup-status"]) {
+    const result = spawnSync("bash", [join(HOOKS, `${hook}.sh`)], { input: payload, encoding: "utf8" });
+    if (!result.stdout.trim()) continue;
+    const out = JSON.parse(result.stdout);
+    parts.push(out.hookSpecificOutput?.additionalContext ?? out.systemMessage);
+  }
+  return parts.join("\n\n");
 }
 
 export default {
