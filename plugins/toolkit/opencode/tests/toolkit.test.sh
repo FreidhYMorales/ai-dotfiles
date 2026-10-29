@@ -167,6 +167,27 @@ else
   failures=$((failures + 1))
 fi
 
+echo "== opencode: nothing to say leaves the system untouched =="
+untouched='. == [[{type: "text", text: "base"}]]'
+expect_context 'all hooks silent leaves the system as it was' "$untouched" \
+  AI_HOOKS_OFF=host-info,pack-hint,backup-status -- ses_1
+# A jq that breaks only the hooks' final `jq -n` output: host-info prints garbage.
+real_jq=$(command -v jq)
+mkdir -p "$TMP_ROOT/badjq"
+cat >"$TMP_ROOT/badjq/jq" <<EOF
+#!/usr/bin/env bash
+[[ \$1 == -n ]] && { echo 'not json {'; exit 0; }
+exec "$real_jq" "\$@"
+EOF
+chmod +x "$TMP_ROOT/badjq/jq"
+expect_context 'a hook that prints something unreadable leaves the system as it was' "$untouched" \
+  AI_HOOKS_OFF=pack-hint,backup-status PATH="$TMP_ROOT/badjq:$PATH" -- ses_1
+# No bash on the PATH: the hooks cannot even start.
+mkdir -p "$TMP_ROOT/nobash"
+ln -sf "$(command -v node)" "$TMP_ROOT/nobash/node"
+expect_context 'hooks that cannot start leave the system as it was' "$untouched" \
+  PATH="$TMP_ROOT/nobash" -- ses_1
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
