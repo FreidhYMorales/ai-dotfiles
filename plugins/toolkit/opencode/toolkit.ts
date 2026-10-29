@@ -32,10 +32,16 @@ function sessionStart(directory: string): string {
   const payload = JSON.stringify({ source: "startup", cwd: directory });
   const parts: string[] = [];
   for (const hook of ["host-info", "pack-hint", "backup-status"]) {
-    const result = spawnSync("bash", [join(HOOKS, `${hook}.sh`)], { input: payload, encoding: "utf8" });
-    if (!result.stdout.trim()) continue;
-    const out = JSON.parse(result.stdout);
-    parts.push(out.hookSpecificOutput?.additionalContext ?? out.systemMessage);
+    // A hook that cannot start, fails or prints something unreadable says nothing.
+    try {
+      const result = spawnSync("bash", [join(HOOKS, `${hook}.sh`)], { input: payload, encoding: "utf8" });
+      if (!result.stdout?.trim()) continue;
+      const out = JSON.parse(result.stdout);
+      const text = out.hookSpecificOutput?.additionalContext ?? out.systemMessage;
+      if (typeof text === "string" && text.trim()) parts.push(text);
+    } catch {
+      continue;
+    }
   }
   return parts.join("\n\n");
 }
@@ -49,7 +55,8 @@ export default {
       await ctx.tool.hook("execute.before", preferModernCli),
       await ctx.session.hook("context", async (request: ContextRequest) => {
         if (!blocks.has(request.sessionID)) blocks.set(request.sessionID, sessionStart(ctx.location.directory));
-        request.system.push({ type: "text", text: blocks.get(request.sessionID)! });
+        const block = blocks.get(request.sessionID);
+        if (block) request.system.push({ type: "text", text: block });
       }),
     ];
     return async () => {
