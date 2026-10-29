@@ -43,10 +43,13 @@ function sessionStart(directory: string): string {
 export default {
   id: "toolkit",
   async setup(ctx: any) {
+    // The hooks run on a session's first model call; later calls reuse the block.
+    const blocks = new Map<string, string>();
     const registrations = [
       await ctx.tool.hook("execute.before", preferModernCli),
       await ctx.session.hook("context", async (request: ContextRequest) => {
-        request.system.push({ type: "text", text: sessionStart(ctx.location.directory) });
+        if (!blocks.has(request.sessionID)) blocks.set(request.sessionID, sessionStart(ctx.location.directory));
+        request.system.push({ type: "text", text: blocks.get(request.sessionID)! });
       }),
     ];
     return async () => {
