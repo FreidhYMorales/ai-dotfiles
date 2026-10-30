@@ -200,6 +200,9 @@ assert 'chk: generator exits 0' test "$LAST_EXIT" -eq 0
 NEEDS_DECISION='In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline.'
 CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/antigravity/skills/flow-plan-review/SKILL.md")
 assert 'chk: agy check step says NEEDS DECISION' grep -qF "$NEEDS_DECISION" <<<"$CHK_STEP"
+CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-review/SKILL.md")
+assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
+assert 'chk: opencode check step has no agy line' test -z "$(grep -F 'In Antigravity' <<<"$CHK_STEP")"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
