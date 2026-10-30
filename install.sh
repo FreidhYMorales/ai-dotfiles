@@ -214,7 +214,11 @@ build_agents() {
   new="$BUILD_DIR.$(date +%Y%m%d%H%M%S).$$"
   old=$(readlink "$BUILD_DIR" 2>/dev/null || true)
   run mkdir -p "$(dirname "$BUILD_DIR")"
-  run bash "$REPO_DIR/scripts/gen-agents/gen.sh" "$new"
+  if ! run bash "$REPO_DIR/scripts/gen-agents/gen.sh" "$new"; then
+    run rm -rf "$new"
+    echo "error: scripts/gen-agents/gen.sh failed; the previous build is kept" >&2
+    exit 1
+  fi
   run ln -s "$(basename "$new")" "$new.link"
   run mv -T "$new.link" "$BUILD_DIR"
   # Only a generation this function made, never anything else.
