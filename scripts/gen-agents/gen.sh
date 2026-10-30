@@ -51,9 +51,11 @@ support_paths() {
   opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
 
   # agy_words: subagents are launched through invoke_subagent; engram tools
-  # go by their own names.
+  # go by their own names. pair's verifier step ends in NEEDS DECISION while
+  # agy has no shell tool (story 17).
   agy_words() {
     sed -E \
+      -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
       -e 's/(launch a fresh `[^`]+`) subagent/\1 subagent through `invoke_subagent`/g' \
       -e 's/(Launch the `[^`]+`) agent/\1 subagent through `invoke_subagent`/g' \
       -e 's/Launch `general-purpose`/Launch the default subagent through `invoke_subagent`/g' \
@@ -111,6 +113,8 @@ agy_tools() {
     Read) echo read_file view_file ;;
     Grep) echo grep_search ;;
     Glob | Bash) ;;
+    # Engram is declared under mcpServers: (agy_agent), never as a tool.
+    mcp__engram__*) ;;
     *)
       echo "gen-agents: $2: no agy name for tool $1" >&2
       return 1
@@ -120,10 +124,12 @@ agy_tools() {
 
 # agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
 # An unmapped tool stops the generator: agy never builds such a subagent and
-# says nothing.
+# says nothing. An agent with an engram tool declares engram under
+# mcpServers: (story 16).
 agy_agent() {
-  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=()
+  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=() engram=
   for tool in $(field "$src" tools | tr -d ','); do
+    [[ $tool == mcp__engram__* ]] && engram=1
     mapped=$(agy_tools "$tool" "$src")
     # shellcheck disable=SC2206 # split the space-separated names
     names+=($mapped)
@@ -132,7 +138,10 @@ agy_agent() {
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
-    printf 'model: pro\n---\n'
+    # No agy shell tool is proven yet (story 17), so no agent runs commands.
+    printf 'model: pro\ncommandExecutionPolicy: off\n'
+    [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
+    printf -- '---\n'
     body "$src"
   } | rename >"$dst"
 }

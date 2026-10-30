@@ -155,6 +155,56 @@ assert 'a bare support path fails' test "$LAST_EXIT" -ne 0
 assert 'bare: names the file and line' grep -qE \
   'bare support path: opencode/skills/flow-plan-review/SKILL\.md:[0-9]+:.*references/x\.md' <<<"$LAST_OUTPUT"
 
+echo "== agy agents that use engram =="
+# A copy of the sources whose reviewer also asks for an engram tool.
+MEM="$TMP_ROOT/mem"
+mkdir -p "$MEM/plugins"
+cp -r "$ROOT/plugins/flow" "$MEM/plugins/"
+awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
+  >"$MEM/plugins/flow/agents/plan-reviewer.md"
+MEM_OUT="$TMP_ROOT/mem-out"
+LAST_OUTPUT=$(GEN_SOURCE="$MEM" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$MEM_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'mem: generator exits 0' test "$LAST_EXIT" -eq 0
+[[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+# frontmatter FILE: the lines between the two '---' markers.
+frontmatter() { awk 'NR > 1 && /^---$/ { exit } NR > 1' "$1"; }
+MEM_FM=$(frontmatter "$MEM_OUT/antigravity/agents/flow-plan-reviewer.md" 2>/dev/null)
+ENGRAM_BLOCK='mcpServers:
+  - name: engram
+    command: engram
+    args:
+      - mcp
+      - --tools=agent'
+assert 'mem: engram declared under mcpServers' test "${MEM_FM#*"$ENGRAM_BLOCK"}" != "$MEM_FM"
+assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_FM")"
+# The real reviewer has no engram tool.
+assert 'mem: an agent without engram has no mcpServers' \
+  test -z "$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" | grep '^mcpServers:')"
+
+echo "== the agy verifier step ends in NEEDS DECISION =="
+# A copy of the sources whose plan-review holds pair's real check step;
+# flow-pair itself is generated in #09.
+CHK="$TMP_ROOT/chk"
+mkdir -p "$CHK/plugins"
+cp -r "$ROOT/plugins/flow" "$CHK/plugins/"
+{
+  echo
+  grep '^6\. \*\*Check\.\*\*' "$ROOT/plugins/flow/skills/pair/SKILL.md"
+} >>"$CHK/plugins/flow/skills/plan-review/SKILL.md"
+CHK_OUT="$TMP_ROOT/chk-out"
+LAST_OUTPUT=$(GEN_SOURCE="$CHK" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$CHK_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'chk: generator exits 0' test "$LAST_EXIT" -eq 0
+# shellcheck disable=SC2016 # literal markdown backticks
+NEEDS_DECISION='In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline.'
+CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/antigravity/skills/flow-plan-review/SKILL.md")
+assert 'chk: agy check step says NEEDS DECISION' grep -qF "$NEEDS_DECISION" <<<"$CHK_STEP"
+CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-review/SKILL.md")
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
+assert 'chk: opencode check step has no agy line' test -z "$(grep -F 'In Antigravity' <<<"$CHK_STEP")"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
