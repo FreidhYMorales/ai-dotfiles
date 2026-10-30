@@ -137,6 +137,18 @@ for target in opencode antigravity; do
     "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
 done
 
+# A bare reference the rewrite does not cover: plain prose, no backticks.
+BARE="$TMP_ROOT/bare"
+mkdir -p "$BARE/plugins"
+cp -r "$ROOT/plugins/flow" "$BARE/plugins/"
+mkdir -p "$BARE/plugins/flow/skills/plan-review/references"
+touch "$BARE/plugins/flow/skills/plan-review/references/x.md"
+printf '\nSee references/x.md for details.\n' >>"$BARE/plugins/flow/skills/plan-review/SKILL.md"
+verify "$BARE"
+assert 'a bare support path fails' test "$LAST_EXIT" -ne 0
+assert 'bare: names the file and line' grep -qE \
+  'bare support path: opencode/skills/flow-plan-review/SKILL\.md:[0-9]+:.*references/x\.md' <<<"$LAST_OUTPUT"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
