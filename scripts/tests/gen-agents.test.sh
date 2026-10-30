@@ -104,6 +104,9 @@ echo "== Antigravity story loop skills =="
 for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
   assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
 done
+for name in $REMAINING; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
+done
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'agy pair marks judgment-day Claude Code only' \
   grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/antigravity/skills/flow-pair/SKILL.md"
