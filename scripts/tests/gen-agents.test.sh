@@ -109,6 +109,8 @@ cat >>"$REFS_SKILL/SKILL.md" <<'EOF'
 Read `references/x.md`, then fill `templates/y.md`.
 
 - [references/x.md](references/x.md) — the notes.
+
+Size it with `../pair/references/high-risk.md`.
 EOF
 REFS_OUT="$TMP_ROOT/refs-out"
 LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_OUT" 2>&1)
@@ -122,6 +124,10 @@ for target in opencode antigravity; do
   # shellcheck disable=SC2016 # literal markdown backticks
   assert "refs: $target markdown link becomes absolute" grep -qxF -e \
     '- `"/repo path/plugins/flow/skills/plan-review/references/x.md"` — the notes.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target sibling skill file becomes absolute" grep -qxF \
+    'Size it with `"/repo path/plugins/flow/skills/pair/references/high-risk.md"`.' \
     "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
 done
 
