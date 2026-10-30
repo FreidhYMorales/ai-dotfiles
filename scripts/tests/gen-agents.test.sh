@@ -66,6 +66,36 @@ LAST_EXIT=$?
 assert 'generator fails' test "$LAST_EXIT" -ne 0
 assert 'error names the tool' grep -q 'WebFetch' <<<"$LAST_OUTPUT"
 
+echo "== the goldens are current and hold no Claude-only form =="
+VERIFY="$ROOT/scripts/gen-agents/verify.sh"
+verify() {
+  LAST_OUTPUT=$(GEN_SOURCE="$1" bash "$VERIFY" 2>&1)
+  LAST_EXIT=$?
+}
+verify "$ROOT"
+assert 'this repo verifies' test "$LAST_EXIT" -eq 0
+[[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+
+# A source change the goldens were not regenerated for.
+STALE="$TMP_ROOT/stale"
+mkdir -p "$STALE/plugins"
+cp -r "$ROOT/plugins/flow" "$STALE/plugins/"
+printf '\nA line the goldens lack.\n' >>"$STALE/plugins/flow/skills/plan-review/SKILL.md"
+verify "$STALE"
+assert 'a stale golden fails' test "$LAST_EXIT" -ne 0
+assert 'stale: names the file' grep -q 'antigravity/skills/flow-plan-review/SKILL.md' <<<"$LAST_OUTPUT"
+
+# A Claude-only form the rewrite does not cover.
+LEFT="$TMP_ROOT/leftover"
+mkdir -p "$LEFT/plugins"
+cp -r "$ROOT/plugins/flow" "$LEFT/plugins/"
+# shellcheck disable=SC2016 # a literal Claude-only form
+printf '\nSee ${CLAUDE_PLUGIN_ROOT}/agents.\n' >>"$LEFT/plugins/flow/agents/plan-reviewer.md"
+verify "$LEFT"
+assert 'a leftover fails' test "$LAST_EXIT" -ne 0
+assert 'leftover: names the file and the form' \
+  grep -q 'opencode/agents/flow-plan-reviewer.md.*CLAUDE_PLUGIN_ROOT' <<<"$LAST_OUTPUT"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
