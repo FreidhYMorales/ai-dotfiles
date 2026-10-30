@@ -20,7 +20,7 @@ Load when the user finished their own tasks early, is waiting on teammates' pack
 
 ## Execution Steps
 
-1. If `<plan-dir>/tasks.md` exists, use it (written by `/flow:split`) with the plan's cut line, and follow the steps below. Otherwise read `<plan-dir>/backlog.md` (solo projects): a story is Ready when it is `[ ]` and every `Requires: #N` is `[x]`; `[~]` is in progress. Recommend the lowest Ready ID with `/flow:story NN` (or `/flow:pair NN` if its story file is approved), list the rest as Blocked with what they wait for, and stop there. Neither file: offer `/flow:backlog`.
+1. If `<plan-dir>/tasks.md` exists, use it (written by `/flow:split`) with the plan's cut line, and follow the steps below. Otherwise read `<plan-dir>/backlog.md` (solo projects): a story is Ready when it is `[ ]` and every `Requires: #N` is `[x]`; `[~]` is in progress. Recommend the lowest Ready ID with `/flow:story NN` (or `/flow:pair NN` if its story file is approved), list the rest as Blocked with what they wait for, then under **Pending evals** every `[x]` story whose story file `## Log` holds `make eval pending (needs Claude)` (a skill story closed outside Claude) and no later Log line with its `make eval` result, each with `make eval PLUGIN=<plugin>` to run in Claude, and stop there. Neither file: offer `/flow:backlog`.
 2. Refresh statuses: check the repo/PRs for delivered packages (`gh pr list`, branches, files) and ask the user only about what cannot be verified.
 3. Classify every task not yet done:
 
@@ -39,4 +39,5 @@ Load when the user finished their own tasks early, is waiting on teammates' pack
 
 - Table of the top 3–5 recommended tasks: task, class, dev-days, why now, what it unblocks.
 - Blocked list with what each is waiting for.
+- Pending evals (backlog mode): closed stories still waiting for `make eval` in Claude.
 - Updated `tasks.md`.
