@@ -102,8 +102,8 @@ REFS="$TMP_ROOT/refs"
 mkdir -p "$REFS/plugins"
 cp -r "$ROOT/plugins/flow" "$REFS/plugins/"
 REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
-mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates"
-touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md"
+mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates" "$REFS_SKILL/cheatsheets" "$REFS_SKILL/assets"
+touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md" "$REFS_SKILL/cheatsheets/z.md" "$REFS_SKILL/assets/w.json"
 cat >>"$REFS_SKILL/SKILL.md" <<'EOF'
 
 Read `references/x.md`, then fill `templates/y.md`.
@@ -113,6 +113,8 @@ Read `references/x.md`, then fill `templates/y.md`.
 Size it with `../pair/references/high-risk.md`.
 
 Put fixtures in `assets/` and notes in `references/missing.md`.
+
+Use `cheatsheets/z.md` with `assets/w.json`.
 EOF
 REFS_OUT="$TMP_ROOT/refs-out"
 LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_OUT" 2>&1)
@@ -134,6 +136,10 @@ for target in opencode antigravity; do
   # shellcheck disable=SC2016 # literal markdown backticks
   assert "refs: $target directory prose and missing files stay" grep -qxF \
     'Put fixtures in `assets/` and notes in `references/missing.md`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target cheatsheets and assets become absolute" grep -qxF \
+    'Use `"/repo path/plugins/flow/skills/plan-review/cheatsheets/z.md"` with `"/repo path/plugins/flow/skills/plan-review/assets/w.json"`.' \
     "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
 done
 
