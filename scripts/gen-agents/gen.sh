@@ -3,11 +3,13 @@
 # agents from the Claude Code plugin sources.
 # Usage: scripts/gen-agents/gen.sh OUT_DIR
 # Writes OUT_DIR/opencode/ and OUT_DIR/antigravity/. GEN_REPO_PATH sets the
-# repo path written into the output (default: this repo).
+# repo path written into the output and GEN_SOURCE the repo the sources
+# are read from (both default to this repo).
 set -euo pipefail
 
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 OUT=${1:?usage: gen.sh OUT_DIR}
+SRC_DIR=${GEN_SOURCE:-$REPO_DIR}
 REPO_PATH=${GEN_REPO_PATH:-$REPO_DIR}
 # The repo path as a sed replacement ('#' is the delimiter below).
 REPO_SED=$(printf '%s' "$REPO_PATH" | sed -e 's/[\\&#]/\\&/g')
@@ -60,7 +62,7 @@ opencode_agent() {
 
 # skill TARGET PLUGIN SKILL: the skill as <plugin>-<skill>, in TARGET's words.
 skill() {
-  local src="$REPO_DIR/plugins/$2/skills/$3/SKILL.md" dst="$OUT/$1/skills/$2-$3" words
+  local src="$SRC_DIR/plugins/$2/skills/$3/SKILL.md" dst="$OUT/$1/skills/$2-$3" words
   case $1 in
     opencode) words=opencode_words ;;
     antigravity) words=agy_words ;;
@@ -72,7 +74,7 @@ skill() {
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
 # loads it.
 opencode_skill() {
-  local src="$REPO_DIR/plugins/$1/skills/$2/SKILL.md" name="$1-$2"
+  local src="$SRC_DIR/plugins/$1/skills/$2/SKILL.md" name="$1-$2"
   skill opencode "$1" "$2"
   mkdir -p "$OUT/opencode/commands"
   # Backticks and $ARGUMENTS are literal.
@@ -90,24 +92,33 @@ agy_tools() {
     Read) echo read_file view_file ;;
     Grep) echo grep_search ;;
     Glob | Bash) ;;
+    *)
+      echo "gen-agents: $2: no agy name for tool $1" >&2
+      return 1
+      ;;
   esac
 }
 
 # agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
+# An unmapped tool stops the generator: agy never builds such a subagent and
+# says nothing.
 agy_agent() {
-  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool name
+  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=()
+  for tool in $(field "$src" tools | tr -d ','); do
+    mapped=$(agy_tools "$tool" "$src")
+    # shellcheck disable=SC2206 # split the space-separated names
+    names+=($mapped)
+  done
   mkdir -p "$(dirname "$dst")"
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
-    for tool in $(field "$src" tools | tr -d ','); do
-      for name in $(agy_tools "$tool"); do printf '  - %s\n' "$name"; done
-    done
+    printf '  - %s\n' "${names[@]}"
     printf 'model: pro\n---\n'
     body "$src"
   } | rename >"$dst"
 }
 
-opencode_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
-agy_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_skill flow plan-review
 skill antigravity flow plan-review
