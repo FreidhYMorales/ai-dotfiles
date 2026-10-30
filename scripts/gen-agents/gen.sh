@@ -25,6 +25,19 @@ plugin_paths() {
     -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
 }
 
+# support_paths PLUGIN SKILL: bare references to the skill's own support
+# files become absolute and quoted. Only files that exist in the source are
+# rewritten, so prose about a directory (skill-creator's `assets/`) stays.
+support_paths() {
+  local dir="$SRC_DIR/plugins/$1/skills/$2" rel re to script=()
+  while IFS= read -r rel; do
+    re=$(printf '%s' "$rel" | sed -e 's/[].[\*^$#]/\\&/g')
+    to=$(printf '%s' "$rel" | sed -e 's/[\\&#]/\\&/g')
+    script+=(-e "s#\`$re\`#\`\"$REPO_SED/plugins/$1/skills/$2/$to\"\`#g")
+  done < <(cd "$dir" && find references templates cheatsheets assets -type f 2>/dev/null | sort)
+  sed "${script[@]}" -e ''
+}
+
 # Backticks in the sed scripts below are literal markdown.
 # shellcheck disable=SC2016
 {
@@ -68,7 +81,7 @@ skill() {
     antigravity) words=agy_words ;;
   esac
   mkdir -p "$dst"
-  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | "$words" >"$dst/SKILL.md"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | "$words" >"$dst/SKILL.md"
 }
 
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
