@@ -89,6 +89,7 @@ run_opencode() {
 
 run_opencode 'pausa'
 assert 'an OpenCode pause saves the checkpoint' saved '^checkpoint/pause$'
+# shellcheck disable=SC2016 # the backticks are literal text
 assert 'an OpenCode pause says to resume with opencode --continue' has 'resume with `opencode --continue`'
 assert 'an OpenCode pause never mentions cz' test "${LAST_CONTEXT//cz/}" == "$LAST_CONTEXT"
 assert 'an OpenCode pause never mentions claude --continue' test "${LAST_CONTEXT//claude --continue/}" == "$LAST_CONTEXT"
