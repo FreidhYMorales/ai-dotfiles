@@ -58,6 +58,10 @@ done
 for name in flow-backlog flow-story flow-pair; do
   assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
 done
+# OpenCode 2.2.2 reads disable-model-invocation as "the model may not load
+# this skill", so the /flow-pair command could not load it.
+assert 'OpenCode pair stays loadable by its command' \
+  test -f "$OUT/opencode/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'disable-model-invocation' "$OUT/opencode/skills/flow-pair/SKILL.md" 2>/dev/null)"
 # judgment-day is not generated, and pair's references are absolute paths.
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'OpenCode pair marks judgment-day Claude Code only' \
