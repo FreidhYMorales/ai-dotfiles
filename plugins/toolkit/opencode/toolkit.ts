@@ -23,7 +23,22 @@ async function preferModernCli(call: Call): Promise<void> {
 }
 
 type SystemPart = { type: string; text: string };
-type ContextRequest = { sessionID: string; system: SystemPart[] };
+type Message = { id?: string; role: string; content?: { type: string; text?: string }[] };
+type ContextRequest = { sessionID: string; system: SystemPart[]; messages?: Message[] };
+
+// Pause: the Claude pause hook reads the user's latest message, as the prompt
+// of a UserPromptSubmit; `opencode run` wraps it in double quotes.
+function pause(directory: string, messages: Message[] = []): string {
+  const user = messages.filter((message) => message.role === "user").at(-1);
+  if (!user) return "";
+  let prompt = (user.content ?? []).map((part) => (part.type === "text" ? part.text ?? "" : "")).join("");
+  const quoted = prompt.trim().match(/^"(.*)"$/s);
+  if (quoted) prompt = quoted[1];
+  const payload = JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt, cwd: directory, target: "opencode" });
+  const result = spawnSync("bash", [join(HOOKS, "pause.sh")], { input: payload, encoding: "utf8" });
+  if (!result.stdout?.trim()) return "";
+  return JSON.parse(result.stdout).hookSpecificOutput?.additionalContext ?? "";
+}
 
 // Session start: OpenCode V2 has no session-start event that adds context, so
 // the Claude session-start hooks run here and their text joins the system as
@@ -57,6 +72,8 @@ export default {
         if (!blocks.has(request.sessionID)) blocks.set(request.sessionID, sessionStart(ctx.location.directory));
         const block = blocks.get(request.sessionID);
         if (block) request.system.push({ type: "text", text: block });
+        const protocol = pause(ctx.location.directory, request.messages);
+        if (protocol) request.system.push({ type: "text", text: protocol });
       }),
     ];
     return async () => {
