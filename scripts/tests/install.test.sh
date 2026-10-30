@@ -205,7 +205,7 @@ assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
 assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
 assert 'no sdd skill is linked for opencode' test ! -e "$home/.config/opencode/skills/orchestrator" -a ! -L "$home/.config/opencode/skills/orchestrator"
-assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/judgment-day"
+assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/ship"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
 done
@@ -294,6 +294,30 @@ assert 'a second opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'a second run keeps the same links' \
   same "$(for f in "$oc/agents/flow-plan-reviewer.md" "$oc/commands/flow-plan-review.md" "$oc/skills/flow-plan-review"; do readlink "$f"; done)" "$links"
 assert 'a second run makes no backups' test -z "$(find "$oc" -name '*.bak-*')"
+
+echo "== opencode gets the generated story loop =="
+
+# An earlier run linked the raw judgment-day and work-unit-commits skills.
+home=$(sandbox opencode-story-loop)
+oc=$home/.config/opencode
+mkdir -p "$oc/skills"
+ln -s "$ROOT/plugins/toolkit/skills/judgment-day" "$oc/skills/judgment-day"
+ln -s "$ROOT/plugins/toolkit/skills/work-unit-commits" "$oc/skills/work-unit-commits"
+install "$home" --target opencode
+assert 'opencode story loop run succeeds' test "$LAST_EXIT" -eq 0
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "the $name skill is the generated one" \
+    same "$(readlink "$oc/skills/$name")" "$home/build/agents/opencode/skills/$name"
+done
+for name in flow-backlog flow-story flow-pair; do
+  assert "the /$name command is the generated one" \
+    diff -q "$ROOT/scripts/gen-agents/golden/opencode/commands/$name.md" "$oc/commands/$name.md"
+done
+assert 'the verifier agent reads the pair references from this repo' \
+  rg -qF "\`\"$ROOT/plugins/flow/skills/pair/references/\"\`" "$oc/agents/flow-verifier.md"
+for name in judgment-day work-unit-commits; do
+  assert "our raw $name link is removed" test ! -e "$oc/skills/$name" -a ! -L "$oc/skills/$name"
+done
 
 echo "== a failed generation keeps the previous build =="
 
