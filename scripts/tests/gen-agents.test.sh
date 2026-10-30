@@ -155,6 +155,30 @@ assert 'a bare support path fails' test "$LAST_EXIT" -ne 0
 assert 'bare: names the file and line' grep -qE \
   'bare support path: opencode/skills/flow-plan-review/SKILL\.md:[0-9]+:.*references/x\.md' <<<"$LAST_OUTPUT"
 
+echo "== agy agents that use engram =="
+# A copy of the sources whose reviewer also asks for an engram tool.
+MEM="$TMP_ROOT/mem"
+mkdir -p "$MEM/plugins"
+cp -r "$ROOT/plugins/flow" "$MEM/plugins/"
+awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
+  >"$MEM/plugins/flow/agents/plan-reviewer.md"
+MEM_OUT="$TMP_ROOT/mem-out"
+LAST_OUTPUT=$(GEN_SOURCE="$MEM" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$MEM_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'mem: generator exits 0' test "$LAST_EXIT" -eq 0
+[[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+# frontmatter FILE: the lines between the two '---' markers.
+frontmatter() { awk 'NR > 1 && /^---$/ { exit } NR > 1' "$1"; }
+MEM_FM=$(frontmatter "$MEM_OUT/antigravity/agents/flow-plan-reviewer.md" 2>/dev/null)
+ENGRAM_BLOCK='mcpServers:
+  - name: engram
+    command: engram
+    args:
+      - mcp
+      - --tools=agent'
+assert 'mem: engram declared under mcpServers' test "${MEM_FM#*"$ENGRAM_BLOCK"}" != "$MEM_FM"
+assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_FM")"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
