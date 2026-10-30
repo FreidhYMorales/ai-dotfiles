@@ -73,6 +73,10 @@ assert 'checkpoint records the last commit' saved 'feat: first'
 assert 'engram runs in the project directory' \
   test "$(cat "$TMP_ROOT/engram.cwd" 2>/dev/null)" == "$repo"
 
+# Approval pin: the Claude protocol stays word for word.
+claude_protocol="PAUSE REQUESTED. The user may close the terminal in seconds. A checkpoint was already saved to engram (topic checkpoint/pause). Do not start new work and make at most one more tool call. Reply in at most 5 lines: what was in progress, anything still running and whether it is safe to stop it (or how to stop it cleanly), uncommitted changes, and how to resume: reattach with \`cz\` from the project (the session keeps running if Claude was started with cz), or \`cz --continue\` / \`claude --continue\` after a reboot."
+assert 'the Claude protocol is unchanged' test "$LAST_CONTEXT" == "$claude_protocol"
+
 echo "== everything else =="
 
 for prompt in 'no hagas pausa' 'sigamos' 'pausado el deploy?'; do
