@@ -60,7 +60,7 @@ allow=(
 )
 # Backticks in the pattern are literal markdown.
 # shellcheck disable=SC2016
-allowed_lines='^(install\.sh:[0-9]+:RETIRED_PLUGINS=\(sdd\)|plugins/flow/skills/[a-z-]+/SKILL\.md:[0-9]+:- Ignore old engram topics `sdd/\*` and `sdd-init/\*`\.)$'
+allowed_lines='^(install\.sh:[0-9]+:RETIRED_PLUGINS=\(sdd\)|(plugins/flow/skills|scripts/gen-agents/golden/[a-z]+/skills)/[a-z-]+/SKILL\.md:[0-9]+:- Ignore old engram topics `sdd/\*` and `sdd-init/\*`\.)$'
 hits=$(cd "$ROOT" && rg -n -iw 'sdd' --hidden -g '!.git' "${allow[@]}")
 stray=$(rg -v "$allowed_lines" <<<"$hits")
 # Guard against a scan that finds nothing at all: the retirement line must show up.

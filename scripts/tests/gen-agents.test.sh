@@ -59,6 +59,7 @@ for name in flow-backlog flow-story flow-pair; do
   assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
 done
 # judgment-day is not generated, and pair's references are absolute paths.
+# shellcheck disable=SC2016 # literal markdown backticks
 assert 'OpenCode pair marks judgment-day Claude Code only' \
   grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/opencode/skills/flow-pair/SKILL.md"
 assert 'OpenCode pair no longer points at its base directory' \
