@@ -157,12 +157,13 @@ agy_agent() {
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"
-  } | rename >"$dst"
+  } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+agy_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 opencode_skill flow plan-review
 opencode_skill flow backlog
 opencode_skill flow story
