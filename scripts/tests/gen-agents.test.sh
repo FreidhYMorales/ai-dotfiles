@@ -96,6 +96,13 @@ assert 'agy pair marks judgment-day Claude Code only' \
 assert 'agy pair no longer points at its base directory' \
   test -f "$OUT/antigravity/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/antigravity/skills/flow-pair/SKILL.md" 2>/dev/null)"
 
+echo "== a skill story closes with the eval pending outside Claude =="
+for target in opencode antigravity; do
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$target pair records make eval pending in the Done step" \
+    grep -qE '^7\. \*\*Done\.\*\*.*write `make eval pending \(needs Claude\)` in the story log' "$OUT/$target/skills/flow-pair/SKILL.md"
+done
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"

@@ -37,3 +37,4 @@ Risk: item 3 (the pending-eval log phrase pair writes and next parses), item 6 (
 - L1 request: "/flow:story 29"
 - L2 assumptions for approval: the pending line goes into both targets' `flow-pair` (R6-Q3 says "the target pair"); a story counts as pending until a later Log line records a `make eval` result; `/flow:next` changes in the source skill, so Claude sees the list too (harmless: Claude stories never write the pending line); the next eval case runs here in Claude, so this story closes with a real `make eval` result.
 - L3 approved by the user ("si").
+- L4 test list approved ("si"): 1 generated flow-pair Done step (both targets) carries the pending line (golden + literal assert); 2 Claude pair has no pending line (regression pin, green from start); 3 new flow-next.test.sh: next rule and the new eval case structure; 4 paid `make eval PLUGIN=flow CASE='next-*'`.
