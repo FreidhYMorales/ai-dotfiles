@@ -66,7 +66,7 @@ This skill depends on Claude Code and is not linked elsewhere:
 
 - `toolkit:judgment-day`: needs the `toolkit:jd-*` agents; generated skills mark it "(Claude Code only)".
 
-Porting them (agents per tool, plugin-root paths, hooks) is open work (plan `docs/plans/multi-agent-port/`).
+Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 ### Generated skills and agents
 
