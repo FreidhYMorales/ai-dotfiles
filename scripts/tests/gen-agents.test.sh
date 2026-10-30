@@ -44,7 +44,8 @@ echo "== OpenCode plan reviewer agent =="
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden opencode/agents/flow-plan-reviewer.md
 
 echo "== OpenCode verifier agent =="
-# The Claude plugin-root fallback becomes the absolute references path.
+# The Claude plugin-root fallback becomes the absolute references path. Its
+# shell runs only read-only commands and make check without asking (story 28).
 assert 'agents/flow-verifier.md matches golden' same_as_golden opencode/agents/flow-verifier.md
 
 echo "== OpenCode plan-review skill and command =="

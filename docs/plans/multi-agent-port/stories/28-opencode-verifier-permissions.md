@@ -38,3 +38,4 @@ Risk: item 2 (shell commands a subagent may run without asking), item 6 (the liv
 - L1 request: "/flow:story 28"
 - L2 assumptions for approval: only the verifier changes; `task: deny` stays the key because `opencode debug agents` shows OpenCode 2.2.2 resolving it to `subagent: deny` (the binary maps `task` → `subagent` and `bash` → `shell`), so C2 holds today and this story pins it; allow patterns are `git log*`, `git diff*`, `git show*`, `rg *`, `make check` exactly as the plan (item 5, R6-6) lists; the default for other commands is `ask`, not `deny`.
 - L3 approved by the user ("si").
+- L4 test list approved ("si"): 1 OpenCode verifier golden gets the `bash` block (ask by default, five allow patterns) and keeps `task: deny` (C1-C3); 2 plan reviewer golden untouched (existing); 3 manual `opencode debug agents` after install (C1, C2). The changed golden is a story-28 criterion, approved with the list.
