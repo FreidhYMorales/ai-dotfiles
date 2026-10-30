@@ -113,6 +113,7 @@ LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_O
 LAST_EXIT=$?
 assert 'refs: generator exits 0' test "$LAST_EXIT" -eq 0
 for target in opencode antigravity; do
+  # shellcheck disable=SC2016 # literal markdown backticks
   assert "refs: $target own files become absolute" grep -qF \
     'Read `"/repo path/plugins/flow/skills/plan-review/references/x.md"`, then fill `"/repo path/plugins/flow/skills/plan-review/templates/y.md"`.' \
     "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
