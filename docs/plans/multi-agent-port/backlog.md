@@ -18,11 +18,11 @@
 06. [x] 438f13f As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
 07. [-] split → #18, #19, #20
 08. [x] 7132f0a As a developer, I want `/flow-plan-review` to run its blind reviewer subagent in OpenCode and Antigravity so that I can review plans outside Claude. Requires: #16
-09. [ ] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the verifier in OpenCode and Antigravity so that I can build stories outside Claude. Requires: #06, #08, #24, #25, #26
+09. [-] split → #27, #28, #29
 10. [ ] As a developer, I want every other flow and toolkit skill generated for both agents, with `/flow-plan` and `/flow-fill-gaps`, so that the whole planning path works outside Claude (gentle-ai copies with the same names and its retired spec-workflow skills moved aside in agy). Requires: #08, #24
 11. [ ] As a developer, I want `ai-update` to regenerate and relink the OpenCode and Antigravity outputs so that they never go stale after a pull. Requires: #08
 12. [ ] As a developer, I want one role model map for the generated agents so that I can point the reviewers at a strong or local model without editing each agent. Requires: #08
-13. [ ] As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #09, #10, #12
+13. [ ] As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #27, #28, #29, #10, #12
 14. [ ] As a developer, I want the remaining `flow-`/`toolkit-` commands in OpenCode, checked against its built-in commands, so that nothing I use in Claude is missing there (judgment-day stays Claude-only until v2). Requires: #10
 15. [ ] As a developer, I want the README, the install.sh header and `docs/multi-agent.md` to describe the port so that I know how each agent is set up. Requires: #10
 16. [x] 1b835b8 As a developer, I want the Antigravity subagent format recorded (agents dir, frontmatter, tool names agy resolves, engram through `mcpServers:`) so that the agents I port later use names agy accepts.
@@ -36,3 +36,6 @@
 24. [x] 0f05602 As a developer, I want the generator to turn bare support-file references into absolute repo paths only when the file exists in that skill's dir, with `verify.sh` flagging any it missed, so that generated skills never point at missing files and skill-creator's layout prose stays intact. Requires: #08
 25. [x] b456554 As a developer, I want agy agents to declare engram under `mcpServers:` and a `commandExecutionPolicy` each, and the agy `flow-pair` to say a high-risk story ends in NEEDS DECISION while its verifier has no shell tool, so that agy agents reach memory and never pretend to verify. Requires: #08, #16
 26. [x] aedf102 As a developer, I want `pair` to treat an empty or missing verifier report as NEEDS DECISION, never PASS, checked with `make eval`, so that a silent verifier never passes a story in any agent.
+27. [~] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the `flow-verifier` subagent generated for OpenCode and Antigravity, with judgment-day the only Claude-only skill left, so that I can build stories outside Claude. Requires: #06, #08, #24, #25, #26
+28. [ ] As a developer, I want the OpenCode `flow-verifier` limited to read-only shell commands (`git log/diff/show`, `rg`, `make check`) and unable to start subagents so that the verifier stays read-only outside Claude. Requires: #27
+29. [ ] As a developer, I want the generated `flow-pair` to let a skill story close with "make eval pending (needs Claude)" in its log, and `/flow:next` to list pending evals, so that a skill story is not blocked outside Claude and the eval is not forgotten. Requires: #27
