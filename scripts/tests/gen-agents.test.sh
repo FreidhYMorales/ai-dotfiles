@@ -43,6 +43,10 @@ assert 'generator exits 0' test "$LAST_EXIT" -eq 0
 echo "== OpenCode plan reviewer agent =="
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden opencode/agents/flow-plan-reviewer.md
 
+echo "== OpenCode verifier agent =="
+# The Claude plugin-root fallback becomes the absolute references path.
+assert 'agents/flow-verifier.md matches golden' same_as_golden opencode/agents/flow-verifier.md
+
 echo "== OpenCode plan-review skill and command =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden opencode/skills/flow-plan-review/SKILL.md
 assert 'commands/flow-plan-review.md matches golden' same_as_golden opencode/commands/flow-plan-review.md
