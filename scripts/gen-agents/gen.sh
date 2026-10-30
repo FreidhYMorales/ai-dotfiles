@@ -51,9 +51,11 @@ support_paths() {
   opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
 
   # agy_words: subagents are launched through invoke_subagent; engram tools
-  # go by their own names.
+  # go by their own names. pair's verifier step ends in NEEDS DECISION while
+  # agy has no shell tool (story 17).
   agy_words() {
     sed -E \
+      -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
       -e 's/(launch a fresh `[^`]+`) subagent/\1 subagent through `invoke_subagent`/g' \
       -e 's/(Launch the `[^`]+`) agent/\1 subagent through `invoke_subagent`/g' \
       -e 's/Launch `general-purpose`/Launch the default subagent through `invoke_subagent`/g' \
