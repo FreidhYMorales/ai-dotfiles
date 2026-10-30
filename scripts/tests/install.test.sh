@@ -312,6 +312,34 @@ for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
 
+echo "== antigravity gets the generated plan review =="
+
+home=$(sandbox antigravity-plan-review)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills"
+ln -s "$ROOT/plugins/flow/skills/plan-review" "$agy_skills/plan-review"
+install "$home" --target antigravity
+assert 'antigravity plan review run succeeds' test "$LAST_EXIT" -eq 0
+# agy reads custom subagents from ~/.gemini/config/agents/ (story 16).
+assert 'the reviewer agent is the generated one' \
+  diff -q "$ROOT/scripts/gen-agents/golden/antigravity/agents/flow-plan-reviewer.md" "$home/.gemini/config/agents/flow-plan-reviewer.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the skill delegates through invoke_subagent' \
+  rg -qF 'Launch the `flow-plan-reviewer` subagent through `invoke_subagent`' "$agy_skills/flow-plan-review/SKILL.md"
+assert 'the skill reads the rubric from this repo' \
+  rg -qF "\`\"$ROOT/plugins/flow/agents/plan-reviewer.md\"\`" "$agy_skills/flow-plan-review/SKILL.md"
+assert 'our raw plan-review link is removed' test ! -e "$agy_skills/plan-review" -a ! -L "$agy_skills/plan-review"
+
+# A real plan-review dir is the user's: never moved or removed.
+home=$(sandbox antigravity-user-plan-review)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills/plan-review"
+printf 'mine\n' >"$agy_skills/plan-review/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity run with a user plan-review succeeds' test "$LAST_EXIT" -eq 0
+assert "the user's plan-review dir is kept" same "$(cat "$agy_skills/plan-review/SKILL.md" 2>/dev/null)" 'mine'
+assert 'the generated skill sits beside it' test -f "$agy_skills/flow-plan-review/SKILL.md"
+
 echo "== antigravity cleanup of the unread rules link =="
 
 home=$(sandbox antigravity-rules-link)
