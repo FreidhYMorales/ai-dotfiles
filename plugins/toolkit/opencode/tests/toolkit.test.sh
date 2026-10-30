@@ -249,6 +249,17 @@ expect_pause 'pausa adds the OpenCode protocol and saves one checkpoint' "$pause
 expect_pause 'a quoted prompt from opencode run pauses too' "$paused" 1 \
   "[$(user_msg msg_1 '"pausa, me voy"')]"
 
+echo "== opencode: one checkpoint per pause message =="
+p=$(user_msg msg_1 'pausa')
+loop='{"id": "msg_2", "role": "assistant", "content": [{"type": "text", "text": "saving"}]}, {"role": "tool", "content": []}'
+expect_pause 'a tool loop keeps the protocol and saves no second checkpoint' \
+  'length == 2 and all(.[]; length == 2) and .[0][1] == .[1][1]
+    and (.[1][1].text | startswith("PAUSE REQUESTED"))' 1 \
+  "[$p]" "[$p, $loop]"
+expect_pause 'the next message that is not a pause drops the protocol' \
+  'length == 2 and (.[0] | length) == 2 and .[1] == [{type: "text", text: "base"}]' 1 \
+  "[$p]" "[$p, $loop, $(user_msg msg_3 'sigamos')]"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
