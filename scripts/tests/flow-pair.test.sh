@@ -64,6 +64,9 @@ echo "== verifier report =="
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'an empty or missing verifier report is NEEDS DECISION, never PASS' \
   has_re "$SKILL" 'empty.*no `Verdict:` line.*NEEDS DECISION, never PASS'
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'an empty or missing verifier report leaves the story open' \
+  has_re "$SKILL" 'no `Verdict:` line.*the story stays open'
 
 echo "== empty verifier report eval =="
 CASE="$ROOT/plugins/flow/evals/pair-empty-verifier-report"
