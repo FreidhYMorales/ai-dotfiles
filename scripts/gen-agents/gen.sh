@@ -58,8 +58,14 @@ support_paths() {
       -e "s/ (this skill's base directory)//"
   }
 
-  # opencode_words: Claude names become OpenCode names.
-  opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
+  # opencode_words: Claude names become OpenCode names. OpenCode 2.2.2 reads
+  # disable-model-invocation as "the model may not load this skill", which
+  # stops its own command from loading it; the description still says
+  # "explicit use only".
+  opencode_words() {
+    sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g' \
+      -e '/^disable-model-invocation: /d'
+  }
 
   # agy_words: subagents are launched through invoke_subagent; engram tools
   # go by their own names. pair's verifier step ends in NEEDS DECISION while
