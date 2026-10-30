@@ -1,6 +1,6 @@
 # Multi-agent support (Claude Code, OpenCode, Antigravity)
 
-Claude Code is the full target. OpenCode and Antigravity get the shared rules and the skill files, nothing more. This page says what `install.sh` does for each one and what still works only in Claude Code.
+Claude Code is the full target. OpenCode and Antigravity get the shared rules, the skill files and the generated ports. This page says what `install.sh` does for each one and what still works only in Claude Code.
 
 ## What the installer does
 
@@ -9,8 +9,9 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules an
 | Piece | Claude Code | OpenCode | Antigravity |
 |---|---|---|---|
 | Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
-| Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/` | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/` |
-| Plugin agents | yes | no | no |
+| Skills | `flow`, `toolkit`, `look` plugins | each `plugins/*/skills/*` → `~/.config/opencode/skills/`; ported skills are generated instead (below) | each `plugins/*/skills/*` → `~/.gemini/antigravity-cli/skills/`; ported skills are generated instead (below) |
+| Plugin agents | yes | generated `flow-plan-reviewer` → `~/.config/opencode/agents/` | generated `flow-plan-reviewer` → `~/.gemini/config/agents/` |
+| Generated skills and commands | n/a | `flow-plan-review` skill and `/flow-plan-review` command | `flow-plan-review` skill |
 | Hooks | yes | `prefer-modern-cli` and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, run once per session and joined into one block appended to the system on each model call), and `pause` (a message starting with "pausa"/"pause" saves the engram checkpoint once and keeps the pause protocol, resuming with `opencode --continue`, in the system until the next message): plugin `toolkit.ts` → `~/.config/opencode/plugins/` | `prefer-modern-cli`, the `make check` Stop gate (`require-check`) and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, joined into one injected system message): a `toolkit` key merged into `~/.gemini/config/hooks.json` |
 | Engram MCP | yes (plugin) | configure by hand; the installer warns when missing | configure by hand; the installer warns when missing |
 | Status line, `look` band | yes | no | no |
@@ -62,10 +63,15 @@ Skills that are plain instructions work: most of `flow` (`plan`, `research`, `fo
 These skills depend on Claude Code and break elsewhere:
 
 - `flow:backlog`, `flow:story` and `flow:pair`: the loop relies on Claude Code hooks and the `flow:verifier` agent, so the installer does not link these three skills outside Claude Code.
-- `flow:plan-review`: needs the `flow:plan-reviewer` agent.
 - `toolkit:judgment-day`: needs the `toolkit:jd-*` agents.
 
-Porting them (agents per tool, plugin-root paths, hooks) is open work; it starts with `/flow:plan`.
+Porting them (agents per tool, plugin-root paths, hooks) is open work (plan `docs/plans/multi-agent-port/`).
+
+### Generated skills and agents
+
+`scripts/gen-agents/gen.sh` turns ported skills and agents into each target's format; today that is `flow:plan-review` and its `flow:plan-reviewer` agent. Names follow one map (`flow:x` → `flow-x`, `toolkit:x` → `toolkit-x`), plugin-relative paths become absolute, and Claude tool names become the target's. `install.sh` generates into a new dir, points the gitignored `build/agents` symlink at it in one rename and links from there; a failed generation keeps the previous build. `make check` compares a fresh generation with `scripts/gen-agents/golden/` and fails on any Claude-only form left in it; the header of `scripts/gen-agents/verify.sh` shows how to regenerate the goldens.
+
+In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its registry (`read_file`, `view_file`, `grep_search`): without `Glob` and `Bash` it cannot convert .docx/.pdf sources or run `git log`. An unmapped tool stops the generator, because agy silently never builds such a subagent.
 
 ## Known side effect
 
