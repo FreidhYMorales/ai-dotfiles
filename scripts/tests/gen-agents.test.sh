@@ -96,6 +96,65 @@ assert 'a leftover fails' test "$LAST_EXIT" -ne 0
 assert 'leftover: names the file and the form' \
   grep -q 'opencode/agents/flow-plan-reviewer.md.*CLAUDE_PLUGIN_ROOT' <<<"$LAST_OUTPUT"
 
+echo "== bare support-file references =="
+# A copy of the sources whose plan-review names support files of its own.
+REFS="$TMP_ROOT/refs"
+mkdir -p "$REFS/plugins"
+cp -r "$ROOT/plugins/flow" "$REFS/plugins/"
+REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
+mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates" "$REFS_SKILL/cheatsheets" "$REFS_SKILL/assets"
+touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md" "$REFS_SKILL/cheatsheets/z.md" "$REFS_SKILL/assets/w.json"
+cat >>"$REFS_SKILL/SKILL.md" <<'EOF'
+
+Read `references/x.md`, then fill `templates/y.md`.
+
+- [references/x.md](references/x.md) — the notes.
+
+Size it with `../pair/references/high-risk.md`.
+
+Put fixtures in `assets/` and notes in `references/missing.md`.
+
+Use `cheatsheets/z.md` with `assets/w.json`.
+EOF
+REFS_OUT="$TMP_ROOT/refs-out"
+LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'refs: generator exits 0' test "$LAST_EXIT" -eq 0
+for target in opencode antigravity; do
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target own files become absolute" grep -qF \
+    'Read `"/repo path/plugins/flow/skills/plan-review/references/x.md"`, then fill `"/repo path/plugins/flow/skills/plan-review/templates/y.md"`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target markdown link becomes absolute" grep -qxF -e \
+    '- `"/repo path/plugins/flow/skills/plan-review/references/x.md"` — the notes.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target sibling skill file becomes absolute" grep -qxF \
+    'Size it with `"/repo path/plugins/flow/skills/pair/references/high-risk.md"`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target directory prose and missing files stay" grep -qxF \
+    'Put fixtures in `assets/` and notes in `references/missing.md`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "refs: $target cheatsheets and assets become absolute" grep -qxF \
+    'Use `"/repo path/plugins/flow/skills/plan-review/cheatsheets/z.md"` with `"/repo path/plugins/flow/skills/plan-review/assets/w.json"`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+done
+
+# A bare reference the rewrite does not cover: plain prose, no backticks.
+BARE="$TMP_ROOT/bare"
+mkdir -p "$BARE/plugins"
+cp -r "$ROOT/plugins/flow" "$BARE/plugins/"
+mkdir -p "$BARE/plugins/flow/skills/plan-review/references"
+touch "$BARE/plugins/flow/skills/plan-review/references/x.md"
+printf '\nSee references/x.md for details.\n' >>"$BARE/plugins/flow/skills/plan-review/SKILL.md"
+verify "$BARE"
+assert 'a bare support path fails' test "$LAST_EXIT" -ne 0
+assert 'bare: names the file and line' grep -qE \
+  'bare support path: opencode/skills/flow-plan-review/SKILL\.md:[0-9]+:.*references/x\.md' <<<"$LAST_OUTPUT"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1

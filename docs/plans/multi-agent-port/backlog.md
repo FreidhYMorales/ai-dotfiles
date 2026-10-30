@@ -18,8 +18,8 @@
 06. [x] 438f13f As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
 07. [-] split → #18, #19, #20
 08. [x] 7132f0a As a developer, I want `/flow-plan-review` to run its blind reviewer subagent in OpenCode and Antigravity so that I can review plans outside Claude. Requires: #16
-09. [ ] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the verifier in OpenCode and Antigravity so that I can build stories outside Claude. Requires: #06, #08, #23
-10. [ ] As a developer, I want every other flow and toolkit skill generated for both agents, with `/flow-plan` and `/flow-fill-gaps`, so that the whole planning path works outside Claude (gentle-ai copies with the same names and its retired spec-workflow skills moved aside in agy). Requires: #08, #23
+09. [ ] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the verifier in OpenCode and Antigravity so that I can build stories outside Claude. Requires: #06, #08, #24, #25, #26
+10. [ ] As a developer, I want every other flow and toolkit skill generated for both agents, with `/flow-plan` and `/flow-fill-gaps`, so that the whole planning path works outside Claude (gentle-ai copies with the same names and its retired spec-workflow skills moved aside in agy). Requires: #08, #24
 11. [ ] As a developer, I want `ai-update` to regenerate and relink the OpenCode and Antigravity outputs so that they never go stale after a pull. Requires: #08
 12. [ ] As a developer, I want one role model map for the generated agents so that I can point the reviewers at a strong or local model without editing each agent. Requires: #08
 13. [ ] As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #09, #10, #12
@@ -32,4 +32,7 @@
 20. [x] 65a0908 As a developer, I want `pause` in OpenCode so that I can stop an OpenCode session safely with a checkpoint saved. Requires: #19
 21. [ ] As a developer, I want the OpenCode pause hook to skip a user message without an id instead of throwing so that a malformed history never breaks a session. Requires: #20
 22. [ ] As a developer, I want the OpenCode hooks cut off at their timeouts and the installer hardened (all three agy skills dirs swept of `.bak-*`, agy `hooks.json` written through `mktemp`, generated links pruned when the build dir is outside the repo, a warning when agy is not the pinned 1.4.9) so that a stuck hook or a second install never breaks a session. Requires: #08
-23. [ ] As a developer, I want the generator to resolve bare support-file references and map agy agents with engram and an execution policy, and `pair` to treat an empty verifier report as NEEDS DECISION, so that generated skills never point at missing files and a silent verifier never passes a story. Requires: #08
+23. [-] split → #24, #25, #26
+24. [x] 0f05602 As a developer, I want the generator to turn bare support-file references into absolute repo paths only when the file exists in that skill's dir, with `verify.sh` flagging any it missed, so that generated skills never point at missing files and skill-creator's layout prose stays intact. Requires: #08
+25. [ ] As a developer, I want agy agents to declare engram under `mcpServers:` and a `commandExecutionPolicy` each, and the agy `flow-pair` to say a high-risk story ends in NEEDS DECISION while its verifier has no shell tool, so that agy agents reach memory and never pretend to verify. Requires: #08, #16
+26. [ ] As a developer, I want `pair` to treat an empty or missing verifier report as NEEDS DECISION, never PASS, checked with `make eval`, so that a silent verifier never passes a story in any agent.

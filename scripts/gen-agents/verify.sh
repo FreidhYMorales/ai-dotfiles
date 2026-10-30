@@ -29,4 +29,23 @@ while IFS= read -r hit; do
   status=1
 done < <(cd "$out" && grep -rnE "$forms" . | cut -c3-)
 
+# Bare references to support files that exist in the source plugin (the
+# skill's own `references/x.md` or a sibling's `../pair/references/x.md`)
+# that the rewrite left relative.
+src=${GEN_SOURCE:-$(cd "$HERE/../.." && pwd)}
+while IFS= read -r skill_md; do
+  name=$(basename "$(dirname "$skill_md")")
+  plugin=${name%%-*} skill=${name#*-}
+  while IFS= read -r path; do
+    rel=${path#*/}
+    [[ ${path%%/*} == "$skill" ]] || rel="../$path"
+    re=$(printf '%s' "$rel" | sed -e 's/[].[\*^$+?(){}|]/\\&/g')
+    while IFS= read -r hit; do
+      echo "bare support path: $skill_md:$hit"
+      status=1
+    done < <(grep -nE "(^|[^/A-Za-z0-9_.-])$re" "$out/$skill_md")
+  done < <(cd "$src/plugins/$plugin/skills" && find . -type f -regextype posix-extended \
+    -regex '\./[^/]+/(references|templates|cheatsheets|assets)/.+' | cut -c3- | sort)
+done < <(cd "$out" && find . -path './*/skills/*/SKILL.md' | cut -c3- | sort)
+
 exit "$status"

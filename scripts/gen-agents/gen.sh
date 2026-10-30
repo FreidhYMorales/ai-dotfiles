@@ -25,6 +25,25 @@ plugin_paths() {
     -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
 }
 
+# support_paths PLUGIN SKILL: bare references to support files, the skill's
+# own (`references/x.md`) or a sibling's (`../pair/references/x.md`), become
+# absolute and quoted. Only files that exist in the source are rewritten, so
+# prose about a directory (skill-creator's `assets/`) stays.
+support_paths() {
+  local path rel re to script=()
+  while IFS= read -r path; do
+    rel=${path#*/}
+    [[ ${path%%/*} == "$2" ]] || rel="../$path"
+    re=$(printf '%s' "$rel" | sed -e 's/[].[\*^$#]/\\&/g')
+    to=$(printf '%s' "$path" | sed -e 's/[\\&#]/\\&/g')
+    to="\`\"$REPO_SED/plugins/$1/skills/$to\"\`"
+    # A markdown link cannot hold the quoted path, so it becomes the path.
+    script+=(-e "s#\\[$re\\]($re)#$to#g" -e "s#\`$re\`#$to#g")
+  done < <(cd "$SRC_DIR/plugins/$1/skills" && find . -type f -regextype posix-extended \
+    -regex '\./[^/]+/(references|templates|cheatsheets|assets)/.+' | cut -c3- | sort)
+  sed "${script[@]}" -e ''
+}
+
 # Backticks in the sed scripts below are literal markdown.
 # shellcheck disable=SC2016
 {
@@ -68,7 +87,7 @@ skill() {
     antigravity) words=agy_words ;;
   esac
   mkdir -p "$dst"
-  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | "$words" >"$dst/SKILL.md"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | "$words" >"$dst/SKILL.md"
 }
 
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
