@@ -136,7 +136,8 @@ agy_agent() {
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
-    printf 'model: pro\n'
+    # No agy shell tool is proven yet (story 17), so no agent runs commands.
+    printf 'model: pro\ncommandExecutionPolicy: off\n'
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"
