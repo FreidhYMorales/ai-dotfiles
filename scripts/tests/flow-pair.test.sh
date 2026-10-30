@@ -65,6 +65,15 @@ echo "== verifier report =="
 assert 'an empty or missing verifier report is NEEDS DECISION, never PASS' \
   has_re "$SKILL" 'empty.*no `Verdict:` line.*NEEDS DECISION, never PASS'
 
+echo "== empty verifier report eval =="
+CASE="$ROOT/plugins/flow/evals/pair-empty-verifier-report"
+assert 'case names itself' has "$CASE/case.yaml" 'name: pair-empty-verifier-report'
+assert 'case runs its scaffold' has "$CASE/case.yaml" 'scaffold_script: scaffold.sh'
+assert 'case prompt is the pair slash command' has "$CASE/case.yaml" '/flow:pair 02'
+assert 'scaffold seeds a high-risk story' has_re "$CASE/scaffold.sh" 'Risk: item [1-6]'
+assert 'grader expects NEEDS DECISION' has "$CASE/graders/needs-decision.md" 'NEEDS DECISION'
+assert 'grader expects the story left open' has "$CASE/graders/story-open.md" '[x]'
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
