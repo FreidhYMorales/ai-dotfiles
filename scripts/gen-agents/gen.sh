@@ -33,7 +33,9 @@ support_paths() {
   while IFS= read -r rel; do
     re=$(printf '%s' "$rel" | sed -e 's/[].[\*^$#]/\\&/g')
     to=$(printf '%s' "$rel" | sed -e 's/[\\&#]/\\&/g')
-    script+=(-e "s#\`$re\`#\`\"$REPO_SED/plugins/$1/skills/$2/$to\"\`#g")
+    to="\`\"$REPO_SED/plugins/$1/skills/$2/$to\"\`"
+    # A markdown link cannot hold the quoted path, so it becomes the path.
+    script+=(-e "s#\\[$re\\]($re)#$to#g" -e "s#\`$re\`#$to#g")
   done < <(cd "$dir" && find references templates cheatsheets assets -type f 2>/dev/null | sort)
   sed "${script[@]}" -e ''
 }
