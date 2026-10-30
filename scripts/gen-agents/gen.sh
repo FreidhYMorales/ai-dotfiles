@@ -22,7 +22,8 @@ rename() { sed -E 's/(^|[^A-Za-z0-9_-])(flow|toolkit):([a-z])/\1\2-\3/g'; }
 plugin_paths() {
   sed -E \
     -e "s#\`\\.\\./\\.\\./([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
-    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
+    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
+    -e "s#\`\\\$\\{CLAUDE_PLUGIN_ROOT\\}/([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
 }
 
 # support_paths PLUGIN SKILL: bare references to support files, the skill's
@@ -69,6 +70,9 @@ field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 {
 # body FILE: everything after the frontmatter.
 body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
 
+# plugin_of AGENT_SRC: the plugin an agent file belongs to.
+plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
+
 # opencode_agent SRC NAME: a read-only subagent; tools Claude does not list
 # are denied.
 opencode_agent() {
@@ -78,7 +82,7 @@ opencode_agent() {
     printf -- '---\ndescription: %s\nmode: subagent\npermission:\n' "$(field "$src" description)"
     printf '  edit: deny\n  webfetch: deny\n  task: deny\n---\n'
     body "$src"
-  } | rename >"$dst"
+  } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
 # skill TARGET PLUGIN SKILL: the skill as <plugin>-<skill>, in TARGET's words.
@@ -147,6 +151,7 @@ agy_agent() {
 }
 
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_skill flow plan-review
 skill antigravity flow plan-review
