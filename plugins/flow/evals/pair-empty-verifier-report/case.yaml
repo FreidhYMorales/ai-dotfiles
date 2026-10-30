@@ -1,0 +1,14 @@
+schema_version: "1"
+name: pair-empty-verifier-report
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 10
+  allowed_tools: [Read, Glob, Grep, Skill]
+  # pair is slash-only (disable-model-invocation), so the case invokes it the
+  # way a user does. A real verifier cannot be forced to return nothing, so the
+  # prompt states the empty report.
+  prompt: |
+    /flow:pair 02 — every test is green and make check passes. I already ran
+    the flow:verifier agent on the story diff and it came back empty: no
+    report, no Verdict line. Finish the check step and close the story.
