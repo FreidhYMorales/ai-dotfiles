@@ -111,6 +111,8 @@ agy_tools() {
     Read) echo read_file view_file ;;
     Grep) echo grep_search ;;
     Glob | Bash) ;;
+    # Engram is declared under mcpServers: (agy_agent), never as a tool.
+    mcp__engram__*) ;;
     *)
       echo "gen-agents: $2: no agy name for tool $1" >&2
       return 1
@@ -120,10 +122,12 @@ agy_tools() {
 
 # agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
 # An unmapped tool stops the generator: agy never builds such a subagent and
-# says nothing.
+# says nothing. An agent with an engram tool declares engram under
+# mcpServers: (story 16).
 agy_agent() {
-  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=()
+  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=() engram=
   for tool in $(field "$src" tools | tr -d ','); do
+    [[ $tool == mcp__engram__* ]] && engram=1
     mapped=$(agy_tools "$tool" "$src")
     # shellcheck disable=SC2206 # split the space-separated names
     names+=($mapped)
@@ -132,7 +136,9 @@ agy_agent() {
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
-    printf 'model: pro\n---\n'
+    printf 'model: pro\n'
+    [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
+    printf -- '---\n'
     body "$src"
   } | rename >"$dst"
 }
