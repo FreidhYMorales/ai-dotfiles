@@ -47,6 +47,10 @@ echo "== OpenCode plan-review skill and command =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden opencode/skills/flow-plan-review/SKILL.md
 assert 'commands/flow-plan-review.md matches golden' same_as_golden opencode/commands/flow-plan-review.md
 
+echo "== Antigravity plan reviewer agent =="
+# Only the registry tool names story 16 proved; Glob and Bash are left out.
+assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
