@@ -43,22 +43,61 @@ assert 'generator exits 0' test "$LAST_EXIT" -eq 0
 echo "== OpenCode plan reviewer agent =="
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden opencode/agents/flow-plan-reviewer.md
 
+echo "== OpenCode verifier agent =="
+# The Claude plugin-root fallback becomes the absolute references path.
+assert 'agents/flow-verifier.md matches golden' same_as_golden opencode/agents/flow-verifier.md
+
 echo "== OpenCode plan-review skill and command =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden opencode/skills/flow-plan-review/SKILL.md
 assert 'commands/flow-plan-review.md matches golden' same_as_golden opencode/commands/flow-plan-review.md
+
+echo "== OpenCode story loop skills and commands =="
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "opencode/skills/$name/SKILL.md"
+done
+for name in flow-backlog flow-story flow-pair; do
+  assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
+done
+# OpenCode 2.2.2 reads disable-model-invocation as "the model may not load
+# this skill", so the /flow-pair command could not load it.
+assert 'OpenCode pair stays loadable by its command' \
+  test -f "$OUT/opencode/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'disable-model-invocation' "$OUT/opencode/skills/flow-pair/SKILL.md" 2>/dev/null)"
+# judgment-day is not generated, and pair's references are absolute paths.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode pair marks judgment-day Claude Code only' \
+  grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/opencode/skills/flow-pair/SKILL.md"
+assert 'OpenCode pair no longer points at its base directory' \
+  test -f "$OUT/opencode/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/opencode/skills/flow-pair/SKILL.md" 2>/dev/null)"
+assert 'OpenCode story reaches high-risk.md by an absolute path' \
+  test -z "$(grep -E '`pair/references/' "$OUT/opencode/skills/flow-story/SKILL.md" 2>/dev/null)" -a -f "$OUT/opencode/skills/flow-story/SKILL.md"
 
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
 
+echo "== Antigravity verifier agent =="
+# Read and Grep map to the names story 16 proved; with no shell tool the
+# verifier runs no commands.
+assert 'agents/flow-verifier.md matches golden' same_as_golden antigravity/agents/flow-verifier.md
+
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
+
+echo "== Antigravity story loop skills =="
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
+done
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy pair marks judgment-day Claude Code only' \
+  grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/antigravity/skills/flow-pair/SKILL.md"
+assert 'agy pair no longer points at its base directory' \
+  test -f "$OUT/antigravity/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/antigravity/skills/flow-pair/SKILL.md" 2>/dev/null)"
 
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
 mkdir -p "$SRC/plugins"
-cp -r "$ROOT/plugins/flow" "$SRC/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$SRC/plugins/"
 awk '/^tools: / { $0 = $0 ", WebFetch" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$SRC/plugins/flow/agents/plan-reviewer.md"
 LAST_OUTPUT=$(GEN_SOURCE="$SRC" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/unmapped" 2>&1)
@@ -79,7 +118,7 @@ assert 'this repo verifies' test "$LAST_EXIT" -eq 0
 # A source change the goldens were not regenerated for.
 STALE="$TMP_ROOT/stale"
 mkdir -p "$STALE/plugins"
-cp -r "$ROOT/plugins/flow" "$STALE/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$STALE/plugins/"
 printf '\nA line the goldens lack.\n' >>"$STALE/plugins/flow/skills/plan-review/SKILL.md"
 verify "$STALE"
 assert 'a stale golden fails' test "$LAST_EXIT" -ne 0
@@ -88,7 +127,7 @@ assert 'stale: names the file' grep -q 'antigravity/skills/flow-plan-review/SKIL
 # A Claude-only form the rewrite does not cover.
 LEFT="$TMP_ROOT/leftover"
 mkdir -p "$LEFT/plugins"
-cp -r "$ROOT/plugins/flow" "$LEFT/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$LEFT/plugins/"
 # shellcheck disable=SC2016 # a literal Claude-only form
 printf '\nSee ${CLAUDE_PLUGIN_ROOT}/agents.\n' >>"$LEFT/plugins/flow/agents/plan-reviewer.md"
 verify "$LEFT"
@@ -100,7 +139,7 @@ echo "== bare support-file references =="
 # A copy of the sources whose plan-review names support files of its own.
 REFS="$TMP_ROOT/refs"
 mkdir -p "$REFS/plugins"
-cp -r "$ROOT/plugins/flow" "$REFS/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$REFS/plugins/"
 REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
 mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates" "$REFS_SKILL/cheatsheets" "$REFS_SKILL/assets"
 touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md" "$REFS_SKILL/cheatsheets/z.md" "$REFS_SKILL/assets/w.json"
@@ -146,7 +185,7 @@ done
 # A bare reference the rewrite does not cover: plain prose, no backticks.
 BARE="$TMP_ROOT/bare"
 mkdir -p "$BARE/plugins"
-cp -r "$ROOT/plugins/flow" "$BARE/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$BARE/plugins/"
 mkdir -p "$BARE/plugins/flow/skills/plan-review/references"
 touch "$BARE/plugins/flow/skills/plan-review/references/x.md"
 printf '\nSee references/x.md for details.\n' >>"$BARE/plugins/flow/skills/plan-review/SKILL.md"
@@ -159,7 +198,7 @@ echo "== agy agents that use engram =="
 # A copy of the sources whose reviewer also asks for an engram tool.
 MEM="$TMP_ROOT/mem"
 mkdir -p "$MEM/plugins"
-cp -r "$ROOT/plugins/flow" "$MEM/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$MEM/plugins/"
 awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$MEM/plugins/flow/agents/plan-reviewer.md"
 MEM_OUT="$TMP_ROOT/mem-out"
@@ -187,7 +226,7 @@ echo "== the agy verifier step ends in NEEDS DECISION =="
 # flow-pair itself is generated in #09.
 CHK="$TMP_ROOT/chk"
 mkdir -p "$CHK/plugins"
-cp -r "$ROOT/plugins/flow" "$CHK/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$CHK/plugins/"
 {
   echo
   grep '^6\. \*\*Check\.\*\*' "$ROOT/plugins/flow/skills/pair/SKILL.md"

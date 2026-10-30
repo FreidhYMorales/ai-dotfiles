@@ -30,13 +30,12 @@ MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
-# Claude-only skills: the daily loop (flow:backlog, flow:story, flow:pair) relies
-# on Claude Code hooks and agents, so link_skills keeps it out of OpenCode and
-# Antigravity until it is ported (multi-agent-port).
-CLAUDE_ONLY_SKILLS="backlog story pair"
+# Claude-only skills: judgment-day relies on Claude Code agents, so
+# link_skills keeps it out of OpenCode and Antigravity until v2.
+CLAUDE_ONLY_SKILLS="judgment-day"
 # Skills scripts/gen-agents/gen.sh generates for OpenCode and Antigravity:
 # their raw copies are never linked there.
-PORTED_SKILLS="plan-review"
+PORTED_SKILLS="plan-review backlog story pair work-unit-commits"
 # Generated OpenCode and Antigravity files (gitignored): a symlink to the
 # latest generation, swapped in one rename.
 BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"

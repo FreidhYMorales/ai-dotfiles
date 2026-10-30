@@ -22,7 +22,8 @@ rename() { sed -E 's/(^|[^A-Za-z0-9_-])(flow|toolkit):([a-z])/\1\2-\3/g'; }
 plugin_paths() {
   sed -E \
     -e "s#\`\\.\\./\\.\\./([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
-    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
+    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
+    -e "s#\`\\\$\\{CLAUDE_PLUGIN_ROOT\\}/([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
 }
 
 # support_paths PLUGIN SKILL: bare references to support files, the skill's
@@ -39,6 +40,9 @@ support_paths() {
     to="\`\"$REPO_SED/plugins/$1/skills/$to\"\`"
     # A markdown link cannot hold the quoted path, so it becomes the path.
     script+=(-e "s#\\[$re\\]($re)#$to#g" -e "s#\`$re\`#$to#g")
+    # A sibling's file named from the skills dir (`pair/references/x.md`).
+    re=$(printf '%s' "$path" | sed -e 's/[].[\*^$#]/\\&/g')
+    script+=(-e "s#\`$re\`#$to#g")
   done < <(cd "$SRC_DIR/plugins/$1/skills" && find . -type f -regextype posix-extended \
     -regex '\./[^/]+/(references|templates|cheatsheets|assets)/.+' | cut -c3- | sort)
   sed "${script[@]}" -e ''
@@ -47,8 +51,21 @@ support_paths() {
 # Backticks in the sed scripts below are literal markdown.
 # shellcheck disable=SC2016
 {
-  # opencode_words: Claude names become OpenCode names.
-  opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
+  # claude_only: skills that are never generated are marked as such; the
+  # references become absolute paths, so pair's base-directory note goes.
+  claude_only() {
+    sed -e 's#`/toolkit-judgment-day`#& (Claude Code only)#g' \
+      -e "s/ (this skill's base directory)//"
+  }
+
+  # opencode_words: Claude names become OpenCode names. OpenCode 2.2.2 reads
+  # disable-model-invocation as "the model may not load this skill", which
+  # stops its own command from loading it; the description still says
+  # "explicit use only".
+  opencode_words() {
+    sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g' \
+      -e '/^disable-model-invocation: /d'
+  }
 
   # agy_words: subagents are launched through invoke_subagent; engram tools
   # go by their own names. pair's verifier step ends in NEEDS DECISION while
@@ -69,6 +86,9 @@ field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 {
 # body FILE: everything after the frontmatter.
 body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
 
+# plugin_of AGENT_SRC: the plugin an agent file belongs to.
+plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
+
 # opencode_agent SRC NAME: a read-only subagent; tools Claude does not list
 # are denied.
 opencode_agent() {
@@ -78,7 +98,7 @@ opencode_agent() {
     printf -- '---\ndescription: %s\nmode: subagent\npermission:\n' "$(field "$src" description)"
     printf '  edit: deny\n  webfetch: deny\n  task: deny\n---\n'
     body "$src"
-  } | rename >"$dst"
+  } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
 # skill TARGET PLUGIN SKILL: the skill as <plugin>-<skill>, in TARGET's words.
@@ -89,7 +109,7 @@ skill() {
     antigravity) words=agy_words ;;
   esac
   mkdir -p "$dst"
-  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | "$words" >"$dst/SKILL.md"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | claude_only | "$words" >"$dst/SKILL.md"
 }
 
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
@@ -143,10 +163,20 @@ agy_agent() {
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"
-  } | rename >"$dst"
+  } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+agy_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 opencode_skill flow plan-review
+opencode_skill flow backlog
+opencode_skill flow story
+opencode_skill flow pair
+skill opencode toolkit work-unit-commits
 skill antigravity flow plan-review
+skill antigravity flow backlog
+skill antigravity flow story
+skill antigravity flow pair
+skill antigravity toolkit work-unit-commits
