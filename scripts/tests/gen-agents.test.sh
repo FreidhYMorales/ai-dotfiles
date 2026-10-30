@@ -96,6 +96,28 @@ assert 'a leftover fails' test "$LAST_EXIT" -ne 0
 assert 'leftover: names the file and the form' \
   grep -q 'opencode/agents/flow-plan-reviewer.md.*CLAUDE_PLUGIN_ROOT' <<<"$LAST_OUTPUT"
 
+echo "== bare support-file references =="
+# A copy of the sources whose plan-review names support files of its own.
+REFS="$TMP_ROOT/refs"
+mkdir -p "$REFS/plugins"
+cp -r "$ROOT/plugins/flow" "$REFS/plugins/"
+REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
+mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates"
+touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md"
+cat >>"$REFS_SKILL/SKILL.md" <<'EOF'
+
+Read `references/x.md`, then fill `templates/y.md`.
+EOF
+REFS_OUT="$TMP_ROOT/refs-out"
+LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'refs: generator exits 0' test "$LAST_EXIT" -eq 0
+for target in opencode antigravity; do
+  assert "refs: $target own files become absolute" grep -qF \
+    'Read `"/repo path/plugins/flow/skills/plan-review/references/x.md"`, then fill `"/repo path/plugins/flow/skills/plan-review/templates/y.md"`.' \
+    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+done
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
