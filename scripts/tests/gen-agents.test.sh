@@ -77,7 +77,7 @@ echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
 mkdir -p "$SRC/plugins"
-cp -r "$ROOT/plugins/flow" "$SRC/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$SRC/plugins/"
 awk '/^tools: / { $0 = $0 ", WebFetch" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$SRC/plugins/flow/agents/plan-reviewer.md"
 LAST_OUTPUT=$(GEN_SOURCE="$SRC" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/unmapped" 2>&1)
@@ -98,7 +98,7 @@ assert 'this repo verifies' test "$LAST_EXIT" -eq 0
 # A source change the goldens were not regenerated for.
 STALE="$TMP_ROOT/stale"
 mkdir -p "$STALE/plugins"
-cp -r "$ROOT/plugins/flow" "$STALE/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$STALE/plugins/"
 printf '\nA line the goldens lack.\n' >>"$STALE/plugins/flow/skills/plan-review/SKILL.md"
 verify "$STALE"
 assert 'a stale golden fails' test "$LAST_EXIT" -ne 0
@@ -107,7 +107,7 @@ assert 'stale: names the file' grep -q 'antigravity/skills/flow-plan-review/SKIL
 # A Claude-only form the rewrite does not cover.
 LEFT="$TMP_ROOT/leftover"
 mkdir -p "$LEFT/plugins"
-cp -r "$ROOT/plugins/flow" "$LEFT/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$LEFT/plugins/"
 # shellcheck disable=SC2016 # a literal Claude-only form
 printf '\nSee ${CLAUDE_PLUGIN_ROOT}/agents.\n' >>"$LEFT/plugins/flow/agents/plan-reviewer.md"
 verify "$LEFT"
@@ -119,7 +119,7 @@ echo "== bare support-file references =="
 # A copy of the sources whose plan-review names support files of its own.
 REFS="$TMP_ROOT/refs"
 mkdir -p "$REFS/plugins"
-cp -r "$ROOT/plugins/flow" "$REFS/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$REFS/plugins/"
 REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
 mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates" "$REFS_SKILL/cheatsheets" "$REFS_SKILL/assets"
 touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md" "$REFS_SKILL/cheatsheets/z.md" "$REFS_SKILL/assets/w.json"
@@ -165,7 +165,7 @@ done
 # A bare reference the rewrite does not cover: plain prose, no backticks.
 BARE="$TMP_ROOT/bare"
 mkdir -p "$BARE/plugins"
-cp -r "$ROOT/plugins/flow" "$BARE/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$BARE/plugins/"
 mkdir -p "$BARE/plugins/flow/skills/plan-review/references"
 touch "$BARE/plugins/flow/skills/plan-review/references/x.md"
 printf '\nSee references/x.md for details.\n' >>"$BARE/plugins/flow/skills/plan-review/SKILL.md"
@@ -178,7 +178,7 @@ echo "== agy agents that use engram =="
 # A copy of the sources whose reviewer also asks for an engram tool.
 MEM="$TMP_ROOT/mem"
 mkdir -p "$MEM/plugins"
-cp -r "$ROOT/plugins/flow" "$MEM/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$MEM/plugins/"
 awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$MEM/plugins/flow/agents/plan-reviewer.md"
 MEM_OUT="$TMP_ROOT/mem-out"
@@ -206,7 +206,7 @@ echo "== the agy verifier step ends in NEEDS DECISION =="
 # flow-pair itself is generated in #09.
 CHK="$TMP_ROOT/chk"
 mkdir -p "$CHK/plugins"
-cp -r "$ROOT/plugins/flow" "$CHK/plugins/"
+cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$CHK/plugins/"
 {
   echo
   grep '^6\. \*\*Check\.\*\*' "$ROOT/plugins/flow/skills/pair/SKILL.md"
