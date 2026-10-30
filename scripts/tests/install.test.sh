@@ -373,8 +373,8 @@ assert 'AGENTS.md is not linked where agy never reads it' test ! -e "$home/.gemi
 assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
 assert 'output names the agy rules path' rg -qF "linked: $home/.gemini/config/AGENTS.md -> " <<<"$LAST_OUTPUT"
 assert 'output names no unread agy rules path' test -z "$(rg -F "$home/.gemini/antigravity-cli/AGENTS.md" <<<"$LAST_OUTPUT")"
-assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
-assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/ship"
+assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/flow-plan"
+assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/toolkit-ship"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
@@ -493,8 +493,8 @@ assert 'the clashing backup leaves the discovery dir' test ! -e "$skills/work-un
 home=$(sandbox antigravity-skill-same-run)
 skills=$home/.gemini/antigravity-cli/skills
 kept=$home/.gemini/antigravity-cli/skills-backup
-mkdir -p "$home/.gemini/config" "$skills/ship"
-printf 'gentle original\n' >"$skills/ship/SKILL.md"
+mkdir -p "$home/.gemini/config" "$skills/toolkit-ship"
+printf 'gentle original\n' >"$skills/toolkit-ship/SKILL.md"
 install "$home" --target antigravity
 assert 'one install leaves no skill backup in discovery' test -z "$(find "$skills" -maxdepth 1 -name '*.bak-*')"
 assert 'the renamed original is in skills-backup' rg -qx 'gentle original' "$kept" -g 'SKILL.md'
