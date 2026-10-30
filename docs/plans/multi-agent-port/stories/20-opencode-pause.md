@@ -7,7 +7,7 @@
 ## Acceptance criteria
 
 - [ ] Given an OpenCode session in a project, when my message starts with "pausa", "pausar" or "pause", then a pause checkpoint (branch, last commit, uncommitted files) is saved to engram before the model answers, and the model gets the pause protocol whose resume line says `opencode --continue`, never `cz` or `claude --continue`.
-- [ ] Given the same session, when the model is called again for that message (tool calls) or I send a message that is not a pause, then no new checkpoint is saved and no pause protocol is added.
+- [ ] Given the same session, when the model is called again for that pause message (tool calls), then no new checkpoint is saved and the same protocol is still there; when I send a message that is not a pause, then nothing is saved and no protocol is added.
 - [ ] Given the pause hook is switched off, fails or prints nothing readable, when I send "pausa", then the session goes on normally; and in Claude the pause protocol stays word for word as today.
 
 ## Plan
@@ -38,3 +38,6 @@ Risk: item 1, 6 (writes an engram checkpoint; what the OpenCode model sees and d
 - L2 decision (user, "si, la sugerida"): the Claude hook stays the single source of the text; it learns the calling agent and words the resume line `opencode --continue` for OpenCode; Claude output unchanged.
 - L3 assumptions for approval: installed OpenCode is now 2.2.2 (`--continue` resumes the last session, checked in `--help`), so step 0 re-captures the hook shape; detection runs once per user message, not per model call, so tool-call loops neither re-save nor re-inject; the pause text reaches the model through the same system context channel as story 19 unless the capture shows a better per-message one.
 - L4 approved by the user ("si").
+- L5 test list approved: 0 and 6 manual (2.2.2 capture, real `opencode run --standalone`); pause.test.sh: 1 approval pin of the Claude protocol, 2 `target: "opencode"` resume line; toolkit.test.sh: 3 checkpoint + protocol, 4 once per message, 5 off/failing/unreadable untouched.
+- L6 decision (user, "si, la sugerida"): the protocol stays on every model call of the pause message (checkpoint saved once) and leaves with the next user message; C2 reworded.
+- L7 capture (step 0, OpenCode 2.2.2, temporary probe in toolkit.ts restored afterwards): `context` request keys `sessionID, model, system, messages, options, agent, tools`, called once per model call; `messages` is the whole history: user `{id: "msg_…", role: "user", content: [{type: "text", text}], metadata}`, assistant with `id`, tool and system entries without `id`; a tool loop keeps the same last user message id. `opencode run` sends the prompt wrapped in literal double quotes (`"pausa, me voy"`). Any extra plugin file in `~/.config/opencode/plugins/` (even an empty one, file or symlink, in or out of the sandbox) hangs `opencode run --standalone` on 2.2.2; a probe inside the linked `toolkit.ts` works.
