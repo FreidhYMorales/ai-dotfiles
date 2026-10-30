@@ -68,6 +68,13 @@ assert 'an empty or missing verifier report is NEEDS DECISION, never PASS' \
 assert 'an empty or missing verifier report leaves the story open' \
   has_re "$SKILL" 'no `Verdict:` line.*the story stays open'
 
+echo "== skill story eval in Claude =="
+# Regression pin (story 29): only the generated flow-pair may close a skill
+# story with the eval pending; in Claude the make eval result is recorded.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'Claude pair records the make eval result' has "$SKILL" 'for skill stories the `make eval` result'
+assert 'Claude pair has no eval-pending line' test -f "$SKILL" -a -z "$(grep -F 'make eval pending' "$SKILL" 2>/dev/null)"
+
 echo "== empty verifier report eval =="
 CASE="$ROOT/plugins/flow/evals/pair-empty-verifier-report"
 assert 'case names itself' has "$CASE/case.yaml" 'name: pair-empty-verifier-report'

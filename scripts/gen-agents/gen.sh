@@ -53,9 +53,12 @@ support_paths() {
 {
   # claude_only: skills that are never generated are marked as such; the
   # references become absolute paths, so pair's base-directory note goes.
+  # make eval runs Claude, so pair's Done step closes a skill story with the
+  # eval pending; the next skill lists it (story 29).
   claude_only() {
     sed -e 's#`/toolkit-judgment-day`#& (Claude Code only)#g' \
-      -e "s/ (this skill's base directory)//"
+      -e "s/ (this skill's base directory)//" \
+      -e '/^7\. \*\*Done\.\*\*.*the `make eval` result/ s/$/ Outside Claude `make eval` cannot run: for a skill story write `make eval pending (needs Claude)` in the story log in place of its result and close the story; the `next` skill lists it until the eval runs in Claude./'
   }
 
   # opencode_words: Claude names become OpenCode names. OpenCode 2.2.2 reads
