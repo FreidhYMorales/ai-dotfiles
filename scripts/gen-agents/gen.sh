@@ -40,6 +40,9 @@ support_paths() {
     to="\`\"$REPO_SED/plugins/$1/skills/$to\"\`"
     # A markdown link cannot hold the quoted path, so it becomes the path.
     script+=(-e "s#\\[$re\\]($re)#$to#g" -e "s#\`$re\`#$to#g")
+    # A sibling's file named from the skills dir (`pair/references/x.md`).
+    re=$(printf '%s' "$path" | sed -e 's/[].[\*^$#]/\\&/g')
+    script+=(-e "s#\`$re\`#$to#g")
   done < <(cd "$SRC_DIR/plugins/$1/skills" && find . -type f -regextype posix-extended \
     -regex '\./[^/]+/(references|templates|cheatsheets|assets)/.+' | cut -c3- | sort)
   sed "${script[@]}" -e ''
@@ -48,6 +51,13 @@ support_paths() {
 # Backticks in the sed scripts below are literal markdown.
 # shellcheck disable=SC2016
 {
+  # claude_only: skills that are never generated are marked as such; the
+  # references become absolute paths, so pair's base-directory note goes.
+  claude_only() {
+    sed -e 's#`/toolkit-judgment-day`#& (Claude Code only)#g' \
+      -e "s/ (this skill's base directory)//"
+  }
+
   # opencode_words: Claude names become OpenCode names.
   opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
 
@@ -93,7 +103,7 @@ skill() {
     antigravity) words=agy_words ;;
   esac
   mkdir -p "$dst"
-  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | "$words" >"$dst/SKILL.md"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | claude_only | "$words" >"$dst/SKILL.md"
 }
 
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
@@ -154,4 +164,8 @@ opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewe
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_skill flow plan-review
+opencode_skill flow backlog
+opencode_skill flow story
+opencode_skill flow pair
+skill opencode toolkit work-unit-commits
 skill antigravity flow plan-review
