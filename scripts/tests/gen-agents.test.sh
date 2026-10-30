@@ -51,6 +51,21 @@ echo "== OpenCode plan-review skill and command =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden opencode/skills/flow-plan-review/SKILL.md
 assert 'commands/flow-plan-review.md matches golden' same_as_golden opencode/commands/flow-plan-review.md
 
+echo "== OpenCode story loop skills and commands =="
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "opencode/skills/$name/SKILL.md"
+done
+for name in flow-backlog flow-story flow-pair; do
+  assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
+done
+# judgment-day is not generated, and pair's references are absolute paths.
+assert 'OpenCode pair marks judgment-day Claude Code only' \
+  grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/opencode/skills/flow-pair/SKILL.md"
+assert 'OpenCode pair no longer points at its base directory' \
+  test -f "$OUT/opencode/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/opencode/skills/flow-pair/SKILL.md" 2>/dev/null)"
+assert 'OpenCode story reaches high-risk.md by an absolute path' \
+  test -z "$(grep -E '`pair/references/' "$OUT/opencode/skills/flow-story/SKILL.md" 2>/dev/null)" -a -f "$OUT/opencode/skills/flow-story/SKILL.md"
+
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
