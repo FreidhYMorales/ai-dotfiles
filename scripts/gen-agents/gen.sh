@@ -170,3 +170,7 @@ opencode_skill flow story
 opencode_skill flow pair
 skill opencode toolkit work-unit-commits
 skill antigravity flow plan-review
+skill antigravity flow backlog
+skill antigravity flow story
+skill antigravity flow pair
+skill antigravity toolkit work-unit-commits
