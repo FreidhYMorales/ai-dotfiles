@@ -400,6 +400,24 @@ for name in backlog story pair judgment-day work-unit-commits; do
   assert "no raw $name link is left for antigravity" test ! -e "$agy_skills/$name" -a ! -L "$agy_skills/$name"
 done
 
+echo "== antigravity gets every other skill generated =="
+
+# An earlier run linked the raw plan and ship skills (story 30).
+home=$(sandbox antigravity-remaining)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills"
+ln -s "$ROOT/plugins/flow/skills/plan" "$agy_skills/plan"
+ln -s "$ROOT/plugins/toolkit/skills/ship" "$agy_skills/ship"
+install "$home" --target antigravity
+assert 'antigravity remaining skills run succeeds' test "$LAST_EXIT" -eq 0
+for name in $REMAINING; do
+  assert "the agy $name skill is the generated one" \
+    same "$(readlink "$agy_skills/$name")" "$home/build/agents/antigravity/skills/$name"
+done
+raw=$(find "$agy_skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
+assert 'no raw repo skill link is left for antigravity' same "$raw" ''
+[[ -z $raw ]] || printf '%s\n' "$raw"
+
 echo "== antigravity gets the generated plan review =="
 
 home=$(sandbox antigravity-plan-review)
