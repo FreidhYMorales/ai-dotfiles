@@ -59,5 +59,30 @@ opencode_skill() {
   } | rename >"$OUT/opencode/commands/$name.md"
 }
 
+# agy_tools TOOL: the agy registry names for a Claude tool. Only names agy
+# 1.4.9 proved (story 16); Glob and Bash wait for a real run (story 17).
+agy_tools() {
+  case $1 in
+    Read) echo read_file view_file ;;
+    Grep) echo grep_search ;;
+    Glob | Bash) ;;
+  esac
+}
+
+# agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
+agy_agent() {
+  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool name
+  mkdir -p "$(dirname "$dst")"
+  {
+    printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
+    for tool in $(field "$src" tools | tr -d ','); do
+      for name in $(agy_tools "$tool"); do printf '  - %s\n' "$name"; done
+    done
+    printf 'model: pro\n---\n'
+    body "$src"
+  } | rename >"$dst"
+}
+
 opencode_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
+agy_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_skill flow plan-review
