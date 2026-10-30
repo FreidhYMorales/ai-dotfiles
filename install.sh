@@ -35,7 +35,9 @@ RETIRED_PLUGINS=(sdd)
 CLAUDE_ONLY_SKILLS="judgment-day"
 # Skills scripts/gen-agents/gen.sh generates for OpenCode and Antigravity:
 # their raw copies are never linked there.
-PORTED_SKILLS="plan-review backlog story pair work-unit-commits"
+PORTED_SKILLS="plan-review backlog story pair work-unit-commits plan fill-gaps research handoff \
+next idea split integrate foundation bootstrap ship chained-pr cli-tools cognitive-doc-design \
+comment-writer delegate-local go-testing skill-creator skill-improver"
 # Generated OpenCode and Antigravity files (gitignored): a symlink to the
 # latest generation, swapped in one rename.
 BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"
