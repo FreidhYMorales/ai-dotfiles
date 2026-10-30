@@ -15,16 +15,29 @@ REPO_SED=$(printf '%s' "$REPO_PATH" | sed -e 's/[\\&#]/\\&/g')
 # rename: the name map, flow:x -> flow-x and toolkit:x -> toolkit-x.
 rename() { sed -E 's/(^|[^A-Za-z0-9_-])(flow|toolkit):([a-z])/\1\2-\3/g'; }
 
-# opencode_words PLUGIN: plugin-relative paths become absolute and quoted
-# (OpenCode does not resolve them), Claude names become OpenCode names.
-opencode_words() {
-  # Backticks are literal markdown.
-  # shellcheck disable=SC2016
+# plugin_paths PLUGIN: plugin-relative paths become absolute and quoted;
+# neither target resolves them.
+plugin_paths() {
   sed -E \
     -e "s#\`\\.\\./\\.\\./([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
-    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
-    -e 's/`general-purpose`/`general`/g' \
-    -e 's/mcp__engram__/engram_/g'
+    -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
+}
+
+# Backticks in the sed scripts below are literal markdown.
+# shellcheck disable=SC2016
+{
+  # opencode_words: Claude names become OpenCode names.
+  opencode_words() { sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g'; }
+
+  # agy_words: subagents are launched through invoke_subagent; engram tools
+  # go by their own names.
+  agy_words() {
+    sed -E \
+      -e 's/(launch a fresh `[^`]+`) subagent/\1 subagent through `invoke_subagent`/g' \
+      -e 's/(Launch the `[^`]+`) agent/\1 subagent through `invoke_subagent`/g' \
+      -e 's/Launch `general-purpose`/Launch the default subagent through `invoke_subagent`/g' \
+      -e 's/mcp__engram__//g'
+  }
 }
 
 # field FILE KEY: a frontmatter value.
@@ -45,12 +58,23 @@ opencode_agent() {
   } | rename >"$dst"
 }
 
-# opencode_skill PLUGIN SKILL: the skill as <plugin>-<skill>, plus a command
-# of the same name that loads it.
+# skill TARGET PLUGIN SKILL: the skill as <plugin>-<skill>, in TARGET's words.
+skill() {
+  local src="$REPO_DIR/plugins/$2/skills/$3/SKILL.md" dst="$OUT/$1/skills/$2-$3" words
+  case $1 in
+    opencode) words=opencode_words ;;
+    antigravity) words=agy_words ;;
+  esac
+  mkdir -p "$dst"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | "$words" >"$dst/SKILL.md"
+}
+
+# opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
+# loads it.
 opencode_skill() {
   local src="$REPO_DIR/plugins/$1/skills/$2/SKILL.md" name="$1-$2"
-  mkdir -p "$OUT/opencode/skills/$name" "$OUT/opencode/commands"
-  sed "s/^name: $2\$/name: $name/" "$src" | rename | opencode_words "$1" >"$OUT/opencode/skills/$name/SKILL.md"
+  skill opencode "$1" "$2"
+  mkdir -p "$OUT/opencode/commands"
   # Backticks and $ARGUMENTS are literal.
   # shellcheck disable=SC2016
   {
@@ -86,3 +110,4 @@ agy_agent() {
 opencode_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 agy_agent "$REPO_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_skill flow plan-review
+skill antigravity flow plan-review
