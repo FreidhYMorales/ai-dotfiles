@@ -25,18 +25,22 @@ plugin_paths() {
     -e "s#the plugin's \`([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g"
 }
 
-# support_paths PLUGIN SKILL: bare references to the skill's own support
-# files become absolute and quoted. Only files that exist in the source are
-# rewritten, so prose about a directory (skill-creator's `assets/`) stays.
+# support_paths PLUGIN SKILL: bare references to support files, the skill's
+# own (`references/x.md`) or a sibling's (`../pair/references/x.md`), become
+# absolute and quoted. Only files that exist in the source are rewritten, so
+# prose about a directory (skill-creator's `assets/`) stays.
 support_paths() {
-  local dir="$SRC_DIR/plugins/$1/skills/$2" rel re to script=()
-  while IFS= read -r rel; do
+  local path rel re to script=()
+  while IFS= read -r path; do
+    rel=${path#*/}
+    [[ ${path%%/*} == "$2" ]] || rel="../$path"
     re=$(printf '%s' "$rel" | sed -e 's/[].[\*^$#]/\\&/g')
-    to=$(printf '%s' "$rel" | sed -e 's/[\\&#]/\\&/g')
-    to="\`\"$REPO_SED/plugins/$1/skills/$2/$to\"\`"
+    to=$(printf '%s' "$path" | sed -e 's/[\\&#]/\\&/g')
+    to="\`\"$REPO_SED/plugins/$1/skills/$to\"\`"
     # A markdown link cannot hold the quoted path, so it becomes the path.
     script+=(-e "s#\\[$re\\]($re)#$to#g" -e "s#\`$re\`#$to#g")
-  done < <(cd "$dir" && find references templates cheatsheets assets -type f 2>/dev/null | sort)
+  done < <(cd "$SRC_DIR/plugins/$1/skills" && find . -type f -regextype posix-extended \
+    -regex '\./[^/]+/(references|templates|cheatsheets|assets)/.+' | cut -c3- | sort)
   sed "${script[@]}" -e ''
 }
 
