@@ -182,6 +182,25 @@ assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_
 assert 'mem: an agent without engram has no mcpServers' \
   test -z "$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" | grep '^mcpServers:')"
 
+echo "== the agy verifier step ends in NEEDS DECISION =="
+# A copy of the sources whose plan-review holds pair's real check step;
+# flow-pair itself is generated in #09.
+CHK="$TMP_ROOT/chk"
+mkdir -p "$CHK/plugins"
+cp -r "$ROOT/plugins/flow" "$CHK/plugins/"
+{
+  echo
+  grep '^6\. \*\*Check\.\*\*' "$ROOT/plugins/flow/skills/pair/SKILL.md"
+} >>"$CHK/plugins/flow/skills/plan-review/SKILL.md"
+CHK_OUT="$TMP_ROOT/chk-out"
+LAST_OUTPUT=$(GEN_SOURCE="$CHK" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$CHK_OUT" 2>&1)
+LAST_EXIT=$?
+assert 'chk: generator exits 0' test "$LAST_EXIT" -eq 0
+# shellcheck disable=SC2016 # literal markdown backticks
+NEEDS_DECISION='In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline.'
+CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/antigravity/skills/flow-plan-review/SKILL.md")
+assert 'chk: agy check step says NEEDS DECISION' grep -qF "$NEEDS_DECISION" <<<"$CHK_STEP"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
