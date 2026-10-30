@@ -178,6 +178,9 @@ ENGRAM_BLOCK='mcpServers:
       - --tools=agent'
 assert 'mem: engram declared under mcpServers' test "${MEM_FM#*"$ENGRAM_BLOCK"}" != "$MEM_FM"
 assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_FM")"
+# The real reviewer has no engram tool.
+assert 'mem: an agent without engram has no mcpServers' \
+  test -z "$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" | grep '^mcpServers:')"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
