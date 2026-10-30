@@ -203,9 +203,9 @@ home=$(sandbox opencode)
 install "$home" --target opencode
 assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
-assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
+assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/flow-plan"
 assert 'no sdd skill is linked for opencode' test ! -e "$home/.config/opencode/skills/orchestrator" -a ! -L "$home/.config/opencode/skills/orchestrator"
-assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/ship"
+assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/toolkit-ship"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
 done
@@ -318,6 +318,33 @@ assert 'the verifier agent reads the pair references from this repo' \
 for name in judgment-day work-unit-commits; do
   assert "our raw $name link is removed" test ! -e "$oc/skills/$name" -a ! -L "$oc/skills/$name"
 done
+
+echo "== opencode gets every other skill generated =="
+
+# Every other flow and toolkit skill but judgment-day (story 30). An earlier
+# run linked the raw plan and ship skills.
+REMAINING="flow-plan flow-research flow-fill-gaps flow-handoff flow-next flow-idea flow-split
+  flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr toolkit-cli-tools
+  toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local toolkit-go-testing
+  toolkit-skill-creator toolkit-skill-improver"
+home=$(sandbox opencode-remaining)
+oc=$home/.config/opencode
+mkdir -p "$oc/skills"
+ln -s "$ROOT/plugins/flow/skills/plan" "$oc/skills/plan"
+ln -s "$ROOT/plugins/toolkit/skills/ship" "$oc/skills/ship"
+install "$home" --target opencode
+assert 'opencode remaining skills run succeeds' test "$LAST_EXIT" -eq 0
+for name in $REMAINING; do
+  assert "the $name skill is the generated one" \
+    same "$(readlink "$oc/skills/$name")" "$home/build/agents/opencode/skills/$name"
+done
+for name in flow-plan flow-fill-gaps; do
+  assert "the /$name command is the generated one" \
+    diff -q "$ROOT/scripts/gen-agents/golden/opencode/commands/$name.md" "$oc/commands/$name.md"
+done
+raw=$(find "$oc/skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
+assert 'no raw repo skill link is left for opencode' same "$raw" ''
+[[ -z $raw ]] || printf '%s\n' "$raw"
 
 echo "== a failed generation keeps the previous build =="
 
