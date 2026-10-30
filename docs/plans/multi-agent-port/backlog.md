@@ -17,7 +17,7 @@
 05. [x] 9b9dd16 As a developer, I want `prefer-modern-cli` to block legacy tools in OpenCode and Antigravity so that every agent follows the same tool rules.
 06. [x] 438f13f As a developer, I want the `make check` Stop gate in Antigravity, which lets a red pair step through and never traps me after I cancel, so that agy cannot finish on a broken tree. Requires: #05
 07. [-] split → #18, #19, #20
-08. [ ] As a developer, I want `/flow-plan-review` to run its blind reviewer subagent in OpenCode and Antigravity so that I can review plans outside Claude. Requires: #16
+08. [x] 7132f0a As a developer, I want `/flow-plan-review` to run its blind reviewer subagent in OpenCode and Antigravity so that I can review plans outside Claude. Requires: #16
 09. [ ] As a developer, I want `/flow-backlog`, `/flow-story` and `/flow-pair` with the verifier in OpenCode and Antigravity so that I can build stories outside Claude. Requires: #06, #08
 10. [ ] As a developer, I want every other flow and toolkit skill generated for both agents, with `/flow-plan` and `/flow-fill-gaps`, so that the whole planning path works outside Claude. Requires: #08
 11. [ ] As a developer, I want `ai-update` to regenerate and relink the OpenCode and Antigravity outputs so that they never go stale after a pull. Requires: #08

@@ -34,6 +34,12 @@ RETIRED_PLUGINS=(sdd)
 # on Claude Code hooks and agents, so link_skills keeps it out of OpenCode and
 # Antigravity until it is ported (multi-agent-port).
 CLAUDE_ONLY_SKILLS="backlog story pair"
+# Skills scripts/gen-agents/gen.sh generates for OpenCode and Antigravity:
+# their raw copies are never linked there.
+PORTED_SKILLS="plan-review"
+# Generated OpenCode and Antigravity files (gitignored): a symlink to the
+# latest generation, swapped in one rename.
+BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"
 
 DRY_RUN=0
 TARGET_ARG=""
@@ -176,19 +182,60 @@ link_skills() {
   for skill in "$REPO_DIR"/plugins/*/skills/*; do
     [[ -d "$skill" && -f "$skill/SKILL.md" ]] || continue
     name=$(basename "$skill")
-    [[ " $CLAUDE_ONLY_SKILLS " == *" $name "* ]] && continue
+    [[ " $CLAUDE_ONLY_SKILLS $PORTED_SKILLS " == *" $name "* ]] && continue
     link_file "$skill" "$target_skills_dir/$name"
   done
-  # Remove Claude-only links an earlier run left behind, but only our own
-  # symlinks: real directories and links pointing elsewhere are the user's.
+  # Remove Claude-only and raw ported links an earlier run left behind, but
+  # only our own symlinks: real directories and links pointing elsewhere are
+  # the user's.
   repo_real=$(readlink -f "$REPO_DIR")
-  for name in $CLAUDE_ONLY_SKILLS; do
+  for name in $CLAUDE_ONLY_SKILLS $PORTED_SKILLS; do
     dst="$target_skills_dir/$name"
     [[ -L "$dst" ]] || continue
     target=$(readlink "$dst")
     [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]] || continue
     run rm "$dst"
-    echo "removed Claude-only skill: $dst"
+    if [[ " $PORTED_SKILLS " == *" $name "* ]]; then
+      echo "removed raw skill (now generated): $dst"
+    else
+      echo "removed Claude-only skill: $dst"
+    fi
+  done
+}
+
+# build_agents: generate the OpenCode and Antigravity files once per run into
+# a new dir, then point BUILD_DIR at it with one rename, so a reader never sees
+# half a build; the previous generation is removed after the swap.
+BUILT=0
+build_agents() {
+  ((BUILT)) && return 0
+  BUILT=1
+  local new old
+  new="$BUILD_DIR.$(date +%Y%m%d%H%M%S).$$"
+  old=$(readlink "$BUILD_DIR" 2>/dev/null || true)
+  run mkdir -p "$(dirname "$BUILD_DIR")"
+  if ! run bash "$REPO_DIR/scripts/gen-agents/gen.sh" "$new"; then
+    run rm -rf "$new"
+    echo "error: scripts/gen-agents/gen.sh failed; the previous build is kept" >&2
+    exit 1
+  fi
+  run ln -s "$(basename "$new")" "$new.link"
+  run mv -T "$new.link" "$BUILD_DIR"
+  # Only a generation this function made, never anything else.
+  if [[ $old == "$(basename "$BUILD_DIR")".* ]]; then
+    run rm -rf "$(dirname "$BUILD_DIR")/$old"
+  fi
+}
+
+# link_generated TARGET KIND DIR: link each generated TARGET/KIND entry into
+# DIR through BUILD_DIR, so the links survive the next swap.
+link_generated() {
+  local src_dir="$BUILD_DIR/$1/$2" dir=$3 src
+  build_agents
+  prune_links "$dir"
+  for src in "$src_dir"/*; do
+    [[ -e $src ]] || continue
+    link_file "$src" "$dir/$(basename "$src")"
   done
 }
 
@@ -266,6 +313,9 @@ install_claude() {
 install_opencode() {
   link_file "$REPO_DIR/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
   link_skills "$OPENCODE_DIR/skills"
+  link_generated opencode skills "$OPENCODE_DIR/skills"
+  link_generated opencode agents "$OPENCODE_DIR/agents"
+  link_generated opencode commands "$OPENCODE_DIR/commands"
   link_file "$REPO_DIR/plugins/toolkit/opencode/toolkit.ts" "$OPENCODE_DIR/plugins/toolkit.ts"
   # Verify only: engram setup may rewrite the user's config, so it stays manual.
   if ! jq -e '.mcp.engram != null and .mcp.engram.enabled != false' "$OPENCODE_DIR/opencode.json" >/dev/null 2>&1; then
@@ -325,6 +375,9 @@ install_antigravity() {
     merge_agy_hooks
   fi
   link_skills "$ANTIGRAVITY_DIR/skills"
+  link_generated antigravity skills "$ANTIGRAVITY_DIR/skills"
+  # The global subagents dir agy reads (story 16).
+  link_generated antigravity agents "$GEMINI_CONFIG_DIR/agents"
   # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
   # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
   # the link step, which itself renames a clashing user dir to *.bak-*.

@@ -51,7 +51,7 @@ install() {
   shift
   LAST_OUTPUT=$(env -u XDG_BIN_HOME -u XDG_CONFIG_HOME HOME="$home" CLAUDE_CONFIG_DIR="$home/.claude" \
     GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
-    FAKE_CLAUDE_STATE="$home/state" PATH="$home/bin:$PATH" \
+    FAKE_CLAUDE_STATE="$home/state" PATH="$home/bin:$PATH" AI_BUILD_DIR="$home/build/agents" \
     bash "$INSTALL" "$@" 2>&1)
   LAST_EXIT=$?
 }
@@ -270,6 +270,47 @@ assert 'engram and herdr plugins are untouched' same "$(sha256sum "$plugins/engr
 assert 'the plugins dir holds only the three plugins' \
   same "$(cd "$plugins" && printf '%s\n' * | paste -sd' ')" 'engram.ts herdr-agent-state.js toolkit.ts'
 
+echo "== opencode gets the generated plan review =="
+
+# An earlier run linked the raw plan-review skill; a user's dir sits beside it.
+home=$(sandbox opencode-plan-review)
+oc=$home/.config/opencode
+mkdir -p "$oc/skills"
+ln -s "$ROOT/plugins/flow/skills/plan-review" "$oc/skills/plan-review"
+install "$home" --target opencode
+assert 'opencode plan review run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the reviewer agent is the generated one' \
+  diff -q "$ROOT/scripts/gen-agents/golden/opencode/agents/flow-plan-reviewer.md" "$oc/agents/flow-plan-reviewer.md"
+assert 'the /flow-plan-review command is the generated one' \
+  diff -q "$ROOT/scripts/gen-agents/golden/opencode/commands/flow-plan-review.md" "$oc/commands/flow-plan-review.md"
+assert 'the skill reads the rubric from this repo' \
+  rg -qF "\`\"$ROOT/plugins/flow/agents/plan-reviewer.md\"\`" "$oc/skills/flow-plan-review/SKILL.md"
+assert 'the links point into the build dir' \
+  same "$(readlink "$oc/agents/flow-plan-reviewer.md")" "$home/build/agents/opencode/agents/flow-plan-reviewer.md"
+assert 'our raw plan-review link is removed' test ! -e "$oc/skills/plan-review" -a ! -L "$oc/skills/plan-review"
+links=$(for f in "$oc/agents/flow-plan-reviewer.md" "$oc/commands/flow-plan-review.md" "$oc/skills/flow-plan-review"; do readlink "$f"; done)
+install "$home" --target opencode
+assert 'a second opencode run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a second run keeps the same links' \
+  same "$(for f in "$oc/agents/flow-plan-reviewer.md" "$oc/commands/flow-plan-review.md" "$oc/skills/flow-plan-review"; do readlink "$f"; done)" "$links"
+assert 'a second run makes no backups' test -z "$(find "$oc" -name '*.bak-*')"
+
+echo "== a failed generation keeps the previous build =="
+
+home=$(sandbox failed-generation)
+install "$home" --target opencode
+assert 'the first run builds' test "$LAST_EXIT" -eq 0
+build_before=$(readlink "$home/build/agents")
+# GEN_SOURCE reaches the generator; a missing source makes it fail.
+GEN_SOURCE="$home/no-source" install "$home" --target opencode
+assert 'a failed generation fails the run' test "$LAST_EXIT" -ne 0
+assert 'the error names the generator' rg -qF 'gen-agents' <<<"$LAST_OUTPUT"
+assert 'the build still points at the previous generation' same "$(readlink "$home/build/agents")" "$build_before"
+assert 'the previous generation is intact' \
+  diff -q "$ROOT/scripts/gen-agents/golden/opencode/agents/flow-plan-reviewer.md" "$home/build/agents/opencode/agents/flow-plan-reviewer.md"
+assert 'no partial generation is left behind' \
+  same "$(cd "$home/build" && printf '%s\n' * | paste -sd' ')" "agents $build_before"
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
@@ -286,6 +327,34 @@ assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigr
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
+
+echo "== antigravity gets the generated plan review =="
+
+home=$(sandbox antigravity-plan-review)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills"
+ln -s "$ROOT/plugins/flow/skills/plan-review" "$agy_skills/plan-review"
+install "$home" --target antigravity
+assert 'antigravity plan review run succeeds' test "$LAST_EXIT" -eq 0
+# agy reads custom subagents from ~/.gemini/config/agents/ (story 16).
+assert 'the reviewer agent is the generated one' \
+  diff -q "$ROOT/scripts/gen-agents/golden/antigravity/agents/flow-plan-reviewer.md" "$home/.gemini/config/agents/flow-plan-reviewer.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the skill delegates through invoke_subagent' \
+  rg -qF 'Launch the `flow-plan-reviewer` subagent through `invoke_subagent`' "$agy_skills/flow-plan-review/SKILL.md"
+assert 'the skill reads the rubric from this repo' \
+  rg -qF "\`\"$ROOT/plugins/flow/agents/plan-reviewer.md\"\`" "$agy_skills/flow-plan-review/SKILL.md"
+assert 'our raw plan-review link is removed' test ! -e "$agy_skills/plan-review" -a ! -L "$agy_skills/plan-review"
+
+# A real plan-review dir is the user's: never moved or removed.
+home=$(sandbox antigravity-user-plan-review)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills/plan-review"
+printf 'mine\n' >"$agy_skills/plan-review/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity run with a user plan-review succeeds' test "$LAST_EXIT" -eq 0
+assert "the user's plan-review dir is kept" same "$(cat "$agy_skills/plan-review/SKILL.md" 2>/dev/null)" 'mine'
+assert 'the generated skill sits beside it' test -f "$agy_skills/flow-plan-review/SKILL.md"
 
 echo "== antigravity cleanup of the unread rules link =="
 
