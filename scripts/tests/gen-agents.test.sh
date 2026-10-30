@@ -71,6 +71,11 @@ echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
 
+echo "== Antigravity verifier agent =="
+# Read and Grep map to the names story 16 proved; with no shell tool the
+# verifier runs no commands.
+assert 'agents/flow-verifier.md matches golden' same_as_golden antigravity/agents/flow-verifier.md
+
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
 
