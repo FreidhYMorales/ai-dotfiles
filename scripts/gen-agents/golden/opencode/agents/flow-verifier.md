@@ -5,6 +5,17 @@ permission:
   edit: deny
   webfetch: deny
   task: deny
+  bash:
+    "*": ask
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "rg *": allow
+    "make check": allow
+    "rg *--pre*": deny
+    "git *--output*": deny
+    "git *--ext-diff*": deny
+    "*>*": ask
 ---
 
 You are a fresh verifier. You did not write this code and you owe it nothing. The writer is biased toward its own work; your job is to find what it missed.

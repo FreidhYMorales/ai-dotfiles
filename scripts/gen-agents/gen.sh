@@ -89,14 +89,25 @@ body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
 # plugin_of AGENT_SRC: the plugin an agent file belongs to.
 plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
 
-# opencode_agent SRC NAME: a read-only subagent; tools Claude does not list
-# are denied.
+# opencode_agent SRC NAME [readonly-shell]: a read-only subagent; tools Claude
+# does not list are denied. With readonly-shell its shell runs read-only git,
+# rg and make check without asking and asks for anything else. The last
+# matching rule wins, so the closing rules take back the options that run a
+# program or write a file (rg --pre, git --output/--ext-diff) and ask on a
+# redirection.
 opencode_agent() {
   local src=$1 dst="$OUT/opencode/agents/$2.md"
   mkdir -p "$(dirname "$dst")"
   {
     printf -- '---\ndescription: %s\nmode: subagent\npermission:\n' "$(field "$src" description)"
-    printf '  edit: deny\n  webfetch: deny\n  task: deny\n---\n'
+    printf '  edit: deny\n  webfetch: deny\n  task: deny\n'
+    if [[ ${3:-} == readonly-shell ]]; then
+      printf '  bash:\n'
+      printf '    "%s": %s\n' '*' ask 'git log*' allow 'git diff*' allow 'git show*' allow \
+        'rg *' allow 'make check' allow 'rg *--pre*' deny 'git *--output*' deny \
+        'git *--ext-diff*' deny '*>*' ask
+    fi
+    printf -- '---\n'
     body "$src"
   } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
@@ -167,7 +178,7 @@ agy_agent() {
 }
 
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
-opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
+opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier readonly-shell
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 agy_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
 opencode_skill flow plan-review
