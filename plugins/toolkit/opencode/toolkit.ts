@@ -33,9 +33,15 @@ function pause(directory: string, user: Message): string {
   const quoted = prompt.trim().match(/^"(.*)"$/s);
   if (quoted) prompt = quoted[1];
   const payload = JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt, cwd: directory, target: "opencode" });
-  const result = spawnSync("bash", [join(HOOKS, "pause.sh")], { input: payload, encoding: "utf8" });
-  if (!result.stdout?.trim()) return "";
-  return JSON.parse(result.stdout).hookSpecificOutput?.additionalContext ?? "";
+  // A hook that cannot start, fails or prints something unreadable says nothing.
+  try {
+    const result = spawnSync("bash", [join(HOOKS, "pause.sh")], { input: payload, encoding: "utf8" });
+    if (!result.stdout?.trim()) return "";
+    const text = JSON.parse(result.stdout).hookSpecificOutput?.additionalContext;
+    return typeof text === "string" ? text : "";
+  } catch {
+    return "";
+  }
 }
 
 // Session start: OpenCode V2 has no session-start event that adds context, so
