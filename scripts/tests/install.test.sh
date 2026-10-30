@@ -352,6 +352,27 @@ for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
 
+echo "== antigravity gets the generated story loop =="
+
+# An earlier run linked the raw judgment-day and work-unit-commits skills.
+# Regression pin: green from the start, the lists are shared with opencode.
+home=$(sandbox antigravity-story-loop)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills"
+ln -s "$ROOT/plugins/toolkit/skills/judgment-day" "$agy_skills/judgment-day"
+ln -s "$ROOT/plugins/toolkit/skills/work-unit-commits" "$agy_skills/work-unit-commits"
+install "$home" --target antigravity
+assert 'antigravity story loop run succeeds' test "$LAST_EXIT" -eq 0
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "the agy $name skill is the generated one" \
+    same "$(readlink "$agy_skills/$name")" "$home/build/agents/antigravity/skills/$name"
+done
+assert 'the agy verifier agent is the generated one' \
+  same "$(readlink "$home/.gemini/config/agents/flow-verifier.md")" "$home/build/agents/antigravity/agents/flow-verifier.md"
+for name in backlog story pair judgment-day work-unit-commits; do
+  assert "no raw $name link is left for antigravity" test ! -e "$agy_skills/$name" -a ! -L "$agy_skills/$name"
+done
+
 echo "== antigravity gets the generated plan review =="
 
 home=$(sandbox antigravity-plan-review)
