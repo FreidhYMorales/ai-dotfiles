@@ -35,4 +35,4 @@
 23. [-] split → #24, #25, #26
 24. [x] 0f05602 As a developer, I want the generator to turn bare support-file references into absolute repo paths only when the file exists in that skill's dir, with `verify.sh` flagging any it missed, so that generated skills never point at missing files and skill-creator's layout prose stays intact. Requires: #08
 25. [x] b456554 As a developer, I want agy agents to declare engram under `mcpServers:` and a `commandExecutionPolicy` each, and the agy `flow-pair` to say a high-risk story ends in NEEDS DECISION while its verifier has no shell tool, so that agy agents reach memory and never pretend to verify. Requires: #08, #16
-26. [~] As a developer, I want `pair` to treat an empty or missing verifier report as NEEDS DECISION, never PASS, checked with `make eval`, so that a silent verifier never passes a story in any agent.
+26. [x] aedf102 As a developer, I want `pair` to treat an empty or missing verifier report as NEEDS DECISION, never PASS, checked with `make eval`, so that a silent verifier never passes a story in any agent.
