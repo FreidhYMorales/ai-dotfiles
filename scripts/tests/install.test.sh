@@ -295,6 +295,22 @@ assert 'a second run keeps the same links' \
   same "$(for f in "$oc/agents/flow-plan-reviewer.md" "$oc/commands/flow-plan-review.md" "$oc/skills/flow-plan-review"; do readlink "$f"; done)" "$links"
 assert 'a second run makes no backups' test -z "$(find "$oc" -name '*.bak-*')"
 
+echo "== a failed generation keeps the previous build =="
+
+home=$(sandbox failed-generation)
+install "$home" --target opencode
+assert 'the first run builds' test "$LAST_EXIT" -eq 0
+build_before=$(readlink "$home/build/agents")
+# GEN_SOURCE reaches the generator; a missing source makes it fail.
+GEN_SOURCE="$home/no-source" install "$home" --target opencode
+assert 'a failed generation fails the run' test "$LAST_EXIT" -ne 0
+assert 'the error names the generator' rg -qF 'gen-agents' <<<"$LAST_OUTPUT"
+assert 'the build still points at the previous generation' same "$(readlink "$home/build/agents")" "$build_before"
+assert 'the previous generation is intact' \
+  diff -q "$ROOT/scripts/gen-agents/golden/opencode/agents/flow-plan-reviewer.md" "$home/build/agents/opencode/agents/flow-plan-reviewer.md"
+assert 'no partial generation is left behind' \
+  same "$(cd "$home/build" && printf '%s\n' * | paste -sd' ')" "agents $build_before"
+
 echo "== antigravity target =="
 
 home=$(sandbox antigravity)
