@@ -60,7 +60,7 @@ The repo skills already live in the winning dir. `install.sh` moves every `*.bak
 
 Skills that are plain instructions work: most of `flow` (`plan`, `research`, `foundation`, `bootstrap`, `fill-gaps`, `handoff`, `idea`, `next`, `split`, `integrate`) and most of `toolkit`.
 
-The story loop (`flow:backlog`, `flow:story`, `flow:pair`, `toolkit:work-unit-commits`) and its `flow:verifier` agent are generated for both targets (below). In Antigravity the verifier has no shell tool yet, so a high-risk story ends in NEEDS DECISION and is finished in Claude or OpenCode.
+The story loop (`flow:backlog`, `flow:story`, `flow:pair`, `toolkit:work-unit-commits`) and its `flow:verifier` agent are generated for both targets (below). In OpenCode the verifier runs `git log`, `git diff`, `git show`, `rg` and `make check` without asking, asks before any other shell command and cannot start subagents. In Antigravity the verifier has no shell tool yet, so a high-risk story ends in NEEDS DECISION and is finished in Claude or OpenCode.
 
 This skill depends on Claude Code and is not linked elsewhere:
 
