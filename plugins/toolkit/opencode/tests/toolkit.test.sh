@@ -260,6 +260,28 @@ expect_pause 'the next message that is not a pause drops the protocol' \
   'length == 2 and (.[0] | length) == 2 and .[1] == [{type: "text", text: "base"}]' 1 \
   "[$p]" "[$p, $loop, $(user_msg msg_3 'sigamos')]"
 
+echo "== opencode: a silent or failing pause hook leaves the system untouched =="
+# expect_pause_untouched LABEL ENV...: "pausa" with ENV leaves the system as it was.
+expect_pause_untouched() {
+  local label=$1 got
+  shift
+  local env=("$@")
+  got=$(
+    export AI_HOOKS_OFF=host-info,pack-hint,backup-status "${env[@]}"
+    turns "[$p]"
+  )
+  if jq -e "$untouched" >/dev/null 2>&1 <<<"$got"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s (got: %s)\n' "$label" "$got"
+    failures=$((failures + 1))
+  fi
+}
+expect_pause_untouched 'SKIP_PAUSE_HOOK=1 leaves the system as it was' SKIP_PAUSE_HOOK=1
+expect_pause_untouched 'a pause hook that prints something unreadable leaves the system as it was' \
+  PATH="$TMP_ROOT/badjq:$PATH"
+expect_pause_untouched 'a pause hook that cannot start leaves the system as it was' PATH="$TMP_ROOT/nobash"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
