@@ -79,6 +79,16 @@ assert 'agents/flow-verifier.md matches golden' same_as_golden antigravity/agent
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
 
+echo "== Antigravity story loop skills =="
+for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
+done
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy pair marks judgment-day Claude Code only' \
+  grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/antigravity/skills/flow-pair/SKILL.md"
+assert 'agy pair no longer points at its base directory' \
+  test -f "$OUT/antigravity/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/antigravity/skills/flow-pair/SKILL.md" 2>/dev/null)"
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
