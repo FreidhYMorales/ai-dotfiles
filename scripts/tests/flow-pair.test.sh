@@ -60,6 +60,10 @@ for s in 'design decision' 'unrequested' 'existing test' 'two failed attempts' \
   assert "stop rule \"$s\"" has "$SKILL" "$s"
 done
 
+echo "== verifier report =="
+assert 'an empty or missing verifier report is NEEDS DECISION, never PASS' \
+  has_re "$SKILL" 'empty.*no `Verdict:` line.*NEEDS DECISION, never PASS'
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
