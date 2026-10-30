@@ -61,6 +61,7 @@ for s in 'design decision' 'unrequested' 'existing test' 'two failed attempts' \
 done
 
 echo "== verifier report =="
+# shellcheck disable=SC2016 # literal markdown backticks
 assert 'an empty or missing verifier report is NEEDS DECISION, never PASS' \
   has_re "$SKILL" 'empty.*no `Verdict:` line.*NEEDS DECISION, never PASS'
 
