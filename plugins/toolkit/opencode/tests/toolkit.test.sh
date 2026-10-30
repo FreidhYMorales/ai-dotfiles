@@ -188,6 +188,100 @@ ln -sf "$(command -v node)" "$TMP_ROOT/nobash/node"
 expect_context 'hooks that cannot start leave the system as it was' "$untouched" \
   PATH="$TMP_ROOT/nobash" -- ses_1
 
+# Pause: the context requests carry the whole history (OpenCode 2.2.2 capture,
+# story 20); `opencode run` wraps the prompt in literal double quotes.
+# turns MESSAGES_JSON...: load the plugin once, call its `context` hook once per
+# argument (one session, each a messages array); print the systems as a JSON array.
+turns() {
+  node --input-type=module - "$PLUGIN" "$TMP_ROOT/fake-ctx.mjs" "$@" <<'EOF' 2>&1
+const [plugin, fake, ...turns] = process.argv.slice(2);
+const { hooks, ctx } = await import(fake);
+const { default: def } = await import(plugin);
+await def.setup(ctx);
+const systems = [];
+try {
+  for (const messages of turns) {
+    const request = { sessionID: "ses_p", model: {}, system: [{ type: "text", text: "base" }], messages: JSON.parse(messages) };
+    await hooks["context"](request);
+    systems.push(request.system);
+  }
+  console.log(JSON.stringify(systems));
+} catch (error) {
+  console.log(`threw: ${error.message}`);
+}
+EOF
+}
+
+# user_msg ID TEXT: a user message as OpenCode sends it.
+user_msg() {
+  jq -nc --arg id "$1" --arg t "$2" '{id: $id, role: "user", content: [{type: "text", text: $t}], metadata: {}}'
+}
+
+# An engram stub: each save leaves its argv on one line.
+mkdir -p "$TMP_ROOT/engram"
+cat >"$TMP_ROOT/engram/engram" <<EOF
+#!/usr/bin/env bash
+echo "\$*" >>"$TMP_ROOT/engram-saves"
+EOF
+chmod +x "$TMP_ROOT/engram/engram"
+
+# expect_pause LABEL FILTER SAVES MESSAGES_JSON...: the systems satisfy FILTER and
+# engram saved SAVES checkpoints (session-start hooks off).
+expect_pause() {
+  local label=$1 filter=$2 want=$3 got saves
+  shift 3
+  rm -f "$TMP_ROOT/engram-saves"
+  got=$(AI_HOOKS_OFF=host-info,pack-hint,backup-status PATH="$TMP_ROOT/engram:$PATH" turns "$@")
+  saves=$(rg -c 'checkpoint/pause' "$TMP_ROOT/engram-saves" 2>/dev/null || echo 0)
+  if jq -e "$filter" >/dev/null 2>&1 <<<"$got" && [[ $saves -eq $want ]]; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s (got: %s; checkpoints: %s)\n' "$label" "$got" "$saves"
+    failures=$((failures + 1))
+  fi
+}
+
+echo "== opencode: pausa saves a checkpoint and adds the pause protocol =="
+paused='(.[0] | length) == 2 and .[0][0] == {type: "text", text: "base"}
+  and (.[0][1].text | startswith("PAUSE REQUESTED") and contains("opencode --continue"))'
+expect_pause 'pausa adds the OpenCode protocol and saves one checkpoint' "$paused" 1 \
+  "[$(user_msg msg_1 'pausa')]"
+expect_pause 'a quoted prompt from opencode run pauses too' "$paused" 1 \
+  "[$(user_msg msg_1 '"pausa, me voy"')]"
+
+echo "== opencode: one checkpoint per pause message =="
+p=$(user_msg msg_1 'pausa')
+loop='{"id": "msg_2", "role": "assistant", "content": [{"type": "text", "text": "saving"}]}, {"role": "tool", "content": []}'
+expect_pause 'a tool loop keeps the protocol and saves no second checkpoint' \
+  'length == 2 and all(.[]; length == 2) and .[0][1] == .[1][1]
+    and (.[1][1].text | startswith("PAUSE REQUESTED"))' 1 \
+  "[$p]" "[$p, $loop]"
+expect_pause 'the next message that is not a pause drops the protocol' \
+  'length == 2 and (.[0] | length) == 2 and .[1] == [{type: "text", text: "base"}]' 1 \
+  "[$p]" "[$p, $loop, $(user_msg msg_3 'sigamos')]"
+
+echo "== opencode: a silent or failing pause hook leaves the system untouched =="
+# expect_pause_untouched LABEL ENV...: "pausa" with ENV leaves the system as it was.
+expect_pause_untouched() {
+  local label=$1 got
+  shift
+  local env=("$@")
+  got=$(
+    export AI_HOOKS_OFF=host-info,pack-hint,backup-status "${env[@]}"
+    turns "[$p]"
+  )
+  if jq -e "$untouched" >/dev/null 2>&1 <<<"$got"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s (got: %s)\n' "$label" "$got"
+    failures=$((failures + 1))
+  fi
+}
+expect_pause_untouched 'SKIP_PAUSE_HOOK=1 leaves the system as it was' SKIP_PAUSE_HOOK=1
+expect_pause_untouched 'a pause hook that prints something unreadable leaves the system as it was' \
+  PATH="$TMP_ROOT/badjq:$PATH"
+expect_pause_untouched 'a pause hook that cannot start leaves the system as it was' PATH="$TMP_ROOT/nobash"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"

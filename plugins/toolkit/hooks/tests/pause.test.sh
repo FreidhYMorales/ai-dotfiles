@@ -73,6 +73,27 @@ assert 'checkpoint records the last commit' saved 'feat: first'
 assert 'engram runs in the project directory' \
   test "$(cat "$TMP_ROOT/engram.cwd" 2>/dev/null)" == "$repo"
 
+# Approval pin: the Claude protocol stays word for word.
+claude_protocol="PAUSE REQUESTED. The user may close the terminal in seconds. A checkpoint was already saved to engram (topic checkpoint/pause). Do not start new work and make at most one more tool call. Reply in at most 5 lines: what was in progress, anything still running and whether it is safe to stop it (or how to stop it cleanly), uncommitted changes, and how to resume: reattach with \`cz\` from the project (the session keeps running if Claude was started with cz), or \`cz --continue\` / \`claude --continue\` after a reboot."
+assert 'the Claude protocol is unchanged' test "$LAST_CONTEXT" == "$claude_protocol"
+
+echo "== pause from OpenCode =="
+
+# run_opencode PROMPT: as run, with the payload the OpenCode plugin sends.
+run_opencode() {
+  rm -f "$TMP_ROOT"/engram.*
+  jq -n --arg p "$1" --arg c "$repo" '{hook_event_name: "UserPromptSubmit", prompt: $p, cwd: $c, target: "opencode"}' |
+    env PATH="$TMP_ROOT/bin:$PATH" bash "$HOOK" >"$TMP_ROOT/hook.out" 2>/dev/null
+  LAST_CONTEXT=$(jq -r '.hookSpecificOutput.additionalContext // empty' <"$TMP_ROOT/hook.out" 2>/dev/null)
+}
+
+run_opencode 'pausa'
+assert 'an OpenCode pause saves the checkpoint' saved '^checkpoint/pause$'
+# shellcheck disable=SC2016 # the backticks are literal text
+assert 'an OpenCode pause says to resume with opencode --continue' has 'resume with `opencode --continue`'
+assert 'an OpenCode pause never mentions cz' test "${LAST_CONTEXT//cz/}" == "$LAST_CONTEXT"
+assert 'an OpenCode pause never mentions claude --continue' test "${LAST_CONTEXT//claude --continue/}" == "$LAST_CONTEXT"
+
 echo "== everything else =="
 
 for prompt in 'no hagas pausa' 'sigamos' 'pausado el deploy?'; do
