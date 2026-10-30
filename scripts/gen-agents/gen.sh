@@ -91,7 +91,10 @@ plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
 
 # opencode_agent SRC NAME [readonly-shell]: a read-only subagent; tools Claude
 # does not list are denied. With readonly-shell its shell runs read-only git,
-# rg and make check without asking and asks for anything else.
+# rg and make check without asking and asks for anything else. The last
+# matching rule wins, so the closing rules take back the options that run a
+# program or write a file (rg --pre, git --output/--ext-diff) and ask on a
+# redirection.
 opencode_agent() {
   local src=$1 dst="$OUT/opencode/agents/$2.md"
   mkdir -p "$(dirname "$dst")"
@@ -101,7 +104,8 @@ opencode_agent() {
     if [[ ${3:-} == readonly-shell ]]; then
       printf '  bash:\n'
       printf '    "%s": %s\n' '*' ask 'git log*' allow 'git diff*' allow 'git show*' allow \
-        'rg *' allow 'make check' allow
+        'rg *' allow 'make check' allow 'rg *--pre*' deny 'git *--output*' deny \
+        'git *--ext-diff*' deny '*>*' ask
     fi
     printf -- '---\n'
     body "$src"
