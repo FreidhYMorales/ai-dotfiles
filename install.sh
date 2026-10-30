@@ -371,6 +371,9 @@ install_antigravity() {
     merge_agy_hooks
   fi
   link_skills "$ANTIGRAVITY_DIR/skills"
+  link_generated antigravity skills "$ANTIGRAVITY_DIR/skills"
+  # The global subagents dir agy reads (story 16).
+  link_generated antigravity agents "$GEMINI_CONFIG_DIR/agents"
   # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
   # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
   # the link step, which itself renames a clashing user dir to *.bak-*.
