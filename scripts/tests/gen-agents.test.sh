@@ -43,6 +43,10 @@ assert 'generator exits 0' test "$LAST_EXIT" -eq 0
 echo "== OpenCode plan reviewer agent =="
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden opencode/agents/flow-plan-reviewer.md
 
+echo "== OpenCode plan-review skill and command =="
+assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden opencode/skills/flow-plan-review/SKILL.md
+assert 'commands/flow-plan-review.md matches golden' same_as_golden opencode/commands/flow-plan-review.md
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
