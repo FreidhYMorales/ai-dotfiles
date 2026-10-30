@@ -1,0 +1,53 @@
+# Plan review: multi-agent-port
+Verdict: PASS WITH CHANGES
+Summary: All 13 findings from review 4 are fixed in the plan text, and the uncommitted edits (version pins, Status column, items 3b/4d/4e, v2 move of judgment-day) match the code: OpenCode 2.2.2 and agy 1.4.9 are installed, `toolkit.ts` has no timeouts, `models.json` is absent, `gen.sh:116` hardcodes `model: pro`, and `bin/ai-update` has no generator call. The new problem is drift between the plan and the backlog. Several MUST pieces have no story or sit in stories whose text does not mention them, backlog #14 contradicts R4-Q3, and two v1 promises have no scope item at all: the "generated rule line" that stands in for the OpenCode Stop gate and agy `pause`, and the pair change for an empty verifier report. There is no blocker. About 6.9 MUST days are left and they fit.
+
+## Findings
+| # | Category | Severity (blocker/major/minor) | Finding | Evidence | Suggested fix |
+|---|---|---|---|---|---|
+| 1 | Contradiction (plan vs backlog) | major | Backlog #14 still promises "judgment-day and the remaining `flow-`/`toolkit-` commands in both agents". The plan moved judgment-day to v2 and kept it Claude-only. Whoever picks #14 will build deferred work. | `backlog.md:26`; `plan.md:84` (item 6 v2), `plan.md:118`, `plan.md:193` (R4-Q3) | Reword #14 to "remaining commands + collision test" (item 7). Add a v2 note for judgment-day. |
+| 2 | Gap (orphaned MUST work) | major | Some MUST items marked "open" have no backlog story, or sit in a story whose line does not cover them. (a) Item 3b (OpenCode timeouts, R4-7) has no story id. (b) Item 9's residual (sweep all three agy skills dirs, `mktemp` for `hooks.json`) has no story, and the code still sweeps one dir with a fixed `.tmp`. (c) Plan item 17 lists the 1.4.9 rules/skills sentinels, `.bak-*` in the agents dir, `find_by_name`/`run_command` and (via item 1) `agy plugin import`; backlog #17 names none of them. (d) Items 4d and 4e are assigned to #09, but #09's line only mentions the loop commands. | `plan.md:76,87,88,73,80,81`; `backlog.md:21,29`; `install.sh:349,385`; `plugins/toolkit/opencode/toolkit.ts:21,38,56` | Add one small story for 3b plus the item 9 residual (both installer/plugin hardening). Rewrite #17's line to the plan's checklist. Name 4d/4e in #09's line, or split them into a #09a that lands first, as R4-4 requires. |
+| 3 | Gap | major | v1 relies on "a generated rule line to run `make check` before saying done" for OpenCode and "a rule line" for agy `pause`. No scope item, story or golden produces these lines. `gen.sh` emits nothing like them, and `AGENTS.md` has no such line. R1-Q3's user acceptance ("if it behaves like Claude's Stop gate") depends on it. | `plan.md:114-115`, `plan.md:153` (R1-Q3); `rg "make check\|pause" AGENTS.md scripts/gen-agents/gen.sh` returns nothing | Add the per-target rule lines to item 5b (generated `AGENTS.md`) with a golden for each target, about +0.15 d MUST. |
+| 4 | Technical correctness / scope | major | The Core model says "pair treats an empty verifier report as NEEDS DECISION, never PASS". Pair has no such rule today: it only handles FAIL, NEEDS DECISION and "not available". The generator is source-driven ("Never hand-edited per agent"), so the change belongs in the Claude source `pair/SKILL.md`. That changes Claude behavior too, and per pair's own rule it needs a `make eval` run. Item 4e is vague ("the verifier's NEEDS DECISION path") and does not bill it. | `plan.md:41,47,81`; `plugins/flow/skills/pair/SKILL.md:64-65`; `stories/08-plan-review-port.md:26` (Claude plugin files out of scope there) | State in item 4e that the rule is added to the source pair skill for all targets, with its eval, about +0.1 d. Also say how agy's pair learns that its verifier has no shell tool: a generated line, not hand-edited. |
+| 5 | Contradiction (research vs evidence) | minor | Research and Core model say OpenCode delegation goes through "the Task tool" and rewrite "Agent tool → Task tool". The only real OpenCode 2.2.2 run shows a `subagent` tool, and the OpenCode golden mentions no tool name. | `plan.md:25,45`; `stories/08-plan-review-port.md:44` (L6); `scripts/gen-agents/golden/opencode/skills/flow-plan-review/SKILL.md:16` | Change the Research line to "`subagent` tool (2.2.2, story 08 L6)". Make the rewrite target the neutral "launch the X subagent" wording, as the golden already does. |
+| 6 | Staleness | minor | Data gaps rows contradict the Status column. Rules paths shows "no (item 0)" but item 0 is done. `mcp_config.json` shows "no (item 2)" but item 2 is done (#04). OpenCode relative paths shows "no", but the generator already writes absolute paths for that case. | `plan.md:101,103,104` vs `plan.md:72,74,77` | Mark them resolved and cite #01, #04, #08 (with 4d for the bare-reference residue). |
+| 7 | Scope | minor | Item 1 still bills 0.25 MUST for the `agy plugin import claude` spike. The generator path was chosen and proven in #08, so no result of that spike changes the design. Its other half (`/flow-pair` as an agy command) is already a #09 check. | `plan.md:29,73`; `stories/03-agy-engram-subagent.md:23`; `stories/08-plan-review-port.md:43` ("command check in #09") | Move the plugin-import spike to LATER and keep the command check in #09. |
+| 8 | Gap | minor | Verifier notes from story 08 never reached the plan. `prune_links` does not prune generated links when `AI_BUILD_DIR` is outside the repo. The OpenCode reviewer does not deny `bash`. The second matters more for item 5, where the OpenCode verifier must be read-only except for running tests. | `stories/08-plan-review-port.md:45`; `plan.md:47,49` | Add both to item 5 or item 9: a `permission` mapping that limits bash for the verifier, and a prune test with an external build dir. |
+| 9 | Dependency | minor | Docs #15 (which holds the R4-13 herdr note and the OpenCode extra-plugin-file hang note) requires #13. R4-Q2 lets #13's agy half stay open indefinitely, so documentation the plan relies on as a mitigation can stay blocked. | `backlog.md:27`; `plan.md:89,190,192,196` | Make #15 require only #10. Put the smoke results inside #13 itself, since item 8 already records into `docs/multi-agent.md`. |
+| 10 | Gap | minor | Demo priorities 1-3 (same rules, engram saved in OpenCode found from agy and Claude, `ls` blocked in all three) are not in item 8's smoke checklist or any acceptance criterion. Only priorities 4-5 are. | `plan.md:86,122-126` | Add the three checks to item 8's checklist (cheap, same session). |
+| 11 | Estimates | minor | #21 is open but billed 0 (item 3 "done ... #21 open"). | `plan.md:75`; `backlog.md:33` | Bill 0.1 d. |
+
+## Scope vs deadline
+| Item | Est. dev-days | Cut (MUST/SHOULD/LATER) |
+|---|---|---|
+| 3 residual: #21 pause malformed message | 0.1 | MUST |
+| 3b OpenCode `spawnSync` timeouts + hang test (needs a story) | 0.1 | MUST |
+| 4b `ai-update` regenerate + test (#11) | 0.25 | MUST |
+| 4c role model map (#12) | 0.25 | MUST |
+| 4d bare support-file refs + leftover scan (first in #09) | 0.25 | MUST |
+| 4e agy `mcpServers`/`commandExecutionPolicy`, NEEDS DECISION path | 0.35 | MUST |
+| 4e+ empty-report rule in source pair skill + eval (finding 4) | 0.1 | MUST |
+| 5 loop skills, verifier, commands, drop `CLAUDE_ONLY_SKILLS` (+ verifier bash permission, finding 8) | 1.75 | MUST |
+| 5b other skills + generated `AGENTS.md` | 1.0 | MUST |
+| 5b+ per-target rule lines for OpenCode Stop gate / agy pause (finding 3) | 0.15 | MUST |
+| 8 manual smoke both targets (+ demo 1-3 checks) | 1.5 | MUST |
+| 9 residual: three-dir sweep, `mktemp` (needs a story) | 0.2 | MUST |
+| 17 real agy checks (quota-bound; may stay "run pending" per R4-Q2) | 0.5 | MUST |
+| 7 remaining commands + collision test (#14 reworded) | 0.25 | SHOULD |
+| 10 docs (#15) | 0.25 | SHOULD |
+| 1 `agy plugin import claude` spike | 0.25 | LATER |
+| 6 judgment-day in targets | 0 | LATER (v2) |
+
+Total MUST: 6.5 dev-days (6.4 in the plan, plus 0.35 for findings 3, 4 and #21, minus 0.25 for moving the item 1 spike to LATER) vs available: unbounded (no deadline, solo) -> fits
+
+## Unnamed risks
+- **`--dangerously-skip-permissions` may defeat the checks it is used for.** #17 must prove the toolkit PreToolUse `ask` answer and the Stop gate, but the plan's agy runs use a flag that may auto-approve or skip `ask` decisions. A passing run could prove nothing. — Medium — In #17, first check whether the flag still delivers PreToolUse `ask`/`deny` (plant a `deny` probe). If it does not, record the hook checks as unproven instead of passed.
+- **agy auto-upgrades with no detection.** "Re-run sentinels after every agy upgrade" has no trigger, and agy already moved from 1.4.7 to 1.4.9 unnoticed (`plan.md:14`, `docs/multi-agent.md:33,46`). — High — Have `install.sh` (or the session-start hook) compare `agy --version` with the pinned 1.4.9 and warn on a mismatch.
+- **#09 is now the biggest story (about 2.35 d: 4d + 4e + 5) and carries three high-risk items.** It is the most likely to stall, and 4d must land before any skill reaches a target. — Medium — Split 4d/4e into a story that lands first (finding 2d).
+- **Changing the source pair skill (finding 4) changes Claude's live loop.** A wording slip there regresses the baseline target, which the plan calls "unchanged" (`plan.md:12`). — Low — Run `make eval` for that change and keep it a one-line rule.
+- **The agy NEEDS DECISION path becomes the normal path for every high-risk agy story.** If the user ends up running stories mostly in agy, the fallback costs a Claude/OpenCode session every time. — Medium (accepted by R2-Q4) — No action beyond stating it in `docs/multi-agent.md` (item 10).
+
+## Questions for the user (max 5)
+1. Should the "empty verifier report = NEEDS DECISION" rule also change Claude's `pair` skill, or apply only to generated targets? — The source-of-truth rule forces one of these, and it touches the baseline Claude loop. — Recommendation: add it to the source skill for all targets. An empty report is never a PASS in Claude either.
+2. Is the `agy plugin import claude` spike still worth doing, now that the generator path is proven and shipping? — It is 0.25 MUST days with no design decision depending on it. — Recommendation: move it to LATER.
+3. For the agy checks in #17, do you accept `--dangerously-skip-permissions` even if it turns out to bypass the hook `ask`/`deny` answers, which would leave those checks unproven? — Only you can run that flag, and it decides whether #17 can close. — Recommendation: try a `deny` probe first, and if the flag bypasses it, mark the hook checks "unproven" rather than blocking v1.
