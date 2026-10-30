@@ -54,6 +54,18 @@ assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
 
+echo "== a tool outside the agy map is an error =="
+# A copy of the sources whose reviewer also asks for WebFetch.
+SRC="$TMP_ROOT/src"
+mkdir -p "$SRC/plugins"
+cp -r "$ROOT/plugins/flow" "$SRC/plugins/"
+awk '/^tools: / { $0 = $0 ", WebFetch" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
+  >"$SRC/plugins/flow/agents/plan-reviewer.md"
+LAST_OUTPUT=$(GEN_SOURCE="$SRC" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/unmapped" 2>&1)
+LAST_EXIT=$?
+assert 'generator fails' test "$LAST_EXIT" -ne 0
+assert 'error names the tool' grep -q 'WebFetch' <<<"$LAST_OUTPUT"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
