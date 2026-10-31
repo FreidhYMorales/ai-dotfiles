@@ -1,4 +1,4 @@
-// OpenCode plugin for the toolkit hooks (plugin API V2, OpenCode 2.1.4).
+// OpenCode plugin for the toolkit hooks (plugin API V2, OpenCode 2.2.2).
 // prefer-modern-cli: runs the Claude hook on each shell call and blocks the
 // call by throwing the hook's message.
 import { spawnSync } from "node:child_process";
