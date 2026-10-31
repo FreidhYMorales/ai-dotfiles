@@ -346,6 +346,19 @@ raw=$(find "$oc/skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
 assert 'no raw repo skill link is left for opencode' same "$raw" ''
 [[ -z $raw ]] || printf '%s\n' "$raw"
 
+echo "== opencode reads the generated rules =="
+
+# An earlier run linked the raw rules (story 31).
+home=$(sandbox opencode-rules)
+oc=$home/.config/opencode
+mkdir -p "$oc"
+ln -s "$ROOT/AGENTS.md" "$oc/AGENTS.md"
+install "$home" --target opencode
+assert 'opencode rules run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the opencode rules are the generated ones' \
+  same "$(readlink "$oc/AGENTS.md")" "$home/build/agents/opencode/AGENTS.md"
+assert 'the raw rules link leaves no backup' test -z "$(find "$oc" -maxdepth 1 -name 'AGENTS.md.bak-*')"
+
 echo "== a failed generation keeps the previous build =="
 
 home=$(sandbox failed-generation)
