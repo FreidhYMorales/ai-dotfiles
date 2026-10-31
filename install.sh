@@ -240,6 +240,18 @@ link_generated() {
   done
 }
 
+# link_rules TARGET DST: link TARGET's generated AGENTS.md at DST. An earlier
+# run's raw rules link is ours, so it goes without a backup; anything else
+# at DST is moved aside by link_file.
+link_rules() {
+  local dst=$2
+  build_agents
+  if [[ -L "$dst" && "$(readlink -f "$dst")" == "$(readlink -f "$REPO_DIR/AGENTS.md")" ]]; then
+    run rm "$dst"
+  fi
+  link_file "$BUILD_DIR/$1/AGENTS.md" "$dst"
+}
+
 # systemd user units (engram backup timer). The timer is enabled only once
 # engram-backup is configured, so it never fails daily on a fresh machine.
 install_units() {
@@ -312,7 +324,7 @@ install_claude() {
 }
 
 install_opencode() {
-  link_file "$REPO_DIR/AGENTS.md" "$OPENCODE_DIR/AGENTS.md"
+  link_rules opencode "$OPENCODE_DIR/AGENTS.md"
   link_skills "$OPENCODE_DIR/skills"
   link_generated opencode skills "$OPENCODE_DIR/skills"
   link_generated opencode agents "$OPENCODE_DIR/agents"
