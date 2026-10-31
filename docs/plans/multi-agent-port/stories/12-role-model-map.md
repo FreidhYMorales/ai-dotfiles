@@ -38,3 +38,4 @@ Risk: item 3 (the generated agent frontmatter both agents parse, and the map for
 - L1 request: "/flow:story 12"
 - L2 assumptions for approval: only the `reviewer` role ships (the plan's `worker` role has no generated agent until the judgment-day port in v2); the plan's "default `inherit`" is the shipped OpenCode value, while agy ships `pro` so today's output does not change; a missing entry is an error rather than a silent default, so a typo in the map never goes unnoticed; OpenCode values are passed through unchecked (any `provider/id`, including `ollama/<model>`).
 - L3 approved by the user ("si").
+- L4 test list approved ("si"): gen-agents 1 OpenCode reviewer model from the map (golden plus one `model:` line), 2 agy `flash` from the map, 3 a bad agy value and a missing entry fail naming them; C3 by the existing goldens. The map lives at `scripts/gen-agents/models.json`; tests point `GEN_MODELS` at another map (approved).

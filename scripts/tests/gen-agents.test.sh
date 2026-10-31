@@ -307,6 +307,24 @@ CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-revie
 assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
 assert 'chk: opencode check step has no agy line' test -z "$(grep -F 'In Antigravity' <<<"$CHK_STEP")"
 
+echo "== the role model map =="
+# One map gives each reviewer agent its model per target (story 12).
+# models MAP_JSON NAME: generate with that map into $TMP_ROOT/NAME.
+models() {
+  printf '%s\n' "$1" >"$TMP_ROOT/$2.json"
+  LAST_OUTPUT=$(GEN_MODELS="$TMP_ROOT/$2.json" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/$2" 2>&1)
+  LAST_EXIT=$?
+}
+models '{"reviewer": {"opencode": "ollama/qwen3", "antigravity": "pro"}}' local-reviewer
+assert 'map: generator exits 0' test "$LAST_EXIT" -eq 0
+[[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+for name in flow-plan-reviewer flow-verifier; do
+  # The golden with the model line after mode: and nothing else changed.
+  assert "map: OpenCode $name uses the mapped model" diff -u \
+    <(awk '{ print } /^mode: subagent$/ { print "model: ollama/qwen3" }' "$GOLDEN/opencode/agents/$name.md") \
+    "$TMP_ROOT/local-reviewer/opencode/agents/$name.md"
+done
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
