@@ -76,6 +76,25 @@ Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its registry (`read_file`, `view_file`, `grep_search`): without `Glob` and `Bash` it cannot convert .docx/.pdf sources or run `git log`. An unmapped tool stops the generator, because agy silently never builds such a subagent.
 
+## Smoke run
+
+Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, two stories, both `Risk: item 2`), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
+
+| Check | OpenCode 2.2.2 (`opencode run --standalone --auto -m opencode/big-pickle`) | Antigravity 1.4.9 (interactive, Gemini 3.8 Flash) | Claude Code |
+|---|---|---|---|
+| `/flow-plan-review` | pass (#08) | pass: `flow-plan-reviewer` subagent returned the full structure and wrote `plan-review-1.md`; with no `plan.md` it stopped at the gate | n/a |
+| `/flow-backlog`, `/flow-story` | pass: story marked `Risk: item 2` | pass (`/flow-story`): `Risk: item 2` | n/a |
+| `/flow-pair` on a high-risk story | pass: 3 test→code pairs, `make check` green, no red marker, `flow-verifier` subagent ran, PASS | **fail**: the `flow-verifier` subagent called only engram (`mem_search`, `mem_context`), ran no command, yet reported `make check` passed and `Verdict: PASS`; pair accepted it instead of ending in NEEDS DECISION (backlog #37) | n/a |
+| `ls` blocked by `prefer-modern-cli` | pass: `ls` and `sed` blocked | not exercised: the model picked `eza` itself, so the hook never fired (stays with #17) | pass (live) |
+| engram observation saved in OpenCode found here | saved (#961-963, project `toy-greet`) | pass: found #962 | pass: found #961-963 |
+
+Notes from the run:
+
+- agy asked for approval on almost every command, the verifier's file reads included; a fallback session needs the user at the keyboard.
+- `opencode/deepseek-v4.1-flash-free` (the session default) once turned the quoted absolute path with a space into a broken relative one and recovered with `fd`; the generated file was correct.
+- `opencode/nemotron-3-ultra-free` is gone from the OpenCode catalog; any agent config pointing at it fails with "Model unavailable".
+- Claude Code's auto mode refuses to launch `opencode run --auto` for `/flow-pair` itself; the user runs it.
+
 ## Known side effect
 
 Inside this repo, Claude Code loads the rules twice: once as the global `~/.claude/CLAUDE.md` and once as the project `AGENTS.md`.
