@@ -332,11 +332,9 @@ for name in flow-plan-reviewer flow-verifier; do
 done
 models '{"reviewer": {"opencode": "inherit", "antigravity": "flash"}}' flash-reviewer
 assert 'map: agy flash run exits 0' test "$LAST_EXIT" -eq 0
-for name in flow-plan-reviewer; do
-  assert "map: agy $name uses flash" diff -u \
-    <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/$name.md") \
-    "$TMP_ROOT/flash-reviewer/antigravity/agents/$name.md"
-done
+assert "map: agy flow-plan-reviewer uses flash" diff -u \
+  <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/flow-plan-reviewer.md") \
+  "$TMP_ROOT/flash-reviewer/antigravity/agents/flow-plan-reviewer.md"
 # agy accepts inherit, pro or flash only.
 models '{"reviewer": {"opencode": "inherit", "antigravity": "gpt-5"}}' bad-agy-model
 assert 'map: a bad agy model fails' test "$LAST_EXIT" -ne 0
