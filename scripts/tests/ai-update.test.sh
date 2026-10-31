@@ -67,6 +67,20 @@ if [[ "$*" == "plugin marketplace update mkt" && -n ${FAKE_MKT_BUMP:-} ]]; then
 fi
 EOF
   chmod +x "$home/bin/curl" "$home/bin/claude"
+  # A stand-in repo: its install.sh records the call and copies `source` into
+  # the build, so a changed source means a changed build.
+  mkdir -p "$home/repo"
+  echo v1 >"$home/repo/source"
+  cat >"$home/repo/install.sh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$FAKE_STATE/install-calls"
+if [[ -n ${FAKE_INSTALL_FAIL:-} ]]; then
+  echo "error: scripts/gen-agents/gen.sh failed; the previous build is kept" >&2
+  exit 1
+fi
+repo=$(dirname "$0")
+mkdir -p "$repo/build/agents" && cp "$repo/source" "$repo/build/agents/out"
+EOF
   mkdir -p "$home/.cache/ai-dotfiles" && echo "$current" >"$home/.cache/ai-dotfiles/engram-latest"
   printf '%s\n' "$home"
 }
@@ -78,6 +92,7 @@ update() {
   local home=$1 answer=$2
   shift 2
   LAST_OUTPUT=$(printf '%s' "$answer" | env -u UPDATE_CHECK_CACHE -u ENGRAM_REPO \
+    -u OPENCODE_CONFIG_DIR -u ANTIGRAVITY_CONFIG_DIR -u AI_BUILD_DIR AI_DOTFILES_DIR="$home/repo" \
     HOME="$home" XDG_CACHE_HOME="$home/.cache" PATH="$home/bin:$home/local/bin:$PATH" \
     FAKE_REMOTE="$home/remote" FAKE_STATE="$home/state" \
     ENGRAM_BIN="$home/local/bin/engram" ENGRAM_DATA_DIR="$home/.engram" \
@@ -173,6 +188,17 @@ assert 'major bump ignores --yes and can be declined' engram_is "$home" 3.4.0
 home=$(sandbox major-yes 3.4.0 4.0.0)
 update "$home" $'y\n' --yes
 assert 'major bump applies after confirmation' engram_is "$home" 4.0.0
+
+echo "== regenerates the OpenCode and Antigravity build =="
+
+installed_with() { rg -qxF -- "$2" "$1/state/install-calls" 2>/dev/null; }
+
+home=$(sandbox regen-opencode 3.4.0 3.4.0)
+mkdir -p "$home/.config/opencode"
+update "$home" ''
+assert 'regeneration with nothing to update exits 0' test "$LAST_EXIT" -eq 0
+assert 'OpenCode installed: its build is regenerated' installed_with "$home" '--target opencode'
+assert 'a changed build asks to restart OpenCode' says 'Restart OpenCode'
 
 echo "== failures leave engram intact =="
 
