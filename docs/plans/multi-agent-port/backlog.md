@@ -47,3 +47,4 @@
 35. [x] 4461543 As a developer, I want the installer to sweep `.bak-*` out of all three agy skills dirs, write agy `hooks.json` through `mktemp`, and warn with the re-run command when agy is not the pinned 1.4.9, so that a second install or an agy upgrade never breaks a session. Requires: #08
 36. [x] 5eb4595 As a developer, I want generated links pruned when the build dir is outside the repo so that a custom `AI_BUILD_DIR` never leaves dangling links. Requires: #08
 37. [x] de571cb As a developer, I want the Antigravity `flow-pair` to end a high-risk story in NEEDS DECISION without trusting a verifier that cannot run the test command, so that agy never closes a high-risk story on an unverified PASS. Requires: #25, #27
+38. [ ] As a developer, I want the `flow-verifier` agent left out of the Antigravity build and install, so that no shell-less agy subagent can hand pair a made-up PASS. Requires: #37
