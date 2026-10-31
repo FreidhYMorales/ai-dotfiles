@@ -199,6 +199,22 @@ update "$home" ''
 assert 'regeneration with nothing to update exits 0' test "$LAST_EXIT" -eq 0
 assert 'OpenCode installed: its build is regenerated' installed_with "$home" '--target opencode'
 assert 'a changed build asks to restart OpenCode' says 'Restart OpenCode'
+update "$home" ''
+silent_restart() { ! says 'Restart OpenCode'; }
+assert 'an unchanged build does not ask to restart' silent_restart
+echo v2 >"$home/repo/source"
+update "$home" ''
+assert 'a pulled change asks to restart again' says 'Restart OpenCode'
+
+home=$(sandbox regen-agy 3.4.0 3.4.0)
+mkdir -p "$home/.gemini/antigravity-cli"
+update "$home" ''
+assert 'Antigravity installed: its build is regenerated' installed_with "$home" '--target antigravity'
+
+home=$(sandbox regen-both 3.4.0 3.4.0)
+mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
+update "$home" ''
+assert 'both installed: both builds are regenerated' installed_with "$home" '--target opencode,antigravity'
 
 echo "== failures leave engram intact =="
 
