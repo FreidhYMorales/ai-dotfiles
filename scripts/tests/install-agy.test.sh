@@ -38,8 +38,8 @@ for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
   assert "the agy $name skill is the generated one" \
     same "$(readlink "$agy_skills/$name")" "$home/build/agents/antigravity/skills/$name"
 done
-assert 'the agy verifier agent is the generated one' \
-  same "$(readlink "$home/.gemini/config/agents/flow-verifier.md")" "$home/build/agents/antigravity/agents/flow-verifier.md"
+assert 'no agy verifier agent is linked' \
+  test ! -e "$home/.gemini/config/agents/flow-verifier.md" -a ! -L "$home/.gemini/config/agents/flow-verifier.md"
 for name in backlog story pair judgment-day work-unit-commits; do
   assert "no raw $name link is left for antigravity" test ! -e "$agy_skills/$name" -a ! -L "$agy_skills/$name"
 done
