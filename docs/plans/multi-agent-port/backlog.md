@@ -21,7 +21,7 @@
 09. [-] split → #27, #28, #29
 10. [-] split → #30, #31, #32
 11. [ ] As a developer, I want `ai-update` to regenerate and relink the OpenCode and Antigravity outputs so that they never go stale after a pull. Requires: #08
-12. [~] As a developer, I want one role model map for the generated agents so that I can point the reviewers at a strong or local model without editing each agent. Requires: #08
+12. [x] e51be8f As a developer, I want one role model map for the generated agents so that I can point the reviewers at a strong or local model without editing each agent. Requires: #08
 13. [ ] As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #27, #28, #29, #30, #31, #32, #12
 14. [ ] As a developer, I want the remaining `flow-`/`toolkit-` commands in OpenCode, checked against its built-in commands, so that nothing I use in Claude is missing there (judgment-day stays Claude-only until v2). Requires: #30
 15. [ ] As a developer, I want the README, the install.sh header and `docs/multi-agent.md` to describe the port so that I know how each agent is set up. Requires: #30, #31, #32

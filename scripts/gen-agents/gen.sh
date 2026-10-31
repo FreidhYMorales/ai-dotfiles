@@ -4,13 +4,15 @@
 # Usage: scripts/gen-agents/gen.sh OUT_DIR
 # Writes OUT_DIR/opencode/ and OUT_DIR/antigravity/. GEN_REPO_PATH sets the
 # repo path written into the output and GEN_SOURCE the repo the sources
-# are read from (both default to this repo).
+# are read from (both default to this repo). GEN_MODELS sets the role model
+# map (default: models.json next to this script).
 set -euo pipefail
 
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 OUT=${1:?usage: gen.sh OUT_DIR}
 SRC_DIR=${GEN_SOURCE:-$REPO_DIR}
 REPO_PATH=${GEN_REPO_PATH:-$REPO_DIR}
+MODELS=${GEN_MODELS:-$REPO_DIR/scripts/gen-agents/models.json}
 # The repo path as a sed replacement ('#' is the delimiter below).
 REPO_SED=$(printf '%s' "$REPO_PATH" | sed -e 's/[\\&#]/\\&/g')
 
@@ -86,6 +88,22 @@ support_paths() {
 # field FILE KEY: a frontmatter value.
 field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 { print substr($0, length(key) + 3) }' "$1"; }
 
+# model_for ROLE TARGET: the model the role map gives ROLE in TARGET.
+# A missing entry stops the generator; agy accepts inherit, pro or flash only.
+model_for() {
+  local model
+  model=$(jq -r --arg r "$1" --arg t "$2" '.[$r][$t] // empty' "$MODELS")
+  if [[ -z $model ]]; then
+    echo "gen-agents: $MODELS: no model for role $1 in $2" >&2
+    return 1
+  fi
+  if [[ $2 == antigravity && ! $model =~ ^(inherit|pro|flash)$ ]]; then
+    echo "gen-agents: $MODELS: agy accepts inherit, pro or flash, not $model (role $1)" >&2
+    return 1
+  fi
+  printf '%s\n' "$model"
+}
+
 # body FILE: everything after the frontmatter.
 body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
 
@@ -99,10 +117,14 @@ plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
 # program or write a file (rg --pre, git --output/--ext-diff) and ask on a
 # redirection.
 opencode_agent() {
-  local src=$1 dst="$OUT/opencode/agents/$2.md"
+  local src=$1 dst="$OUT/opencode/agents/$2.md" model
+  model=$(model_for reviewer opencode)
   mkdir -p "$(dirname "$dst")"
   {
-    printf -- '---\ndescription: %s\nmode: subagent\npermission:\n' "$(field "$src" description)"
+    printf -- '---\ndescription: %s\nmode: subagent\n' "$(field "$src" description)"
+    # inherit: no model line, so the agent runs on the session model.
+    [[ $model == inherit ]] || printf 'model: %s\n' "$model"
+    printf 'permission:\n'
     printf '  edit: deny\n  webfetch: deny\n  task: deny\n'
     if [[ ${3:-} == readonly-shell ]]; then
       printf '  bash:\n'
@@ -156,12 +178,15 @@ agy_tools() {
   esac
 }
 
-# agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
+# agy_agent SRC NAME: Claude tools mapped through agy_tools; the model comes
+# from the role map.
 # An unmapped tool stops the generator: agy never builds such a subagent and
 # says nothing. An agent with an engram tool declares engram under
 # mcpServers: (story 16).
 agy_agent() {
   local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=() engram=
+  local model
+  model=$(model_for reviewer antigravity)
   for tool in $(field "$src" tools | tr -d ','); do
     [[ $tool == mcp__engram__* ]] && engram=1
     mapped=$(agy_tools "$tool" "$src")
@@ -173,7 +198,7 @@ agy_agent() {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
     # No agy shell tool is proven yet (story 17), so no agent runs commands.
-    printf 'model: pro\ncommandExecutionPolicy: off\n'
+    printf 'model: %s\ncommandExecutionPolicy: off\n' "$model"
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"

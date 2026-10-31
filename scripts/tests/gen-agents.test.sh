@@ -307,6 +307,40 @@ CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-revie
 assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
 assert 'chk: opencode check step has no agy line' test -z "$(grep -F 'In Antigravity' <<<"$CHK_STEP")"
 
+echo "== the role model map =="
+# One map gives each reviewer agent its model per target (story 12).
+# models MAP_JSON NAME: generate with that map into $TMP_ROOT/NAME.
+models() {
+  printf '%s\n' "$1" >"$TMP_ROOT/$2.json"
+  LAST_OUTPUT=$(GEN_MODELS="$TMP_ROOT/$2.json" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/$2" 2>&1)
+  LAST_EXIT=$?
+}
+models '{"reviewer": {"opencode": "ollama/qwen3", "antigravity": "pro"}}' local-reviewer
+assert 'map: generator exits 0' test "$LAST_EXIT" -eq 0
+[[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+for name in flow-plan-reviewer flow-verifier; do
+  # The golden with the model line after mode: and nothing else changed.
+  assert "map: OpenCode $name uses the mapped model" diff -u \
+    <(awk '{ print } /^mode: subagent$/ { print "model: ollama/qwen3" }' "$GOLDEN/opencode/agents/$name.md") \
+    "$TMP_ROOT/local-reviewer/opencode/agents/$name.md"
+done
+models '{"reviewer": {"opencode": "inherit", "antigravity": "flash"}}' flash-reviewer
+assert 'map: agy flash run exits 0' test "$LAST_EXIT" -eq 0
+for name in flow-plan-reviewer flow-verifier; do
+  assert "map: agy $name uses flash" diff -u \
+    <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/$name.md") \
+    "$TMP_ROOT/flash-reviewer/antigravity/agents/$name.md"
+done
+# agy accepts inherit, pro or flash only.
+models '{"reviewer": {"opencode": "inherit", "antigravity": "gpt-5"}}' bad-agy-model
+assert 'map: a bad agy model fails' test "$LAST_EXIT" -ne 0
+assert 'map: the error names the bad model' grep -qF 'gpt-5' <<<"$LAST_OUTPUT"
+# A missing entry is an error, never a silent default.
+models '{"reviewer": {"opencode": "inherit"}}' missing-entry
+assert 'map: a missing entry fails' test "$LAST_EXIT" -ne 0
+assert 'map: the error names the role' grep -qF 'reviewer' <<<"$LAST_OUTPUT"
+assert 'map: the error names the target' grep -qF 'antigravity' <<<"$LAST_OUTPUT"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
