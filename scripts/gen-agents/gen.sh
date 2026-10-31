@@ -189,8 +189,18 @@ opencode_skill flow backlog
 opencode_skill flow story
 opencode_skill flow pair
 skill opencode toolkit work-unit-commits
+opencode_skill flow plan
+opencode_skill flow fill-gaps
+# The other skills (story 30); OpenCode commands for them wait for #14.
+FLOW_REST="research handoff next idea split integrate foundation bootstrap"
+TOOLKIT_REST="ship chained-pr cli-tools cognitive-doc-design comment-writer delegate-local
+  go-testing skill-creator skill-improver"
+for name in $FLOW_REST; do skill opencode flow "$name"; done
+for name in $TOOLKIT_REST; do skill opencode toolkit "$name"; done
 skill antigravity flow plan-review
 skill antigravity flow backlog
 skill antigravity flow story
 skill antigravity flow pair
 skill antigravity toolkit work-unit-commits
+for name in plan fill-gaps $FLOW_REST; do skill antigravity flow "$name"; done
+for name in $TOOLKIT_REST; do skill antigravity toolkit "$name"; done

@@ -203,9 +203,9 @@ home=$(sandbox opencode)
 install "$home" --target opencode
 assert 'opencode run succeeds' test "$LAST_EXIT" -eq 0
 assert 'AGENTS.md is linked for opencode' test -L "$home/.config/opencode/AGENTS.md"
-assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/plan"
+assert 'flow skills are linked for opencode' test -L "$home/.config/opencode/skills/flow-plan"
 assert 'no sdd skill is linked for opencode' test ! -e "$home/.config/opencode/skills/orchestrator" -a ! -L "$home/.config/opencode/skills/orchestrator"
-assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/ship"
+assert 'toolkit skills are linked for opencode' test -L "$home/.config/opencode/skills/toolkit-ship"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for opencode" test ! -e "$home/.config/opencode/skills/$skill" -a ! -L "$home/.config/opencode/skills/$skill"
 done
@@ -319,6 +319,33 @@ for name in judgment-day work-unit-commits; do
   assert "our raw $name link is removed" test ! -e "$oc/skills/$name" -a ! -L "$oc/skills/$name"
 done
 
+echo "== opencode gets every other skill generated =="
+
+# Every other flow and toolkit skill but judgment-day (story 30). An earlier
+# run linked the raw plan and ship skills.
+REMAINING="flow-plan flow-research flow-fill-gaps flow-handoff flow-next flow-idea flow-split
+  flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr toolkit-cli-tools
+  toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local toolkit-go-testing
+  toolkit-skill-creator toolkit-skill-improver"
+home=$(sandbox opencode-remaining)
+oc=$home/.config/opencode
+mkdir -p "$oc/skills"
+ln -s "$ROOT/plugins/flow/skills/plan" "$oc/skills/plan"
+ln -s "$ROOT/plugins/toolkit/skills/ship" "$oc/skills/ship"
+install "$home" --target opencode
+assert 'opencode remaining skills run succeeds' test "$LAST_EXIT" -eq 0
+for name in $REMAINING; do
+  assert "the $name skill is the generated one" \
+    same "$(readlink "$oc/skills/$name")" "$home/build/agents/opencode/skills/$name"
+done
+for name in flow-plan flow-fill-gaps; do
+  assert "the /$name command is the generated one" \
+    diff -q "$ROOT/scripts/gen-agents/golden/opencode/commands/$name.md" "$oc/commands/$name.md"
+done
+raw=$(find "$oc/skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
+assert 'no raw repo skill link is left for opencode' same "$raw" ''
+[[ -z $raw ]] || printf '%s\n' "$raw"
+
 echo "== a failed generation keeps the previous build =="
 
 home=$(sandbox failed-generation)
@@ -346,8 +373,8 @@ assert 'AGENTS.md is not linked where agy never reads it' test ! -e "$home/.gemi
 assert 'AGENTS.md is linked for antigravity config' test -L "$home/.gemini/config/AGENTS.md"
 assert 'output names the agy rules path' rg -qF "linked: $home/.gemini/config/AGENTS.md -> " <<<"$LAST_OUTPUT"
 assert 'output names no unread agy rules path' test -z "$(rg -F "$home/.gemini/antigravity-cli/AGENTS.md" <<<"$LAST_OUTPUT")"
-assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/plan"
-assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/ship"
+assert 'flow skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/flow-plan"
+assert 'toolkit skills are linked for antigravity' test -L "$home/.gemini/antigravity-cli/skills/toolkit-ship"
 for skill in backlog story pair; do
   assert "Claude-only $skill is not linked for antigravity" test ! -e "$home/.gemini/antigravity-cli/skills/$skill" -a ! -L "$home/.gemini/antigravity-cli/skills/$skill"
 done
@@ -372,6 +399,24 @@ assert 'the agy verifier agent is the generated one' \
 for name in backlog story pair judgment-day work-unit-commits; do
   assert "no raw $name link is left for antigravity" test ! -e "$agy_skills/$name" -a ! -L "$agy_skills/$name"
 done
+
+echo "== antigravity gets every other skill generated =="
+
+# An earlier run linked the raw plan and ship skills (story 30).
+home=$(sandbox antigravity-remaining)
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$agy_skills"
+ln -s "$ROOT/plugins/flow/skills/plan" "$agy_skills/plan"
+ln -s "$ROOT/plugins/toolkit/skills/ship" "$agy_skills/ship"
+install "$home" --target antigravity
+assert 'antigravity remaining skills run succeeds' test "$LAST_EXIT" -eq 0
+for name in $REMAINING; do
+  assert "the agy $name skill is the generated one" \
+    same "$(readlink "$agy_skills/$name")" "$home/build/agents/antigravity/skills/$name"
+done
+raw=$(find "$agy_skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
+assert 'no raw repo skill link is left for antigravity' same "$raw" ''
+[[ -z $raw ]] || printf '%s\n' "$raw"
 
 echo "== antigravity gets the generated plan review =="
 
@@ -466,8 +511,8 @@ assert 'the clashing backup leaves the discovery dir' test ! -e "$skills/work-un
 home=$(sandbox antigravity-skill-same-run)
 skills=$home/.gemini/antigravity-cli/skills
 kept=$home/.gemini/antigravity-cli/skills-backup
-mkdir -p "$home/.gemini/config" "$skills/ship"
-printf 'gentle original\n' >"$skills/ship/SKILL.md"
+mkdir -p "$home/.gemini/config" "$skills/toolkit-ship"
+printf 'gentle original\n' >"$skills/toolkit-ship/SKILL.md"
 install "$home" --target antigravity
 assert 'one install leaves no skill backup in discovery' test -z "$(find "$skills" -maxdepth 1 -name '*.bak-*')"
 assert 'the renamed original is in skills-backup' rg -qx 'gentle original' "$kept" -g 'SKILL.md'

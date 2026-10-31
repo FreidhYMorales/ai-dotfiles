@@ -74,6 +74,20 @@ assert 'OpenCode pair no longer points at its base directory' \
 assert 'OpenCode story reaches high-risk.md by an absolute path' \
   test -z "$(grep -E '`pair/references/' "$OUT/opencode/skills/flow-story/SKILL.md" 2>/dev/null)" -a -f "$OUT/opencode/skills/flow-story/SKILL.md"
 
+echo "== OpenCode remaining skills and planning commands =="
+# Every other flow and toolkit skill but judgment-day (story 30); only the
+# planning path gets commands here, the rest wait for #14.
+REMAINING="flow-plan flow-research flow-fill-gaps flow-handoff flow-next flow-idea flow-split
+  flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr toolkit-cli-tools
+  toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local toolkit-go-testing
+  toolkit-skill-creator toolkit-skill-improver"
+for name in $REMAINING; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "opencode/skills/$name/SKILL.md"
+done
+for name in flow-plan flow-fill-gaps; do
+  assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
+done
+
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
@@ -88,6 +102,9 @@ assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigrav
 
 echo "== Antigravity story loop skills =="
 for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
+  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
+done
+for name in $REMAINING; do
   assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
 done
 # shellcheck disable=SC2016 # literal markdown backticks
