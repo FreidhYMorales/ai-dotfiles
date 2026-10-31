@@ -20,6 +20,21 @@ assert 'the skill backup leaves the discovery dir' test ! -e "$skills/judgment-d
 assert 'the skill backup keeps its content' same "$(<"$moved/SKILL.md")" 'gentle judgment day'
 assert 'output names the skill backup move' rg -qF "moved skill backup: $skills/judgment-day.bak-20261023-170049 -> $moved" <<<"$LAST_OUTPUT"
 
+# agy discovers all three skills dirs (story 02), so a *.bak-* dir in the other
+# two shadows ours too (story 35).
+home=$(sandbox antigravity-skill-backups-all-dirs)
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/skills/branch-pr.bak-1" "$home/.gemini/config/skills/issue-creation.bak-2"
+printf 'from gemini skills\n' >"$home/.gemini/skills/branch-pr.bak-1/SKILL.md"
+printf 'from config skills\n' >"$home/.gemini/config/skills/issue-creation.bak-2/SKILL.md"
+install "$home" --target antigravity
+assert 'a skill backup in ~/.gemini/skills leaves discovery' test ! -e "$home/.gemini/skills/branch-pr.bak-1"
+assert 'a skill backup in ~/.gemini/config/skills leaves discovery' test ! -e "$home/.gemini/config/skills/issue-creation.bak-2"
+assert 'the ~/.gemini/skills backup is kept in skills-backup' \
+  same "$(cat "$kept/branch-pr.bak-1/SKILL.md" 2>/dev/null)" 'from gemini skills'
+assert 'the ~/.gemini/config/skills backup is kept in skills-backup' \
+  same "$(cat "$kept/issue-creation.bak-2/SKILL.md" 2>/dev/null)" 'from config skills'
+
 home=$(sandbox antigravity-skill-backup-clash)
 skills=$home/.gemini/antigravity-cli/skills
 kept=$home/.gemini/antigravity-cli/skills-backup
