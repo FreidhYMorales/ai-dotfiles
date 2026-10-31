@@ -222,6 +222,17 @@ FAKE_INSTALL_FAIL=1 update "$home" ''
 assert 'a failed generation fails ai-update' test "$LAST_EXIT" -ne 0
 assert 'a failed generation is reported' says 'gen.sh failed; the previous build is kept'
 
+no_install() { [[ ! -e $1/state/install-calls ]]; }
+home=$(sandbox regen-check 3.4.0 3.4.0)
+mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
+update "$home" '' --check
+assert 'check leaves the build alone' no_install "$home"
+
+home=$(sandbox regen-none 3.4.0 3.4.0)
+update "$home" ''
+assert 'no OpenCode or Antigravity: nothing is regenerated' no_install "$home"
+assert 'no OpenCode or Antigravity: no restart line' silent_restart
+
 echo "== failures leave engram intact =="
 
 home=$(sandbox badsum 3.4.0 3.5.0)
