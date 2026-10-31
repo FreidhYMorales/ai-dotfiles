@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a fresh `./install.sh`, a restarted OpenCode service and a throwaway toy repo with one high-risk story, when I run `/flow-backlog` → `/flow-story` → `/flow-pair` in OpenCode with the reviewer role on a strong model, then the `flow-verifier` subagent runs and returns a verdict, and the run is recorded in `docs/multi-agent.md`.
-- [ ] Given the same toy repo in Antigravity, when I run `/flow-plan-review` and the same loop, then the reviewer returns a review and the high-risk story ends in NEEDS DECISION; without agy quota the agy half is recorded "format-verified, run pending" instead.
-- [ ] Given the three agents, when each tries `ls` and when an engram observation saved in OpenCode is searched from Antigravity and Claude, then `ls` is blocked in all three, the observation is found, and each result is recorded per agent.
+- [x] Given a fresh `./install.sh`, a restarted OpenCode service and a throwaway toy repo with one high-risk story, when I run `/flow-backlog` → `/flow-story` → `/flow-pair` in OpenCode with the reviewer role on a strong model, then the `flow-verifier` subagent runs and returns a verdict, and the run is recorded in `docs/multi-agent.md`.
+- [x] Given the same toy repo in Antigravity, when I run `/flow-plan-review` and the same loop, then the reviewer returns a review and the high-risk story ends in NEEDS DECISION; without agy quota the agy half is recorded "format-verified, run pending" instead.
+- [x] Given the three agents, when each tries `ls` and when an engram observation saved in OpenCode is searched from Antigravity and Claude, then `ls` is blocked in all three, the observation is found, and each result is recorded per agent.
 
 ## Plan
 
@@ -41,7 +41,7 @@ Risk: item 6 (a live multi-agent run no test here can pin)
 - Assumption: the toy repo lives in the scratchpad and is never committed (plan "Toy repo").
 - Assumption: `opencode run --standalone` can be driven from the shell as in #08 L6; agy runs need the user.
 - Assumption: the reviewer ran on `opencode/big-pickle` (user's pick; `opencode/nemotron-3-ultra-free` no longer exists in the catalog); `models.json` left at `inherit`.
-- C1 (OpenCode 2.2.2): pass. `/flow-backlog`, `/flow-story 01` (Risk: item 2), `/flow-pair 01` (user-run; Claude auto mode refused to launch `opencode run --auto` for pair): toy commits e5eb168→ec8ccb7, 2fb1169→7723abd, 182b300, 97d2683; `flow-verifier` subagent ran, PASS; no red marker. The raw verifier `Verdict:` line is not recoverable (`opencode export` does not exist in 2.2.2).
+- C1 (OpenCode 2.2.2): pass. `/flow-backlog`, `/flow-story 01` (Risk: item 2), `/flow-pair 01` (user-run; Claude auto mode refused to launch `opencode run --auto` for pair): toy commits e5eb168→ec8ccb7, 2fb1169→7723abd, 182b300, 97d2683; `flow-verifier` subagent ran, PASS; no red marker. `opencode export` does not exist in 2.2.2; the session data, `Verdict:` lines included, lives in `~/.local/share/opencode/opencode.db`.
 - C2 (agy 1.4.9, user-run, Gemini 3.8 Flash): `/flow-plan-review` pass (subagent, PASS WITH CHANGES, `plan-review-1.md`; the no-plan gate also held). `/flow-pair 02` FAIL: the `flow-verifier` subagent (conversation 10bbf01e) made only engram calls (14 `mem_search`, 5 `mem_context`), no command, yet reported `make check` passed and `Verdict: PASS`; pair closed the story instead of NEEDS DECISION. Defect → backlog #37. agy asked for approval on almost every command.
 - C3: `ls` blocked in OpenCode (also `sed`) and Claude; in agy not exercised (model chose `eza`), left to #17. Engram obs #961-963 saved in OpenCode found from Claude and agy (#962): pass.
 - Recorded in `docs/multi-agent.md` "Smoke run".
@@ -51,3 +51,4 @@ Risk: item 6 (a live multi-agent run no test here can pin)
 - C3 agy: asked to run exactly `ls`, the PreToolUse hook blocked it ("failed"); the model then offered `ls # legacy-cli`, the escape the hook names, and the user declined. Unprompted, the model picks `eza` itself. C3 pass in all three agents.
 - Summary: C1 pass (OpenCode), C2 pass after #37 and #38 (agy), C3 pass (all three). Recorded in `docs/multi-agent.md` "Smoke run".
 - Risk: item 6 (a live multi-agent run no test here can pin)
+- Verifier: PASS (C1-C3 checked against the toy repo, the OpenCode db and the agy conversation dbs; its fixes applied here: criteria ticked, doc story count and agy version, the opencode.db note). Engram lookups and the declined `ls # legacy-cli` rest on this log.

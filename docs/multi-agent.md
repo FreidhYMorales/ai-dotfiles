@@ -78,9 +78,9 @@ In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its reg
 
 ## Smoke run
 
-Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, two stories, both `Risk: item 2`), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
+Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, four stories, all high risk), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
 
-| Check | OpenCode 2.2.2 (`opencode run --standalone --auto -m opencode/big-pickle`) | Antigravity 1.4.9 (interactive, Gemini 3.8 Flash) | Claude Code |
+| Check | OpenCode 2.2.2 (`opencode run --standalone --auto -m opencode/big-pickle`) | Antigravity 1.4.9, re-runs on 1.4.12 (interactive, Gemini 3.8 Flash) | Claude Code |
 |---|---|---|---|
 | `/flow-plan-review` | pass (#08) | pass: `flow-plan-reviewer` subagent returned the full structure and wrote `plan-review-1.md`; with no `plan.md` it stopped at the gate | n/a |
 | `/flow-backlog`, `/flow-story` | pass: story marked `Risk: item 2` | pass (`/flow-story`): `Risk: item 2` | n/a |
