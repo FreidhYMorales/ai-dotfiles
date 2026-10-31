@@ -88,6 +88,35 @@ for name in flow-plan flow-fill-gaps; do
   assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
 done
 
+echo "== OpenCode rules =="
+# The shared rules plus the lines OpenCode's hooks do not cover (story 31):
+# the make check gate and the raw support-file names; pause is a hook (#20).
+assert 'AGENTS.md matches golden' same_as_golden opencode/AGENTS.md
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode rules run make check before done' \
+  grep -qF 'Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes' "$OUT/opencode/AGENTS.md"
+assert 'OpenCode rules skip the gate on a red marker' grep -qF 'flow-pair-red' "$OUT/opencode/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode rules map support-file names' \
+  grep -qF 'name `/flow:<skill>` or `/toolkit:<skill>`; in OpenCode that is `/flow-<skill>` or `/toolkit-<skill>`' "$OUT/opencode/AGENTS.md"
+assert 'OpenCode rules hold no pause line' \
+  test -f "$OUT/opencode/AGENTS.md" -a -z "$(grep -F 'pausa' "$OUT/opencode/AGENTS.md" 2>/dev/null)"
+
+echo "== Antigravity rules =="
+# agy has the Stop gate (#06) but no prompt hook, so pause is a rule line.
+assert 'AGENTS.md matches golden' same_as_golden antigravity/AGENTS.md
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules save a pause checkpoint' \
+  grep -qF 'when a message starts with "pausa", "pausar" or "pause", first save a checkpoint to engram (`mem_save`, topic `checkpoint/pause`' "$OUT/antigravity/AGENTS.md"
+assert 'agy rules reply in at most 5 lines' grep -qF 'reply in at most 5 lines' "$OUT/antigravity/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules resume with agy --continue' grep -qF '`agy --continue`' "$OUT/antigravity/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules map support-file names' \
+  grep -qF 'name `/flow:<skill>` or `/toolkit:<skill>`; in Antigravity that is `/flow-<skill>` or `/toolkit-<skill>`' "$OUT/antigravity/AGENTS.md"
+assert 'agy rules hold no make check line' \
+  test -f "$OUT/antigravity/AGENTS.md" -a -z "$(grep -F 'Before saying work is done' "$OUT/antigravity/AGENTS.md" 2>/dev/null)"
+
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
@@ -125,6 +154,7 @@ echo "== a tool outside the agy map is an error =="
 SRC="$TMP_ROOT/src"
 mkdir -p "$SRC/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$SRC/plugins/"
+cp -r "$ROOT/claude" "$SRC/"
 awk '/^tools: / { $0 = $0 ", WebFetch" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$SRC/plugins/flow/agents/plan-reviewer.md"
 LAST_OUTPUT=$(GEN_SOURCE="$SRC" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/unmapped" 2>&1)
@@ -146,6 +176,7 @@ assert 'this repo verifies' test "$LAST_EXIT" -eq 0
 STALE="$TMP_ROOT/stale"
 mkdir -p "$STALE/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$STALE/plugins/"
+cp -r "$ROOT/claude" "$STALE/"
 printf '\nA line the goldens lack.\n' >>"$STALE/plugins/flow/skills/plan-review/SKILL.md"
 verify "$STALE"
 assert 'a stale golden fails' test "$LAST_EXIT" -ne 0
@@ -155,6 +186,7 @@ assert 'stale: names the file' grep -q 'antigravity/skills/flow-plan-review/SKIL
 LEFT="$TMP_ROOT/leftover"
 mkdir -p "$LEFT/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$LEFT/plugins/"
+cp -r "$ROOT/claude" "$LEFT/"
 # shellcheck disable=SC2016 # a literal Claude-only form
 printf '\nSee ${CLAUDE_PLUGIN_ROOT}/agents.\n' >>"$LEFT/plugins/flow/agents/plan-reviewer.md"
 verify "$LEFT"
@@ -167,6 +199,7 @@ echo "== bare support-file references =="
 REFS="$TMP_ROOT/refs"
 mkdir -p "$REFS/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$REFS/plugins/"
+cp -r "$ROOT/claude" "$REFS/"
 REFS_SKILL="$REFS/plugins/flow/skills/plan-review"
 mkdir -p "$REFS_SKILL/references" "$REFS_SKILL/templates" "$REFS_SKILL/cheatsheets" "$REFS_SKILL/assets"
 touch "$REFS_SKILL/references/x.md" "$REFS_SKILL/templates/y.md" "$REFS_SKILL/cheatsheets/z.md" "$REFS_SKILL/assets/w.json"
@@ -213,6 +246,7 @@ done
 BARE="$TMP_ROOT/bare"
 mkdir -p "$BARE/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$BARE/plugins/"
+cp -r "$ROOT/claude" "$BARE/"
 mkdir -p "$BARE/plugins/flow/skills/plan-review/references"
 touch "$BARE/plugins/flow/skills/plan-review/references/x.md"
 printf '\nSee references/x.md for details.\n' >>"$BARE/plugins/flow/skills/plan-review/SKILL.md"
@@ -226,6 +260,7 @@ echo "== agy agents that use engram =="
 MEM="$TMP_ROOT/mem"
 mkdir -p "$MEM/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$MEM/plugins/"
+cp -r "$ROOT/claude" "$MEM/"
 awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
   >"$MEM/plugins/flow/agents/plan-reviewer.md"
 MEM_OUT="$TMP_ROOT/mem-out"
@@ -254,6 +289,7 @@ echo "== the agy verifier step ends in NEEDS DECISION =="
 CHK="$TMP_ROOT/chk"
 mkdir -p "$CHK/plugins"
 cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$CHK/plugins/"
+cp -r "$ROOT/claude" "$CHK/"
 {
   echo
   grep '^6\. \*\*Check\.\*\*' "$ROOT/plugins/flow/skills/pair/SKILL.md"
