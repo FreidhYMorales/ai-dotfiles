@@ -179,6 +179,22 @@ assert 'agy 1.5.0 warns that discovery was proven on 1.4.9' \
 assert 'the version warning names how to re-run the checks' \
   rg -qF "re-run the sentinel checks in $ROOT/docs/multi-agent.md" <<<"$LAST_OUTPUT"
 
+# The sandbox's default `agy --version` prints the pinned 1.4.9.
+home=$(sandbox antigravity-agy-pinned)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run on agy 1.4.9 succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy 1.4.9 prints no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
+
+# No agy at all: the engram warning already says so, no version warning.
+home=$(sandbox antigravity-agy-version-missing)
+mkdir -p "$home/.gemini/config"
+rm "$home/bin/agy"
+no_agy_path=$(tr ':' '\n' <<<"$PATH" | while IFS= read -r dir; do [[ -x $dir/agy ]] || printf '%s\n' "$dir"; done | paste -sd:)
+PATH=$no_agy_path install "$home" --target antigravity
+assert 'antigravity run without agy for the version succeeds' test "$LAST_EXIT" -eq 0
+assert 'without agy there is no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
+
 echo "== antigravity merges the toolkit hooks =="
 
 # herdr writes its own key into the same hooks.json (no trailing newline).
