@@ -28,6 +28,8 @@ The installer never writes engram's MCP config outside Claude Code (`engram setu
 - OpenCode: an enabled `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`. Missing or `"enabled": false` warns `run: engram setup opencode`.
 - Antigravity: `agy mcp list` must list `engram`. The installer asks `agy` instead of reading a file, because two `mcp_config.json` exist (`~/.gemini/config/` and `~/.gemini/antigravity-cli/`). Missing warns `run: engram setup antigravity-cli`; without `agy` on the PATH it says it cannot check.
 
+The two tables below were re-proven on agy 1.4.9. When `agy --version` prints anything else, the installer warns and points here: re-run both sentinel checks on the new version before trusting the linked paths.
+
 ### Which rules files Antigravity loads
 
 Checked on 2026-10-27 with agy 1.4.7: a unique sentinel line in each candidate file, then `agy -p` from a directory outside any repo, run twice with the same result.

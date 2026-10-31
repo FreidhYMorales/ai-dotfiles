@@ -30,6 +30,8 @@ MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
+# The agy version the Antigravity discovery checks in docs/multi-agent.md ran on.
+AGY_PINNED=1.4.9
 # Claude-only skills: judgment-day relies on Claude Code agents, so
 # link_skills keeps it out of OpenCode and Antigravity until v2.
 CLAUDE_ONLY_SKILLS="judgment-day"
@@ -445,6 +447,14 @@ install_antigravity() {
     echo "warning: engram cannot be checked in Antigravity (agy not found); if missing, run: engram setup antigravity-cli"
   elif ! agy mcp list 2>/dev/null | rg -q '^engram\s'; then
     echo "warning: engram is not registered in Antigravity; run: engram setup antigravity-cli"
+  fi
+  # The rules and skills paths above were proven on one agy version only.
+  local version
+  if command -v agy >/dev/null; then
+    version=$(agy --version 2>/dev/null | head -n 1)
+    if [[ $version != "$AGY_PINNED" ]]; then
+      echo "warning: agy is ${version:-unknown}, but its rules and skills paths were proven on $AGY_PINNED; re-run the sentinel checks in $REPO_DIR/docs/multi-agent.md"
+    fi
   fi
 }
 
