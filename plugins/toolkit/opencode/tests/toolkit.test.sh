@@ -320,6 +320,11 @@ start=$SECONDS
 expect_pause_untouched 'a hanging pause hook leaves the system as it was' \
   HANG_HOOK=pause PATH="$TMP_ROOT/hang:$TMP_ROOT/engram:$PATH"
 expect_fast 'the pause hook is cut off at its 5 s timeout' 7 "$start"
+# Fails open, like the Claude hook: a legacy command passes when the check hangs.
+start=$SECONDS
+HANG_HOOK=prefer-modern-cli PATH="$TMP_ROOT/hang:$PATH" \
+  expect 'a hanging shell check lets the call through' 'pass' "$(shell_call 'ls -la')"
+expect_fast 'the shell check is cut off at the 10 s default' 12 "$start"
 
 echo
 if [[ $failures -gt 0 ]]; then
