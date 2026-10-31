@@ -316,6 +316,10 @@ expect_context 'a hanging pack hint is dropped and the host info still arrives' 
   '(.[0] | length) == 2 and (.[0][1].text | contains("Fakedistro 1") and (contains("pack:") | not))' \
   AI_HOOKS_OFF=backup-status HANG_HOOK=pack-hint PATH="$TMP_ROOT/hang:$PATH" -- ses_1
 expect_fast 'the pack hint is cut off at its 2 s timeout' 4 "$start"
+start=$SECONDS
+expect_pause_untouched 'a hanging pause hook leaves the system as it was' \
+  HANG_HOOK=pause PATH="$TMP_ROOT/hang:$TMP_ROOT/engram:$PATH"
+expect_fast 'the pause hook is cut off at its 5 s timeout' 7 "$start"
 
 echo
 if [[ $failures -gt 0 ]]; then
