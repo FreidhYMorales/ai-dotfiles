@@ -166,6 +166,19 @@ assert 'antigravity run with engram succeeds' test "$LAST_EXIT" -eq 0
 assert 'agy with engram prints no engram warning' \
   test -z "$(rg -F -e 'engram is not registered' -e 'engram cannot be checked' <<<"$LAST_OUTPUT")"
 
+echo "== antigravity warns on an unpinned agy version =="
+
+# The rules and skills discovery tables were proven on agy 1.4.9 (story 35).
+home=$(sandbox antigravity-agy-upgrade)
+mkdir -p "$home/.gemini/config"
+printf '1.5.0\n' >"$home/state/agy-version"
+install "$home" --target antigravity
+assert 'antigravity run on agy 1.5.0 succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy 1.5.0 warns that discovery was proven on 1.4.9' \
+  rg -qF 'warning: agy is 1.5.0, but its rules and skills paths were proven on 1.4.9' <<<"$LAST_OUTPUT"
+assert 'the version warning names how to re-run the checks' \
+  rg -qF "re-run the sentinel checks in $ROOT/docs/multi-agent.md" <<<"$LAST_OUTPUT"
+
 echo "== antigravity merges the toolkit hooks =="
 
 # herdr writes its own key into the same hooks.json (no trailing newline).
