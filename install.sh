@@ -414,14 +414,21 @@ install_antigravity() {
     [[ -e "$old" || -L "$old" ]] || continue
     move_to_backup "$old" "skill backup"
   done
-  # gentle-ai's copies named like a repo skill and its retired sdd-* skills
-  # load beside the prefixed repo skills in every agy discovery dir (story
-  # 32). Real dirs only: links are the installer's or the user's.
+  # gentle-ai's copies named like a repo skill and the skills of a retired
+  # plugin (named <plugin>-*) load beside the prefixed repo skills in every
+  # agy discovery dir (story 32). Real dirs only: links are the installer's
+  # or the user's.
+  local retired keep
   for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
     for old in "$dir"/*; do
       [[ -d "$old" && ! -L "$old" ]] || continue
       name=$(basename "$old")
-      [[ $name == sdd-* ]] || compgen -G "$REPO_DIR/plugins/*/skills/$name/SKILL.md" >/dev/null || continue
+      keep=1
+      for retired in "${RETIRED_PLUGINS[@]}"; do
+        [[ $name == "$retired"-* ]] && keep=0
+      done
+      compgen -G "$REPO_DIR/plugins/*/skills/$name/SKILL.md" >/dev/null && keep=0
+      ((keep)) && continue
       move_to_backup "$old" "gentle-ai skill"
     done
   done
