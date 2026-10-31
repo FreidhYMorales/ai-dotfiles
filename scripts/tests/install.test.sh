@@ -462,14 +462,16 @@ assert 'the skill reads the rubric from this repo' \
   rg -qF "\`\"$ROOT/plugins/flow/agents/plan-reviewer.md\"\`" "$agy_skills/flow-plan-review/SKILL.md"
 assert 'our raw plan-review link is removed' test ! -e "$agy_skills/plan-review" -a ! -L "$agy_skills/plan-review"
 
-# A real plan-review dir is the user's: never moved or removed.
+# A real plan-review dir is the user's: moved out of discovery into
+# skills-backup (story 32), never removed.
 home=$(sandbox antigravity-user-plan-review)
 agy_skills=$home/.gemini/antigravity-cli/skills
 mkdir -p "$home/.gemini/config" "$agy_skills/plan-review"
 printf 'mine\n' >"$agy_skills/plan-review/SKILL.md"
 install "$home" --target antigravity
 assert 'antigravity run with a user plan-review succeeds' test "$LAST_EXIT" -eq 0
-assert "the user's plan-review dir is kept" same "$(cat "$agy_skills/plan-review/SKILL.md" 2>/dev/null)" 'mine'
+assert "the user's plan-review dir is kept in skills-backup" \
+  same "$(cat "$home/.gemini/antigravity-cli/skills-backup/plan-review/SKILL.md" 2>/dev/null)" 'mine'
 assert 'the generated skill sits beside it' test -f "$agy_skills/flow-plan-review/SKILL.md"
 
 echo "== antigravity cleanup of the unread rules link =="
@@ -551,7 +553,38 @@ mkdir -p "$skills/pair"
 printf 'mine\n' >"$skills/pair/SKILL.md"
 install "$home" --target antigravity
 assert 'antigravity cleanup run succeeds' test "$LAST_EXIT" -eq 0
-assert 'a real directory named pair is left alone' test -d "$skills/pair" -a ! -L "$skills/pair" -a -f "$skills/pair/SKILL.md"
+# A real dir named like a repo skill leaves discovery but is never deleted
+# (story 32).
+assert 'a real directory named pair is moved to skills-backup' \
+  same "$(cat "$home/.gemini/antigravity-cli/skills-backup/pair/SKILL.md" 2>/dev/null)" 'mine'
+
+echo "== antigravity moves gentle-ai's same-named and sdd skills aside =="
+
+# gentle-ai copies with repo skill names and its retired sdd-* skills in all
+# three discovery dirs (story 32).
+home=$(sandbox antigravity-gentle-skills)
+kept=$home/.gemini/antigravity-cli/skills-backup
+gentle_wuc=$home/.gemini/skills/work-unit-commits
+gentle_jd=$home/.gemini/config/skills/judgment-day
+gentle_sdd=$home/.gemini/antigravity-cli/skills/sdd-apply
+mkdir -p "$gentle_wuc" "$gentle_jd" "$gentle_sdd"
+printf 'gentle wuc\n' >"$gentle_wuc/SKILL.md"
+printf 'gentle jd\n' >"$gentle_jd/SKILL.md"
+printf 'gentle sdd\n' >"$gentle_sdd/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity gentle skills run succeeds' test "$LAST_EXIT" -eq 0
+assert 'work-unit-commits leaves ~/.gemini/skills' test ! -e "$gentle_wuc"
+assert 'judgment-day leaves ~/.gemini/config/skills' test ! -e "$gentle_jd"
+assert 'sdd-apply leaves antigravity-cli/skills' test ! -e "$gentle_sdd"
+assert 'work-unit-commits keeps its content' same "$(cat "$kept/work-unit-commits/SKILL.md" 2>/dev/null)" 'gentle wuc'
+assert 'judgment-day keeps its content' same "$(cat "$kept/judgment-day/SKILL.md" 2>/dev/null)" 'gentle jd'
+assert 'sdd-apply keeps its content' same "$(cat "$kept/sdd-apply/SKILL.md" 2>/dev/null)" 'gentle sdd'
+assert 'output names the work-unit-commits move' \
+  rg -qF "moved gentle-ai skill: $gentle_wuc -> $kept/work-unit-commits" <<<"$LAST_OUTPUT"
+assert 'output names the judgment-day move' \
+  rg -qF "moved gentle-ai skill: $gentle_jd -> $kept/judgment-day" <<<"$LAST_OUTPUT"
+assert 'output names the sdd-apply move' \
+  rg -qF "moved gentle-ai skill: $gentle_sdd -> $kept/sdd-apply" <<<"$LAST_OUTPUT"
 
 echo "== antigravity engram registration =="
 
