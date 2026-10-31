@@ -2,13 +2,31 @@
 // prefer-modern-cli: runs the Claude hook on each shell call and blocks the
 // call by throwing the hook's message.
 import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // The plugin is linked into ~/.config/opencode/plugins/; the hooks live next
 // to its real path in the repo.
 const HOOKS = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "hooks");
+
+// Each hook's timeout in seconds, from the Claude hooks config; an unreadable
+// config leaves every hook on the 10 s default.
+const TIMEOUTS = new Map<string, number>();
+try {
+  const config = JSON.parse(readFileSync(join(HOOKS, "hooks.json"), "utf8"));
+  for (const groups of Object.values<any[]>(config.hooks ?? {})) {
+    for (const hook of groups.flatMap((group) => group.hooks ?? [])) {
+      if (typeof hook.timeout === "number") TIMEOUTS.set(basename(String(hook.command), ".sh"), hook.timeout);
+    }
+  }
+} catch {}
+
+// runHook HOOK PAYLOAD: run a Claude hook, killed at its timeout.
+function runHook(hook: string, payload: string) {
+  const timeout = (TIMEOUTS.get(hook) ?? 10) * 1000;
+  return spawnSync("bash", [join(HOOKS, `${hook}.sh`)], { input: payload, encoding: "utf8", timeout });
+}
 
 type Call = { tool: string; input?: { command?: unknown } };
 
@@ -53,8 +71,8 @@ function sessionStart(directory: string): string {
   for (const hook of ["host-info", "pack-hint", "backup-status"]) {
     // A hook that cannot start, fails or prints something unreadable says nothing.
     try {
-      const result = spawnSync("bash", [join(HOOKS, `${hook}.sh`)], { input: payload, encoding: "utf8" });
-      if (!result.stdout?.trim()) continue;
+      const result = runHook(hook, payload);
+      if (result.error || !result.stdout?.trim()) continue;
       const out = JSON.parse(result.stdout);
       const text = out.hookSpecificOutput?.additionalContext ?? out.systemMessage;
       if (typeof text === "string" && text.trim()) parts.push(text);
