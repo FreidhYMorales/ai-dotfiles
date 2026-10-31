@@ -306,6 +306,9 @@ assert 'chk: agy check step says NEEDS DECISION' grep -qF "$NEEDS_DECISION" <<<"
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'chk: agy check step never says to invoke the verifier' \
   test -z "$(grep -F 'invoke the `flow-verifier` agent' <<<"$CHK_STEP")"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'chk: agy high-risk clause stops with NEEDS DECISION and leaves the story open' \
+  grep -qF 'High-risk story (any item): stop with NEEDS DECISION, do not run the `flow-verifier` agent and leave the story open' <<<"$CHK_STEP"
 CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-review/SKILL.md")
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
