@@ -406,13 +406,15 @@ install_antigravity() {
   link_generated antigravity skills "$ANTIGRAVITY_DIR/skills"
   # The global subagents dir agy reads (story 16).
   link_generated antigravity agents "$GEMINI_CONFIG_DIR/agents"
-  # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
+  # agy discovers a skill in a *.bak-* dir of any of its three skills dirs by its name: and can let it shadow
   # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
   # the link step, which itself renames a clashing user dir to *.bak-*.
   local old dir name
-  for old in "$ANTIGRAVITY_DIR"/skills/*.bak-*; do
-    [[ -e "$old" || -L "$old" ]] || continue
-    move_to_backup "$old" "skill backup"
+  for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
+    for old in "$dir"/*.bak-*; do
+      [[ -e "$old" || -L "$old" ]] || continue
+      move_to_backup "$old" "skill backup"
+    done
   done
   # gentle-ai's copies named like a repo skill and the skills of a retired
   # plugin (named <plugin>-*) load beside the prefixed repo skills in every
