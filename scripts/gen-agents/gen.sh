@@ -206,9 +206,16 @@ agy_agent() {
   opencode_rules() {
     printf -- '- Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.\n'
   }
+
+  # agy has the Stop gate (#06) but no prompt hook, so pause is a rule line
+  # with pause.sh's protocol; the agent saves the checkpoint itself.
+  agy_rules() {
+    printf -- '- Pause: when a message starts with "pausa", "pausar" or "pause", first save a checkpoint to engram (`mem_save`, topic `checkpoint/pause`: branch, last commit, uncommitted files); then start no new work, make at most one more tool call and reply in at most 5 lines: what was in progress, anything still running and whether it is safe to stop it, uncommitted changes, and how to resume: `agy --continue` from the project.\n'
+  }
 }
 
 rules opencode OpenCode opencode_rules
+rules antigravity Antigravity agy_rules
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier readonly-shell
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
