@@ -38,7 +38,9 @@ PLUGINS_DIR=${CLAUDE_PLUGINS_DIR:-$HOME/.claude/plugins}
 UPDATE_CHECK_CACHE=${UPDATE_CHECK_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/ai-dotfiles/engram-latest}
 # The repo this script is linked from: its install.sh regenerates the agent build.
 REPO_DIR=${AI_DOTFILES_DIR:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}
+BUILD_DIR=${AI_BUILD_DIR:-$REPO_DIR/build/agents}
 OPENCODE_DIR=${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}
+ANTIGRAVITY_DIR=${ANTIGRAVITY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}
 
 require() {
   command -v "$1" >/dev/null || {
@@ -235,14 +237,22 @@ main() {
 # regenerate_agents: rerun install.sh for the installed OpenCode and Antigravity
 # targets, so their generated build follows the repo after a pull.
 regenerate_agents() {
-  local targets=()
+  local targets=() before
   [[ -d $OPENCODE_DIR ]] && targets+=(opencode)
+  [[ -d $ANTIGRAVITY_DIR ]] && targets+=(antigravity)
   ((${#targets[@]})) || return 0
+  before=$(build_hash)
   bash "$REPO_DIR/install.sh" --target "$(
     IFS=,
     echo "${targets[*]}"
   )" || return 1
-  echo "Restart OpenCode to load the new build."
+  [[ $(build_hash) == "$before" ]] || echo "Restart OpenCode to load the new build."
+}
+
+# build_hash: one checksum over the names and contents of the generated files.
+build_hash() {
+  [[ -d $BUILD_DIR ]] || return 0
+  (cd "$BUILD_DIR" && rg --files -uu -L | sort | xargs -r -d '\n' sha256sum) | sha256sum
 }
 
 # Regenerate first: `main || ...` would turn off set -e inside main.
