@@ -586,6 +586,39 @@ assert 'output names the judgment-day move' \
 assert 'output names the sdd-apply move' \
   rg -qF "moved gentle-ai skill: $gentle_sdd -> $kept/sdd-apply" <<<"$LAST_OUTPUT"
 
+# Other gentle-ai skills and the installer's links stay.
+home=$(sandbox antigravity-gentle-others)
+gentle=$home/.gemini/skills
+agy_skills=$home/.gemini/antigravity-cli/skills
+mkdir -p "$home/.gemini/config" "$gentle/branch-pr" "$gentle/_shared"
+printf 'gentle branch-pr\n' >"$gentle/branch-pr/SKILL.md"
+printf 'gentle shared\n' >"$gentle/_shared/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity gentle others run succeeds' test "$LAST_EXIT" -eq 0
+assert 'branch-pr stays' same "$(cat "$gentle/branch-pr/SKILL.md" 2>/dev/null)" 'gentle branch-pr'
+assert '_shared stays' same "$(cat "$gentle/_shared/SKILL.md" 2>/dev/null)" 'gentle shared'
+assert 'the generated toolkit-ship link stays' \
+  same "$(readlink "$agy_skills/toolkit-ship")" "$home/build/agents/antigravity/skills/toolkit-ship"
+assert 'no other skill is moved' test -z "$(rg -F 'moved gentle-ai skill:' <<<"$LAST_OUTPUT")"
+
+# A taken backup name and the same name in two discovery dirs.
+home=$(sandbox antigravity-gentle-clash)
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/config" "$kept/work-unit-commits" "$home/.gemini/skills/work-unit-commits" \
+  "$home/.gemini/skills/sdd-spec" "$home/.gemini/antigravity-cli/skills/sdd-spec"
+printf 'old backup\n' >"$kept/work-unit-commits/SKILL.md"
+printf 'new copy\n' >"$home/.gemini/skills/work-unit-commits/SKILL.md"
+printf 'spec from gemini\n' >"$home/.gemini/skills/sdd-spec/SKILL.md"
+printf 'spec from agy\n' >"$home/.gemini/antigravity-cli/skills/sdd-spec/SKILL.md"
+install "$home" --target antigravity
+assert 'antigravity gentle clash run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the old backup is not overwritten' same "$(cat "$kept/work-unit-commits/SKILL.md" 2>/dev/null)" 'old backup'
+assert 'the new copy is kept beside it' same "$(cat "$kept/work-unit-commits.1/SKILL.md" 2>/dev/null)" 'new copy'
+assert 'the gemini sdd-spec is kept' rg -qx 'spec from gemini' "$kept" -g 'SKILL.md'
+assert 'the agy sdd-spec is kept' rg -qx 'spec from agy' "$kept" -g 'SKILL.md'
+install "$home" --target antigravity
+assert 'a second install moves no gentle-ai skill' test -z "$(rg -F 'moved gentle-ai skill:' <<<"$LAST_OUTPUT")"
+
 echo "== antigravity engram registration =="
 
 home=$(sandbox antigravity-no-engram)
