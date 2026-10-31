@@ -28,6 +28,8 @@ The installer never writes engram's MCP config outside Claude Code (`engram setu
 - OpenCode: an enabled `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`. Missing or `"enabled": false` warns `run: engram setup opencode`.
 - Antigravity: `agy mcp list` must list `engram`. The installer asks `agy` instead of reading a file, because two `mcp_config.json` exist (`~/.gemini/config/` and `~/.gemini/antigravity-cli/`). Missing warns `run: engram setup antigravity-cli`; without `agy` on the PATH it says it cannot check.
 
+The installer pins agy 1.4.9 (the two tables below were checked on 1.4.7; their 1.4.9 re-run is story #17). When `agy --version` prints anything else, it warns and points here: re-run both sentinel checks on the new version before trusting the linked paths.
+
 ### Which rules files Antigravity loads
 
 Checked on 2026-10-27 with agy 1.4.7: a unique sentinel line in each candidate file, then `agy -p` from a directory outside any repo, run twice with the same result.
@@ -54,7 +56,7 @@ Checked on 2026-10-28 with agy 1.4.7, the same way: sentinel skills in each cand
 | two skills with the same `name:` | the copy in `~/.gemini/antigravity-cli/skills/` wins |
 | `~/.gemini/antigravity-cli/skills-backup/` | not discovered |
 
-The repo skills already live in the winning dir. `install.sh` moves every `*.bak-*` entry out of `~/.gemini/antigravity-cli/skills/` into `skills-backup/` (an earlier installer left gentle-ai's originals there under that name), adding a numeric suffix when the name is taken; nothing is deleted. It also moves there every real dir in the three discovery dirs (`~/.gemini/skills/`, `~/.gemini/config/skills/`, `~/.gemini/antigravity-cli/skills/`) named like a repo skill (gentle-ai copies such as `work-unit-commits` or `judgment-day`, which the prefixed repo names no longer shadow) or like a retired plugin's skills (`<plugin>-*`); other gentle-ai skills, `_shared` and links stay. Each move is printed as source -> destination, so a restore is one `mv`.
+The repo skills already live in the winning dir. `install.sh` moves every `*.bak-*` entry out of the three discovery dirs into `skills-backup/` (an earlier installer left gentle-ai's originals there under that name), adding a numeric suffix when the name is taken; nothing is deleted. It also moves there every real dir in the three discovery dirs (`~/.gemini/skills/`, `~/.gemini/config/skills/`, `~/.gemini/antigravity-cli/skills/`) named like a repo skill (gentle-ai copies such as `work-unit-commits` or `judgment-day`, which the prefixed repo names no longer shadow) or like a retired plugin's skills (`<plugin>-*`); other gentle-ai skills, `_shared` and links stay. Each move is printed as source -> destination, so a restore is one `mv`.
 
 ## What works outside Claude Code
 

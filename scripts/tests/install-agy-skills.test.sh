@@ -20,6 +20,21 @@ assert 'the skill backup leaves the discovery dir' test ! -e "$skills/judgment-d
 assert 'the skill backup keeps its content' same "$(<"$moved/SKILL.md")" 'gentle judgment day'
 assert 'output names the skill backup move' rg -qF "moved skill backup: $skills/judgment-day.bak-20261023-170049 -> $moved" <<<"$LAST_OUTPUT"
 
+# agy discovers all three skills dirs (story 02), so a *.bak-* dir in the other
+# two shadows ours too (story 35).
+home=$(sandbox antigravity-skill-backups-all-dirs)
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/skills/branch-pr.bak-1" "$home/.gemini/config/skills/issue-creation.bak-2"
+printf 'from gemini skills\n' >"$home/.gemini/skills/branch-pr.bak-1/SKILL.md"
+printf 'from config skills\n' >"$home/.gemini/config/skills/issue-creation.bak-2/SKILL.md"
+install "$home" --target antigravity
+assert 'a skill backup in ~/.gemini/skills leaves discovery' test ! -e "$home/.gemini/skills/branch-pr.bak-1"
+assert 'a skill backup in ~/.gemini/config/skills leaves discovery' test ! -e "$home/.gemini/config/skills/issue-creation.bak-2"
+assert 'the ~/.gemini/skills backup is kept in skills-backup' \
+  same "$(cat "$kept/branch-pr.bak-1/SKILL.md" 2>/dev/null)" 'from gemini skills'
+assert 'the ~/.gemini/config/skills backup is kept in skills-backup' \
+  same "$(cat "$kept/issue-creation.bak-2/SKILL.md" 2>/dev/null)" 'from config skills'
+
 home=$(sandbox antigravity-skill-backup-clash)
 skills=$home/.gemini/antigravity-cli/skills
 kept=$home/.gemini/antigravity-cli/skills-backup
@@ -151,6 +166,35 @@ assert 'antigravity run with engram succeeds' test "$LAST_EXIT" -eq 0
 assert 'agy with engram prints no engram warning' \
   test -z "$(rg -F -e 'engram is not registered' -e 'engram cannot be checked' <<<"$LAST_OUTPUT")"
 
+echo "== antigravity warns on an unpinned agy version =="
+
+# The rules and skills discovery tables were proven on agy 1.4.9 (story 35).
+home=$(sandbox antigravity-agy-upgrade)
+mkdir -p "$home/.gemini/config"
+printf '1.5.0\n' >"$home/state/agy-version"
+install "$home" --target antigravity
+assert 'antigravity run on agy 1.5.0 succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy 1.5.0 warns that discovery was proven on 1.4.9' \
+  rg -qF 'warning: agy is 1.5.0, but its rules and skills paths were proven on 1.4.9' <<<"$LAST_OUTPUT"
+assert 'the version warning names how to re-run the checks' \
+  rg -qF "re-run the sentinel checks in $ROOT/docs/multi-agent.md" <<<"$LAST_OUTPUT"
+
+# The sandbox's default `agy --version` prints the pinned 1.4.9.
+home=$(sandbox antigravity-agy-pinned)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'antigravity run on agy 1.4.9 succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy 1.4.9 prints no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
+
+# No agy at all: the engram warning already says so, no version warning.
+home=$(sandbox antigravity-agy-version-missing)
+mkdir -p "$home/.gemini/config"
+rm "$home/bin/agy"
+no_agy_path=$(tr ':' '\n' <<<"$PATH" | while IFS= read -r dir; do [[ -x $dir/agy ]] || printf '%s\n' "$dir"; done | paste -sd:)
+PATH=$no_agy_path install "$home" --target antigravity
+assert 'antigravity run without agy for the version succeeds' test "$LAST_EXIT" -eq 0
+assert 'without agy there is no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
+
 echo "== antigravity merges the toolkit hooks =="
 
 # herdr writes its own key into the same hooks.json (no trailing newline).
@@ -194,6 +238,35 @@ assert 'hooks.json has only the herdr and toolkit keys' same "$(jq -c 'keys' "$h
 merged=$(sha256sum <"$hooks")
 install "$home" --target antigravity
 assert 'a second install leaves hooks.json unchanged' same "$(sha256sum <"$hooks")" "$merged"
+
+# Each install writes through its own mktemp file beside hooks.json, so a
+# temp file another install left there is never reused (story 35).
+home=$(sandbox antigravity-hooks-tmp)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+printf '%s\n' '{"herdr": {"Stop": []}}' >"$hooks"
+printf 'another install\n' >"$hooks.tmp"
+install "$home" --target antigravity
+assert 'antigravity hooks tmp run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a temp file of another install is left alone' same "$(cat "$hooks.tmp" 2>/dev/null)" 'another install'
+assert 'hooks.json still gets the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
+assert 'the merge leaves no temp file of its own' \
+  same "$(find "$home/.gemini/config" -maxdepth 1 -name 'hooks.json.tmp*' | wc -l)" 1
+
+# mktemp makes its file 0600; the merged hooks.json keeps its own mode.
+home=$(sandbox antigravity-hooks-mode)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+printf '%s\n' '{"herdr": {"Stop": []}}' >"$hooks"
+chmod 640 "$hooks"
+install "$home" --target antigravity
+assert 'antigravity hooks mode run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a 0640 hooks.json keeps its mode after the merge' same "$(stat -c %a "$hooks")" 640
+
+home=$(sandbox antigravity-hooks-mode-new)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'a new hooks.json is created 0644' same "$(stat -c %a "$home/.gemini/config/hooks.json")" 644
 
 home=$(sandbox antigravity-no-hooks)
 hooks=$home/.gemini/config/hooks.json

@@ -30,6 +30,8 @@ MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
+# The agy version the Antigravity discovery checks in docs/multi-agent.md ran on.
+AGY_PINNED=1.4.9
 # Claude-only skills: judgment-day relies on Claude Code agents, so
 # link_skills keeps it out of OpenCode and Antigravity until v2.
 CLAUDE_ONLY_SKILLS="judgment-day"
@@ -374,7 +376,13 @@ merge_agy_hooks() {
     return
   fi
   mkdir -p "$GEMINI_CONFIG_DIR"
-  printf '%s\n' "$merged" >"$target.tmp" && mv "$target.tmp" "$target"
+  # A temp file of its own beside the target: two installs never share one.
+  local tmp
+  tmp=$(mktemp "$target.tmp.XXXXXX")
+  printf '%s\n' "$merged" >"$tmp"
+  # mktemp makes the file 0600: keep the target's mode, 0644 for a new file.
+  if [[ -f "$target" ]]; then chmod --reference="$target" "$tmp"; else chmod 644 "$tmp"; fi
+  mv "$tmp" "$target"
   echo "merged toolkit hooks: $target"
 }
 
@@ -406,13 +414,15 @@ install_antigravity() {
   link_generated antigravity skills "$ANTIGRAVITY_DIR/skills"
   # The global subagents dir agy reads (story 16).
   link_generated antigravity agents "$GEMINI_CONFIG_DIR/agents"
-  # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
+  # agy discovers a skill in a *.bak-* dir of any of its three skills dirs by its name: and can let it shadow
   # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
   # the link step, which itself renames a clashing user dir to *.bak-*.
   local old dir name
-  for old in "$ANTIGRAVITY_DIR"/skills/*.bak-*; do
-    [[ -e "$old" || -L "$old" ]] || continue
-    move_to_backup "$old" "skill backup"
+  for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
+    for old in "$dir"/*.bak-*; do
+      [[ -e "$old" || -L "$old" ]] || continue
+      move_to_backup "$old" "skill backup"
+    done
   done
   # gentle-ai's copies named like a repo skill and the skills of a retired
   # plugin (named <plugin>-*) load beside the prefixed repo skills in every
@@ -437,6 +447,14 @@ install_antigravity() {
     echo "warning: engram cannot be checked in Antigravity (agy not found); if missing, run: engram setup antigravity-cli"
   elif ! agy mcp list 2>/dev/null | rg -q '^engram\s'; then
     echo "warning: engram is not registered in Antigravity; run: engram setup antigravity-cli"
+  fi
+  # The rules and skills paths above were proven on one agy version only.
+  local version
+  if command -v agy >/dev/null; then
+    version=$(agy --version 2>/dev/null | head -n 1)
+    if [[ $version != "$AGY_PINNED" ]]; then
+      echo "warning: agy is ${version:-unknown}, but its rules and skills paths were proven on $AGY_PINNED; re-run the sentinel checks in $REPO_DIR/docs/multi-agent.md"
+    fi
   fi
 }
 
