@@ -31,12 +31,13 @@ function runHook(hook: string, payload: string) {
 type Call = { tool: string; input?: { command?: unknown } };
 
 // Unlike the Claude hook, fails closed: a shell call it cannot read is blocked.
+// A check cut off at its timeout lets the call through, as the hook fails open.
 async function preferModernCli(call: Call): Promise<void> {
   if (call.tool !== "shell") return;
   const command = call.input?.command;
   if (typeof command !== "string") throw new Error("toolkit: malformed shell call");
   const payload = JSON.stringify({ tool_name: "Bash", tool_input: { command } });
-  const result = spawnSync("bash", [join(HOOKS, "prefer-modern-cli.sh")], { input: payload, encoding: "utf8" });
+  const result = runHook("prefer-modern-cli", payload);
   if (result.status === 2) throw new Error(result.stderr.trim());
 }
 
