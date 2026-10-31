@@ -88,6 +88,20 @@ for name in flow-plan flow-fill-gaps; do
   assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
 done
 
+echo "== OpenCode rules =="
+# The shared rules plus the lines OpenCode's hooks do not cover (story 31):
+# the make check gate and the raw support-file names; pause is a hook (#20).
+assert 'AGENTS.md matches golden' same_as_golden opencode/AGENTS.md
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode rules run make check before done' \
+  grep -qF 'Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes' "$OUT/opencode/AGENTS.md"
+assert 'OpenCode rules skip the gate on a red marker' grep -qF 'flow-pair-red' "$OUT/opencode/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode rules map support-file names' \
+  grep -qF 'name `/flow:<skill>` or `/toolkit:<skill>`; in OpenCode that is `/flow-<skill>` or `/toolkit-<skill>`' "$OUT/opencode/AGENTS.md"
+assert 'OpenCode rules hold no pause line' \
+  test -f "$OUT/opencode/AGENTS.md" -a -z "$(grep -F 'pausa' "$OUT/opencode/AGENTS.md" 2>/dev/null)"
+
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
