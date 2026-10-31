@@ -140,8 +140,9 @@ merge_settings() {
   fi
 }
 
-# prune_links DIR: remove links in DIR that point into this repo but no longer
-# resolve (e.g. a retired plugin's skills). Other links and files are the user's.
+# prune_links DIR: remove links in DIR that point into this repo or the build
+# dir (which AI_BUILD_DIR may put outside the repo) but no longer resolve (e.g.
+# a retired plugin's skills). Other links and files are the user's.
 prune_links() {
   local dir="$1" dst target repo_real
   [[ -d "$dir" ]] || return 0
@@ -149,7 +150,7 @@ prune_links() {
   for dst in "$dir"/*; do
     [[ -L "$dst" && ! -e "$dst" ]] || continue
     target=$(readlink "$dst")
-    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]] || continue
+    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* || $target == "$BUILD_DIR"/* ]] || continue
     run rm "$dst"
     echo "pruned broken link: $dst"
   done

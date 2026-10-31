@@ -180,4 +180,18 @@ assert 'the previous generation is intact' \
 assert 'no partial generation is left behind' \
   same "$(cd "$home/build" && printf '%s\n' * | paste -sd' ')" "agents $build_before"
 
+echo "== opencode prunes links into a build dir outside the repo =="
+
+# The sandbox's AI_BUILD_DIR ($home/build/agents) is outside the repo.
+home=$(sandbox external-build-prune)
+skills=$home/.config/opencode/skills
+mkdir -p "$skills"
+ln -s "$home/build/agents/opencode/skills/flow-gone" "$skills/flow-gone"
+ln -s "$home/gone" "$skills/foreign-gone"
+install "$home" --target opencode
+assert 'external build prune run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a dangling link into the external build dir is removed' test ! -e "$skills/flow-gone" -a ! -L "$skills/flow-gone"
+assert 'the removal is reported' rg -qF "pruned broken link: $skills/flow-gone" <<<"$LAST_OUTPUT"
+assert 'a dangling link outside the repo and the build dir stays' same "$(readlink "$skills/foreign-gone")" "$home/gone"
+
 finish_cases

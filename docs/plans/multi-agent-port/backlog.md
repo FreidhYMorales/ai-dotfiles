@@ -45,4 +45,4 @@
 33. [x] 0bfc27d As a developer, I want `install.test.sh` split into files that run in parallel so that `make check` takes about a minute and the Stop gate never times out on a turn end.
 34. [x] 11bb719 As a developer, I want each OpenCode hook cut off at its timeout, with a timed-out shell check letting the call through, so that a stuck hook never freezes an OpenCode session. Requires: #19, #20
 35. [x] 4461543 As a developer, I want the installer to sweep `.bak-*` out of all three agy skills dirs, write agy `hooks.json` through `mktemp`, and warn with the re-run command when agy is not the pinned 1.4.9, so that a second install or an agy upgrade never breaks a session. Requires: #08
-36. [ ] As a developer, I want generated links pruned when the build dir is outside the repo so that a custom `AI_BUILD_DIR` never leaves dangling links. Requires: #08
+36. [x] 5eb4595 As a developer, I want generated links pruned when the build dir is outside the repo so that a custom `AI_BUILD_DIR` never leaves dangling links. Requires: #08
