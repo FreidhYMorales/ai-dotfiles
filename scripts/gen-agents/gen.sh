@@ -180,6 +180,35 @@ agy_agent() {
   } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
+# Backticks in the rule lines are literal markdown.
+# shellcheck disable=SC2016
+{
+  # support_names TARGET: support files are copied raw, so they keep Claude
+  # names; written with <skill> so the Claude-only check passes.
+  support_names() {
+    printf -- '- A skill'"'"'s support files (`references/`, `templates/`) may still name `/flow:<skill>` or `/toolkit:<skill>`; in %s that is `/flow-<skill>` or `/toolkit-<skill>`.\n' "$1"
+  }
+
+  # rules TARGET HEADING LINES_FN: the shared rules plus the lines the
+  # target's hooks do not cover (story 31).
+  rules() {
+    mkdir -p "$OUT/$1"
+    {
+      rename <"$SRC_DIR/claude/CLAUDE.md"
+      printf '\n## %s\n\n' "$2"
+      support_names "$2"
+      "$3"
+    } >"$OUT/$1/AGENTS.md"
+  }
+
+  # OpenCode has the pause hook (#20) but no Stop gate, so the gate is a rule
+  # line that mirrors require-check.
+  opencode_rules() {
+    printf -- '- Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.\n'
+  }
+}
+
+rules opencode OpenCode opencode_rules
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier readonly-shell
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
