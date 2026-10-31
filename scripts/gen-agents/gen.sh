@@ -78,7 +78,7 @@ support_paths() {
   agy_words() {
     sed -E \
       -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
-      -e 's/invoke the `flow-verifier` agent on the story diff[^;]*; if it is not available, say so and recommend `\/toolkit-judgment-day` \(Claude Code only\)\./do not run the `flow-verifier` agent; when the story moves to Claude Code and its verifier is not available, recommend `\/toolkit-judgment-day` (Claude Code only)./' \
+      -e 's/invoke the `flow-verifier` agent on the story diff[^;]*; if it is not available, say so and recommend `\/toolkit-judgment-day` \(Claude Code only\)\./stop with NEEDS DECISION, do not run the `flow-verifier` agent and leave the story open; when the story moves to Claude Code and its verifier is not available, recommend `\/toolkit-judgment-day` (Claude Code only)./' \
       -e 's/(launch a fresh `[^`]+`) subagent/\1 subagent through `invoke_subagent`/g' \
       -e 's/(Launch the `[^`]+`) agent/\1 subagent through `invoke_subagent`/g' \
       -e 's/Launch `general-purpose`/Launch the default subagent through `invoke_subagent`/g' \
