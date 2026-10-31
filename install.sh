@@ -384,7 +384,7 @@ install_antigravity() {
     echo "moved $gemini_md aside (agy loads it over these rules); restore: mv '$backup' '$gemini_md'"
   fi
   if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
-    link_file "$REPO_DIR/AGENTS.md" "$GEMINI_CONFIG_DIR/AGENTS.md"
+    link_rules antigravity "$GEMINI_CONFIG_DIR/AGENTS.md"
     merge_agy_hooks
   fi
   link_skills "$ANTIGRAVITY_DIR/skills"
