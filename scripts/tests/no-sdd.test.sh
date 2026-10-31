@@ -54,7 +54,7 @@ allow=(
   -g '!docs/plans/**' -g '!docs/upstream/**' -g '!docs/ideas.md'
   -g '!openspec/changes/archive/**' -g '!packs/vendor/**'
   -g '!plugins/flow/evals/handoff-solo-to-backlog/**'
-  -g '!scripts/tests/install.test.sh' -g '!scripts/tests/plugins.test.sh' -g '!scripts/tests/no-sdd.test.sh'
+  -g '!scripts/tests/install*.test.sh' -g '!scripts/tests/plugins.test.sh' -g '!scripts/tests/no-sdd.test.sh'
   -g '!scripts/tests/flow-handoff.test.sh' -g '!scripts/tests/flow-pair.test.sh' -g '!scripts/tests/flow-rules.test.sh'
   -g '!scripts/tests/multi-agent-plan.test.sh'
 )
