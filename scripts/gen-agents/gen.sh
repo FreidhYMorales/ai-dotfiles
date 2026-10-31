@@ -89,7 +89,20 @@ support_paths() {
 field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 { print substr($0, length(key) + 3) }' "$1"; }
 
 # model_for ROLE TARGET: the model the role map gives ROLE in TARGET.
-model_for() { jq -r --arg r "$1" --arg t "$2" '.[$r][$t]' "$MODELS"; }
+# A missing entry stops the generator; agy accepts inherit, pro or flash only.
+model_for() {
+  local model
+  model=$(jq -r --arg r "$1" --arg t "$2" '.[$r][$t] // empty' "$MODELS")
+  if [[ -z $model ]]; then
+    echo "gen-agents: $MODELS: no model for role $1 in $2" >&2
+    return 1
+  fi
+  if [[ $2 == antigravity && ! $model =~ ^(inherit|pro|flash)$ ]]; then
+    echo "gen-agents: $MODELS: agy accepts inherit, pro or flash, not $model (role $1)" >&2
+    return 1
+  fi
+  printf '%s\n' "$model"
+}
 
 # body FILE: everything after the frontmatter.
 body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
@@ -172,6 +185,8 @@ agy_tools() {
 # mcpServers: (story 16).
 agy_agent() {
   local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=() engram=
+  local model
+  model=$(model_for reviewer antigravity)
   for tool in $(field "$src" tools | tr -d ','); do
     [[ $tool == mcp__engram__* ]] && engram=1
     mapped=$(agy_tools "$tool" "$src")
@@ -183,7 +198,7 @@ agy_agent() {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
     # No agy shell tool is proven yet (story 17), so no agent runs commands.
-    printf 'model: %s\ncommandExecutionPolicy: off\n' "$(model_for reviewer antigravity)"
+    printf 'model: %s\ncommandExecutionPolicy: off\n' "$model"
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"
