@@ -240,6 +240,21 @@ link_generated() {
   done
 }
 
+# move_to_backup SRC LABEL: move SRC into agy's skills-backup/, outside skill
+# discovery; never deleted. A taken name gets a numeric suffix, so no backup
+# is ever overwritten.
+move_to_backup() {
+  local backup_dir="$ANTIGRAVITY_DIR/skills-backup" new n=1
+  new="$backup_dir/$(basename "$1")"
+  while [[ -e "$new" || -L "$new" ]]; do
+    new="$backup_dir/$(basename "$1").$n"
+    n=$((n + 1))
+  done
+  run mkdir -p "$backup_dir"
+  run mv "$1" "$new"
+  echo "moved $2: $1 -> $new"
+}
+
 # link_rules TARGET DST: link TARGET's generated AGENTS.md at DST. An earlier
 # run's raw rules link is ours, so it goes without a backup; anything else
 # at DST is moved aside by link_file.
@@ -394,19 +409,28 @@ install_antigravity() {
   # agy discovers a skill in a *.bak-* dir by its name: and can let it shadow
   # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
   # the link step, which itself renames a clashing user dir to *.bak-*.
-  local old new n backup_dir="$ANTIGRAVITY_DIR/skills-backup"
+  local old dir name
   for old in "$ANTIGRAVITY_DIR"/skills/*.bak-*; do
     [[ -e "$old" || -L "$old" ]] || continue
-    # A taken name gets a numeric suffix, so no backup is ever overwritten.
-    new="$backup_dir/$(basename "$old")"
-    n=1
-    while [[ -e "$new" || -L "$new" ]]; do
-      new="$backup_dir/$(basename "$old").$n"
-      n=$((n + 1))
+    move_to_backup "$old" "skill backup"
+  done
+  # gentle-ai's copies named like a repo skill and the skills of a retired
+  # plugin (named <plugin>-*) load beside the prefixed repo skills in every
+  # agy discovery dir (story 32). Real dirs only: links are the installer's
+  # or the user's.
+  local retired keep
+  for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
+    for old in "$dir"/*; do
+      [[ -d "$old" && ! -L "$old" ]] || continue
+      name=$(basename "$old")
+      keep=1
+      for retired in "${RETIRED_PLUGINS[@]}"; do
+        [[ $name == "$retired"-* ]] && keep=0
+      done
+      compgen -G "$REPO_DIR/plugins/*/skills/$name/SKILL.md" >/dev/null && keep=0
+      ((keep)) && continue
+      move_to_backup "$old" "gentle-ai skill"
     done
-    run mkdir -p "$backup_dir"
-    run mv "$old" "$new"
-    echo "moved skill backup: $old -> $new"
   done
   # Ask agy, not its files: two mcp_config.json exist and only one is read.
   if ! command -v agy >/dev/null; then
