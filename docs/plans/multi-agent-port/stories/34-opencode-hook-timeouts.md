@@ -38,3 +38,9 @@ Risk: item 5 (OpenCode runtime plugin; a timed-out shell check now lets the call
 
 - L1 request: /flow:story 22
 - L2 split: #22 held five independent changes (OpenCode hook timeouts, three agy installer fixes, prune outside the repo); split into #34, #35, #36 and #34 refined first.
+- L3 test list approved: three hang tests (pack-hint 2 s, pause 5 s, shell check 10 s default); criterion 3 covered by the existing plugin tests, unchanged. Timeouts read from the Claude hooks config at load time.
+- L4 commits: 2891cee test → 7950056 feat (session-start); ee7863c test → 2a7f061 feat (pause); 6a83bdd test → 11bb719 feat (shell check, fail open); 2d4916f docs (header 2.2.2).
+- L5 decision: hangs are simulated with a PATH `jq` that sleeps only inside the hook named by HANG_HOOK; an `ai-pack` stub was trivially green because pack-hint.sh already cuts ai-pack at 1.5 s.
+- L6 evidence: `bash plugins/toolkit/opencode/tests/toolkit.test.sh` → "All cases passed" (~20 s); `make check` → "All checks passed (7 steps)", also twice under `taskset -c 0` (one CPU, the PR #9 flake setup).
+- L7 verifier: PASS. Optional notes: host-info and backup-status timeouts are not pinned on their own; the timing bounds have 2 s slack under parallel `make check`.
+- Risk: item 5 (OpenCode runtime plugin; a timed-out shell check now lets the call through)
