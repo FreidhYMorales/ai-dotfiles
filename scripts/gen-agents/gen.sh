@@ -4,13 +4,15 @@
 # Usage: scripts/gen-agents/gen.sh OUT_DIR
 # Writes OUT_DIR/opencode/ and OUT_DIR/antigravity/. GEN_REPO_PATH sets the
 # repo path written into the output and GEN_SOURCE the repo the sources
-# are read from (both default to this repo).
+# are read from (both default to this repo). GEN_MODELS sets the role model
+# map (default: models.json next to this script).
 set -euo pipefail
 
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 OUT=${1:?usage: gen.sh OUT_DIR}
 SRC_DIR=${GEN_SOURCE:-$REPO_DIR}
 REPO_PATH=${GEN_REPO_PATH:-$REPO_DIR}
+MODELS=${GEN_MODELS:-$REPO_DIR/scripts/gen-agents/models.json}
 # The repo path as a sed replacement ('#' is the delimiter below).
 REPO_SED=$(printf '%s' "$REPO_PATH" | sed -e 's/[\\&#]/\\&/g')
 
@@ -86,6 +88,9 @@ support_paths() {
 # field FILE KEY: a frontmatter value.
 field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 { print substr($0, length(key) + 3) }' "$1"; }
 
+# model_for ROLE TARGET: the model the role map gives ROLE in TARGET.
+model_for() { jq -r --arg r "$1" --arg t "$2" '.[$r][$t]' "$MODELS"; }
+
 # body FILE: everything after the frontmatter.
 body() { awk 'f >= 2 { print } /^---$/ { f++ }' "$1"; }
 
@@ -99,10 +104,14 @@ plugin_of() { basename "$(dirname "$(dirname "$1")")"; }
 # program or write a file (rg --pre, git --output/--ext-diff) and ask on a
 # redirection.
 opencode_agent() {
-  local src=$1 dst="$OUT/opencode/agents/$2.md"
+  local src=$1 dst="$OUT/opencode/agents/$2.md" model
+  model=$(model_for reviewer opencode)
   mkdir -p "$(dirname "$dst")"
   {
-    printf -- '---\ndescription: %s\nmode: subagent\npermission:\n' "$(field "$src" description)"
+    printf -- '---\ndescription: %s\nmode: subagent\n' "$(field "$src" description)"
+    # inherit: no model line, so the agent runs on the session model.
+    [[ $model == inherit ]] || printf 'model: %s\n' "$model"
+    printf 'permission:\n'
     printf '  edit: deny\n  webfetch: deny\n  task: deny\n'
     if [[ ${3:-} == readonly-shell ]]; then
       printf '  bash:\n'
