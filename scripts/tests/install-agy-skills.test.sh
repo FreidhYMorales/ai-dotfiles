@@ -253,6 +253,21 @@ assert 'hooks.json still gets the herdr and toolkit keys' same "$(jq -c 'keys' "
 assert 'the merge leaves no temp file of its own' \
   same "$(find "$home/.gemini/config" -maxdepth 1 -name 'hooks.json.tmp*' | wc -l)" 1
 
+# mktemp makes its file 0600; the merged hooks.json keeps its own mode.
+home=$(sandbox antigravity-hooks-mode)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+printf '%s\n' '{"herdr": {"Stop": []}}' >"$hooks"
+chmod 640 "$hooks"
+install "$home" --target antigravity
+assert 'antigravity hooks mode run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a 0640 hooks.json keeps its mode after the merge' same "$(stat -c %a "$hooks")" 640
+
+home=$(sandbox antigravity-hooks-mode-new)
+mkdir -p "$home/.gemini/config"
+install "$home" --target antigravity
+assert 'a new hooks.json is created 0644' same "$(stat -c %a "$home/.gemini/config/hooks.json")" 644
+
 home=$(sandbox antigravity-no-hooks)
 hooks=$home/.gemini/config/hooks.json
 mkdir -p "$home/.gemini/config"
