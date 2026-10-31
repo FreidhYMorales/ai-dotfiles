@@ -84,8 +84,8 @@ Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a 
 |---|---|---|---|
 | `/flow-plan-review` | pass (#08) | pass: `flow-plan-reviewer` subagent returned the full structure and wrote `plan-review-1.md`; with no `plan.md` it stopped at the gate | n/a |
 | `/flow-backlog`, `/flow-story` | pass: story marked `Risk: item 2` | pass (`/flow-story`): `Risk: item 2` | n/a |
-| `/flow-pair` on a high-risk story | pass: 3 test→code pairs, `make check` green, no red marker, `flow-verifier` subagent ran, PASS | **fail**: the `flow-verifier` subagent called only engram (`mem_search`, `mem_context`), ran no command, yet reported `make check` passed and `Verdict: PASS`; pair accepted it instead of ending in NEEDS DECISION (backlog #37); after #37 Gemini 3.8 Flash still spawned the verifier and got the same fake PASS, so #38 removes the agy verifier | n/a |
-| `ls` blocked by `prefer-modern-cli` | pass: `ls` and `sed` blocked | not exercised: the model picked `eza` itself, so the hook never fired (stays with #17) | pass (live) |
+| `/flow-pair` on a high-risk story | pass: 3 test→code pairs, `make check` green, no red marker, `flow-verifier` subagent ran, PASS | **fail**: the `flow-verifier` subagent called only engram (`mem_search`, `mem_context`), ran no command, yet reported `make check` passed and `Verdict: PASS`; pair accepted it instead of ending in NEEDS DECISION (backlog #37); after #37 Gemini 3.8 Flash still spawned the verifier and got the same fake PASS, so #38 removes the agy verifier; re-run on 1.4.12 after #38: pass, no subagent spawned, the story stopped at NEEDS DECISION and stayed open | n/a |
+| `ls` blocked by `prefer-modern-cli` | pass: `ls` and `sed` blocked | pass on 1.4.12 when asked for `ls` explicitly (blocked; the model then offered the `# legacy-cli` escape the hook names); unprompted, it picks `eza` itself | pass (live) |
 | engram observation saved in OpenCode found here | saved (#961-963, project `toy-greet`) | pass: found #962 | pass: found #961-963 |
 
 Notes from the run:
