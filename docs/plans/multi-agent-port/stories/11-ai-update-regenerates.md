@@ -37,3 +37,9 @@ Risk: item 5 (ai-update drives the installer and swaps the live build)
 ## Log
 
 - L1 request: /flow:story 11
+- L2 test list approved: regenerate OpenCode + restart line; triangulate (Antigravity, both, unchanged build); failed generation exits non-zero; `--check` and no agents leave the build alone. Detection by config dir; `AI_DOTFILES_DIR` points the tests at a stub install.sh.
+- L3 commits: 776cf7d test → aeb6571 feat (OpenCode); 4e9fff1 test → 94eecc5 feat (Antigravity, build hash); b008630 and 7b8ebef test-only (already green, mutation-checked); 235f381 docs (--help).
+- L4 decision: regeneration runs before `main`, because `main || status=$?` would turn off set -e inside the engram upgrade.
+- L5 evidence: `bash scripts/tests/ai-update.test.sh` → "All cases passed"; `make check` → "All checks passed (7 steps)".
+- L6 verifier: PASS (all three criteria pinned, tamper check clean, five mutations caught). Notes: the restart line names only OpenCode, as assumed.
+- Risk: item 5 (ai-update drives the installer and swaps the live build)
