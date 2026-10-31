@@ -103,7 +103,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Eval suite for `toolkit:ship`
 - [x] Eval suites for the other `toolkit` skills (one fires case each plus a behavior grader; `delegate-local` should-not-fire)
 - [x] CI running `make check` (`.github/workflows/check.yml`)
-- [x] `install.sh` idempotency test (`scripts/tests/install.test.sh`)
+- [x] `install.sh` idempotency tests (`scripts/tests/install-*.test.sh`, run in parallel)
 - [x] Local encrypted engram backup (`engram-backup` + daily timer)
 - [x] Off-site engram backup: the restic repo pushed to a private git repo (`FreidhYMorales/engram-backup`) after each backup; Google Drive via an `rclone` repo is still possible later
 - [x] Pause/resume: `cz` (zellij session survives closing the terminal), `pause` hook (instant checkpoint), atomic settings write in `install.sh`
