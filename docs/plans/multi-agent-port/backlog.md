@@ -31,7 +31,7 @@
 19. [x] cb83ca5 As a developer, I want the session-start hooks (host info, pack hint, backup status) in OpenCode so that OpenCode starts with the same context as Claude. Requires: #05
 20. [x] 65a0908 As a developer, I want `pause` in OpenCode so that I can stop an OpenCode session safely with a checkpoint saved. Requires: #19
 21. [ ] As a developer, I want the OpenCode pause hook to skip a user message without an id instead of throwing so that a malformed history never breaks a session. Requires: #20
-22. [ ] As a developer, I want the OpenCode hooks cut off at their timeouts and the installer hardened (all three agy skills dirs swept of `.bak-*`, agy `hooks.json` written through `mktemp`, generated links pruned when the build dir is outside the repo, a warning when agy is not the pinned 1.4.9) so that a stuck hook or a second install never breaks a session. Requires: #08
+22. [-] split → #34, #35, #36
 23. [-] split → #24, #25, #26
 24. [x] 0f05602 As a developer, I want the generator to turn bare support-file references into absolute repo paths only when the file exists in that skill's dir, with `verify.sh` flagging any it missed, so that generated skills never point at missing files and skill-creator's layout prose stays intact. Requires: #08
 25. [x] b456554 As a developer, I want agy agents to declare engram under `mcpServers:` and a `commandExecutionPolicy` each, and the agy `flow-pair` to say a high-risk story ends in NEEDS DECISION while its verifier has no shell tool, so that agy agents reach memory and never pretend to verify. Requires: #08, #16
@@ -43,3 +43,6 @@
 31. [x] 8423663 As a developer, I want `AGENTS.md` generated per target with its rule lines (OpenCode runs `make check` before saying done as `require-check` does, agy follows the pause protocol, `/flow:x` means `/flow-x` in raw support files) so that OpenCode and agy close work by the same rules as Claude. Requires: #08
 32. [x] 67f25d2 As a developer, I want gentle-ai's same-named and retired spec-workflow skills moved out of the three agy skills discovery dirs into `skills-backup/`, never deleted, so that no gentle-ai copy loads beside the prefixed repo skills. Requires: #30
 33. [x] 0bfc27d As a developer, I want `install.test.sh` split into files that run in parallel so that `make check` takes about a minute and the Stop gate never times out on a turn end.
+34. [~] As a developer, I want each OpenCode hook cut off at its timeout, with a timed-out shell check letting the call through, so that a stuck hook never freezes an OpenCode session. Requires: #19, #20
+35. [ ] As a developer, I want the installer to sweep `.bak-*` out of all three agy skills dirs, write agy `hooks.json` through `mktemp`, and warn with the re-run command when agy is not the pinned 1.4.9, so that a second install or an agy upgrade never breaks a session. Requires: #08
+36. [ ] As a developer, I want generated links pruned when the build dir is outside the repo so that a custom `AI_BUILD_DIR` never leaves dangling links. Requires: #08
