@@ -165,7 +165,8 @@ agy_tools() {
   esac
 }
 
-# agy_agent SRC NAME: Claude tools mapped through agy_tools; opus -> pro.
+# agy_agent SRC NAME: Claude tools mapped through agy_tools; the model comes
+# from the role map.
 # An unmapped tool stops the generator: agy never builds such a subagent and
 # says nothing. An agent with an engram tool declares engram under
 # mcpServers: (story 16).
@@ -182,7 +183,7 @@ agy_agent() {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
     # No agy shell tool is proven yet (story 17), so no agent runs commands.
-    printf 'model: pro\ncommandExecutionPolicy: off\n'
+    printf 'model: %s\ncommandExecutionPolicy: off\n' "$(model_for reviewer antigravity)"
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
     body "$src"
