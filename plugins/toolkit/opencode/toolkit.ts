@@ -53,8 +53,8 @@ function pause(directory: string, user: Message): string {
   const payload = JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt, cwd: directory, target: "opencode" });
   // A hook that cannot start, fails or prints something unreadable says nothing.
   try {
-    const result = spawnSync("bash", [join(HOOKS, "pause.sh")], { input: payload, encoding: "utf8" });
-    if (!result.stdout?.trim()) return "";
+    const result = runHook("pause", payload);
+    if (result.error || !result.stdout?.trim()) return "";
     const text = JSON.parse(result.stdout).hookSpecificOutput?.additionalContext;
     return typeof text === "string" ? text : "";
   } catch {
