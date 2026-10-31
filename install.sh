@@ -379,10 +379,7 @@ merge_agy_hooks() {
   # A temp file of its own beside the target: two installs never share one.
   local tmp
   tmp=$(mktemp "$target.tmp.XXXXXX")
-  printf '%s\n' "$merged" >"$tmp"
-  # mktemp makes the file 0600: keep the target's mode, 0644 for a new file.
-  if [[ -f "$target" ]]; then chmod --reference="$target" "$tmp"; else chmod 644 "$tmp"; fi
-  mv "$tmp" "$target"
+  printf '%s\n' "$merged" >"$tmp" && mv "$tmp" "$target"
   echo "merged toolkit hooks: $target"
 }
 
