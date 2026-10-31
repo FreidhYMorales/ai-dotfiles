@@ -102,6 +102,21 @@ assert 'OpenCode rules map support-file names' \
 assert 'OpenCode rules hold no pause line' \
   test -f "$OUT/opencode/AGENTS.md" -a -z "$(grep -F 'pausa' "$OUT/opencode/AGENTS.md" 2>/dev/null)"
 
+echo "== Antigravity rules =="
+# agy has the Stop gate (#06) but no prompt hook, so pause is a rule line.
+assert 'AGENTS.md matches golden' same_as_golden antigravity/AGENTS.md
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules save a pause checkpoint' \
+  grep -qF 'when a message starts with "pausa", "pausar" or "pause", first save a checkpoint to engram (`mem_save`, topic `checkpoint/pause`' "$OUT/antigravity/AGENTS.md"
+assert 'agy rules reply in at most 5 lines' grep -qF 'reply in at most 5 lines' "$OUT/antigravity/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules resume with agy --continue' grep -qF '`agy --continue`' "$OUT/antigravity/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy rules map support-file names' \
+  grep -qF 'name `/flow:<skill>` or `/toolkit:<skill>`; in Antigravity that is `/flow-<skill>` or `/toolkit-<skill>`' "$OUT/antigravity/AGENTS.md"
+assert 'agy rules hold no make check line' \
+  test -f "$OUT/antigravity/AGENTS.md" -a -z "$(grep -F 'Before saying work is done' "$OUT/antigravity/AGENTS.md" 2>/dev/null)"
+
 echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
