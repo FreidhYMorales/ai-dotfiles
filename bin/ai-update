@@ -6,6 +6,9 @@
 #     the database (sqlite3 VACUUM INTO) and the binary, swap it atomically, verify
 #     the version (rolling back on mismatch), run `engram doctor`, and restart
 #     a running `engram serve`.
+#   - OpenCode and Antigravity: rerun install.sh for the installed ones (by
+#     config dir), so their generated build follows the repo after a pull;
+#     without a prompt, since it only rebuilds derived files.
 # Shows the plan and asks once. A MAJOR engram bump always asks, even with --yes.
 #
 # Usage: ai-update [--check] [--yes]
@@ -21,7 +24,7 @@ for arg in "$@"; do
     --check) CHECK=1 ;;
     --yes) YES=1 ;;
     -h | --help)
-      sed -n '2,14p' "$0" | cut -c3-
+      sed -n '2,17p' "$0" | cut -c3-
       exit 0
       ;;
     *)
