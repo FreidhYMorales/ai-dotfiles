@@ -121,10 +121,9 @@ echo "== Antigravity plan reviewer agent =="
 # Only the registry tool names story 16 proved; Glob and Bash are left out.
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
 
-echo "== Antigravity verifier agent =="
-# Read and Grep map to the names story 16 proved; with no shell tool the
-# verifier runs no commands.
-assert 'agents/flow-verifier.md matches golden' same_as_golden antigravity/agents/flow-verifier.md
+echo "== no Antigravity verifier agent =="
+# A shell-less agy verifier made up PASS reports (#13 smoke); none is built.
+assert 'no agy verifier agent is generated' test ! -e "$OUT/antigravity/agents/flow-verifier.md"
 
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
@@ -333,11 +332,9 @@ for name in flow-plan-reviewer flow-verifier; do
 done
 models '{"reviewer": {"opencode": "inherit", "antigravity": "flash"}}' flash-reviewer
 assert 'map: agy flash run exits 0' test "$LAST_EXIT" -eq 0
-for name in flow-plan-reviewer flow-verifier; do
-  assert "map: agy $name uses flash" diff -u \
-    <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/$name.md") \
-    "$TMP_ROOT/flash-reviewer/antigravity/agents/$name.md"
-done
+assert "map: agy flow-plan-reviewer uses flash" diff -u \
+  <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/flow-plan-reviewer.md") \
+  "$TMP_ROOT/flash-reviewer/antigravity/agents/flow-plan-reviewer.md"
 # agy accepts inherit, pro or flash only.
 models '{"reviewer": {"opencode": "inherit", "antigravity": "gpt-5"}}' bad-agy-model
 assert 'map: a bad agy model fails' test "$LAST_EXIT" -ne 0

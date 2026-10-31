@@ -38,11 +38,24 @@ for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
   assert "the agy $name skill is the generated one" \
     same "$(readlink "$agy_skills/$name")" "$home/build/agents/antigravity/skills/$name"
 done
-assert 'the agy verifier agent is the generated one' \
-  same "$(readlink "$home/.gemini/config/agents/flow-verifier.md")" "$home/build/agents/antigravity/agents/flow-verifier.md"
+assert 'no agy verifier agent is linked' \
+  test ! -e "$home/.gemini/config/agents/flow-verifier.md" -a ! -L "$home/.gemini/config/agents/flow-verifier.md"
 for name in backlog story pair judgment-day work-unit-commits; do
   assert "no raw $name link is left for antigravity" test ! -e "$agy_skills/$name" -a ! -L "$agy_skills/$name"
 done
+
+echo "== an earlier agy verifier link is pruned =="
+# Installs before #38 linked flow-verifier into agy's agents dir.
+home=$(sandbox antigravity-old-verifier)
+agy_agents=$home/.gemini/config/agents
+mkdir -p "$agy_agents"
+ln -s "$home/build/agents/antigravity/agents/flow-verifier.md" "$agy_agents/flow-verifier.md"
+install "$home" --target antigravity
+assert 'old verifier run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the old agy verifier link is removed' test ! -e "$agy_agents/flow-verifier.md" -a ! -L "$agy_agents/flow-verifier.md"
+assert 'output reports the pruned verifier link' rg -qF "pruned broken link: $agy_agents/flow-verifier.md" <<<"$LAST_OUTPUT"
+assert 'the agy plan reviewer stays linked' \
+  same "$(readlink "$agy_agents/flow-plan-reviewer.md")" "$home/build/agents/antigravity/agents/flow-plan-reviewer.md"
 
 echo "== antigravity gets every other skill generated =="
 

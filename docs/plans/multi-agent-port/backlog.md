@@ -22,7 +22,7 @@
 10. [-] split → #30, #31, #32
 11. [x] 94eecc5 As a developer, I want `ai-update` to regenerate and relink the OpenCode and Antigravity outputs so that they never go stale after a pull. Requires: #08
 12. [x] e51be8f As a developer, I want one role model map for the generated agents so that I can point the reviewers at a strong or local model without editing each agent. Requires: #08
-13. [~] As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #27, #28, #29, #30, #31, #32, #12
+13. [x] a509777 As a developer, I want a recorded smoke run of a high-risk story in OpenCode and Antigravity so that I trust the fallback before I need it. Requires: #27, #28, #29, #30, #31, #32, #12
 14. [ ] As a developer, I want the remaining `flow-`/`toolkit-` commands in OpenCode, checked against its built-in commands, so that nothing I use in Claude is missing there (judgment-day stays Claude-only until v2). Requires: #30
 15. [ ] As a developer, I want the README, the install.sh header and `docs/multi-agent.md` to describe the port so that I know how each agent is set up. Requires: #30, #31, #32
 16. [x] 1b835b8 As a developer, I want the Antigravity subagent format recorded (agents dir, frontmatter, tool names agy resolves, engram through `mcpServers:`) so that the agents I port later use names agy accepts.
@@ -47,4 +47,4 @@
 35. [x] 4461543 As a developer, I want the installer to sweep `.bak-*` out of all three agy skills dirs, write agy `hooks.json` through `mktemp`, and warn with the re-run command when agy is not the pinned 1.4.9, so that a second install or an agy upgrade never breaks a session. Requires: #08
 36. [x] 5eb4595 As a developer, I want generated links pruned when the build dir is outside the repo so that a custom `AI_BUILD_DIR` never leaves dangling links. Requires: #08
 37. [x] de571cb As a developer, I want the Antigravity `flow-pair` to end a high-risk story in NEEDS DECISION without trusting a verifier that cannot run the test command, so that agy never closes a high-risk story on an unverified PASS. Requires: #25, #27
-38. [~] As a developer, I want the `flow-verifier` agent left out of the Antigravity build and install, so that no shell-less agy subagent can hand pair a made-up PASS. Requires: #37
+38. [x] 59b2a85 As a developer, I want the `flow-verifier` agent left out of the Antigravity build and install, so that no shell-less agy subagent can hand pair a made-up PASS. Requires: #37
