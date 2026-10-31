@@ -282,6 +282,50 @@ expect_pause_untouched 'a pause hook that prints something unreadable leaves the
   PATH="$TMP_ROOT/badjq:$PATH"
 expect_pause_untouched 'a pause hook that cannot start leaves the system as it was' PATH="$TMP_ROOT/nobash"
 
+# A hanging hook is cut off at its timeout from plugins/toolkit/hooks/hooks.json
+# (10 s when it has none); the stubs below sleep far longer than that.
+# expect_fast LABEL MAX_SECONDS START: the case since START took under MAX_SECONDS.
+expect_fast() {
+  local took=$((SECONDS - $3))
+  if ((took < $2)); then
+    printf 'PASS  %s\n' "$1"
+  else
+    printf 'FAIL  %s (took %ss)\n' "$1" "$took"
+    failures=$((failures + 1))
+  fi
+}
+# A jq that hangs only inside the hook named by HANG_HOOK (every hook runs jq;
+# a stub of a tool the hook calls, like ai-pack, may have its own timeout).
+mkdir -p "$TMP_ROOT/hang"
+cat >"$TMP_ROOT/hang/jq" <<EOF
+#!/usr/bin/env bash
+[[ \$(ps -o args= -p \$PPID) == *"/\$HANG_HOOK.sh"* ]] && sleep 20
+exec "$real_jq" "\$@"
+EOF
+chmod +x "$TMP_ROOT/hang/jq"
+# A pack hint with something to say, so the cut-off is what silences it.
+cat >"$TMP_ROOT/hang/ai-pack" <<'EOF'
+#!/usr/bin/env bash
+printf 'v1\tpack: try the web pack\n'
+EOF
+chmod +x "$TMP_ROOT/hang/ai-pack"
+
+echo "== opencode: a hanging hook is cut off at its timeout =="
+start=$SECONDS
+expect_context 'a hanging pack hint is dropped and the host info still arrives' \
+  '(.[0] | length) == 2 and (.[0][1].text | contains("Fakedistro 1") and (contains("pack:") | not))' \
+  AI_HOOKS_OFF=backup-status HANG_HOOK=pack-hint PATH="$TMP_ROOT/hang:$PATH" -- ses_1
+expect_fast 'the pack hint is cut off at its 2 s timeout' 4 "$start"
+start=$SECONDS
+expect_pause_untouched 'a hanging pause hook leaves the system as it was' \
+  HANG_HOOK=pause PATH="$TMP_ROOT/hang:$TMP_ROOT/engram:$PATH"
+expect_fast 'the pause hook is cut off at its 5 s timeout' 7 "$start"
+# Fails open, like the Claude hook: a legacy command passes when the check hangs.
+start=$SECONDS
+HANG_HOOK=prefer-modern-cli PATH="$TMP_ROOT/hang:$PATH" \
+  expect 'a hanging shell check lets the call through' 'pass' "$(shell_call 'ls -la')"
+expect_fast 'the shell check is cut off at the 10 s default' 12 "$start"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
