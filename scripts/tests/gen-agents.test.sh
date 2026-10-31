@@ -331,6 +331,15 @@ for name in flow-plan-reviewer flow-verifier; do
     <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/$name.md") \
     "$TMP_ROOT/flash-reviewer/antigravity/agents/$name.md"
 done
+# agy accepts inherit, pro or flash only.
+models '{"reviewer": {"opencode": "inherit", "antigravity": "gpt-5"}}' bad-agy-model
+assert 'map: a bad agy model fails' test "$LAST_EXIT" -ne 0
+assert 'map: the error names the bad model' grep -qF 'gpt-5' <<<"$LAST_OUTPUT"
+# A missing entry is an error, never a silent default.
+models '{"reviewer": {"opencode": "inherit"}}' missing-entry
+assert 'map: a missing entry fails' test "$LAST_EXIT" -ne 0
+assert 'map: the error names the role' grep -qF 'reviewer' <<<"$LAST_OUTPUT"
+assert 'map: the error names the target' grep -qF 'antigravity' <<<"$LAST_OUTPUT"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
