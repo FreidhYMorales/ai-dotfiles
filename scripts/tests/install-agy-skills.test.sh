@@ -210,6 +210,20 @@ merged=$(sha256sum <"$hooks")
 install "$home" --target antigravity
 assert 'a second install leaves hooks.json unchanged' same "$(sha256sum <"$hooks")" "$merged"
 
+# Each install writes through its own mktemp file beside hooks.json, so a
+# temp file another install left there is never reused (story 35).
+home=$(sandbox antigravity-hooks-tmp)
+hooks=$home/.gemini/config/hooks.json
+mkdir -p "$home/.gemini/config"
+printf '%s\n' '{"herdr": {"Stop": []}}' >"$hooks"
+printf 'another install\n' >"$hooks.tmp"
+install "$home" --target antigravity
+assert 'antigravity hooks tmp run succeeds' test "$LAST_EXIT" -eq 0
+assert 'a temp file of another install is left alone' same "$(cat "$hooks.tmp" 2>/dev/null)" 'another install'
+assert 'hooks.json still gets the herdr and toolkit keys' same "$(jq -c 'keys' "$hooks")" '["herdr","toolkit"]'
+assert 'the merge leaves no temp file of its own' \
+  same "$(find "$home/.gemini/config" -maxdepth 1 -name 'hooks.json.tmp*' | wc -l)" 1
+
 home=$(sandbox antigravity-no-hooks)
 hooks=$home/.gemini/config/hooks.json
 mkdir -p "$home/.gemini/config"
