@@ -324,6 +324,13 @@ for name in flow-plan-reviewer flow-verifier; do
     <(awk '{ print } /^mode: subagent$/ { print "model: ollama/qwen3" }' "$GOLDEN/opencode/agents/$name.md") \
     "$TMP_ROOT/local-reviewer/opencode/agents/$name.md"
 done
+models '{"reviewer": {"opencode": "inherit", "antigravity": "flash"}}' flash-reviewer
+assert 'map: agy flash run exits 0' test "$LAST_EXIT" -eq 0
+for name in flow-plan-reviewer flow-verifier; do
+  assert "map: agy $name uses flash" diff -u \
+    <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/$name.md") \
+    "$TMP_ROOT/flash-reviewer/antigravity/agents/$name.md"
+done
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
