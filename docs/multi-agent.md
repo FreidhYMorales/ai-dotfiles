@@ -8,7 +8,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules, t
 
 | Piece | Claude Code | OpenCode | Antigravity |
 |---|---|---|---|
-| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | `AGENTS.md` → `~/.config/opencode/AGENTS.md` | `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
+| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | generated `AGENTS.md` → `~/.config/opencode/AGENTS.md` | generated `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
 | Skills | `flow`, `toolkit` plugins | none raw: every skill but judgment-day is generated (below) | none raw: every skill but judgment-day is generated (below) |
 | Plugin agents | yes | generated `flow-plan-reviewer`, `flow-verifier` → `~/.config/opencode/agents/` | generated `flow-plan-reviewer`, `flow-verifier` → `~/.gemini/config/agents/` |
 | Generated skills and commands | n/a | every `flow` and `toolkit` skill but judgment-day, as `flow-x`/`toolkit-x` → `~/.config/opencode/skills/`; `/flow-plan`, `/flow-plan-review`, `/flow-fill-gaps`, `/flow-backlog`, `/flow-story`, `/flow-pair` commands (the rest wait for backlog #14) | the same skills → `~/.gemini/antigravity-cli/skills/` |
@@ -17,7 +17,7 @@ Claude Code is the full target. OpenCode and Antigravity get the shared rules, t
 | Status line, `look` band | yes | no | no |
 | `bin/*`, systemd units, git hooks | yes | yes | yes |
 
-The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`, so all three agents read the same rules file.
+The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode and Antigravity read a generated copy of it with `/flow-x` names and a closing section for the rules their hooks do not cover: OpenCode runs `make check` before saying done (it has no Stop gate), Antigravity follows the pause protocol (it has no prompt hook); both read `/flow:<skill>` in raw support files as `/flow-<skill>`.
 
 ## Manual setup per machine
 
