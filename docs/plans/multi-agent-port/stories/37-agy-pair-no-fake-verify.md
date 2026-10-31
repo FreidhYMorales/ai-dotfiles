@@ -36,3 +36,9 @@ Risk: item 6 (whether a model obeys the rewritten step is proven only by a live 
 - L1 request: /flow:story 37
 - Assumption: the generated `flow-verifier` agent stays in the agy build, unused by pair until #17 proves a shell tool.
 - Assumption: the source of the defect is the appended line at `scripts/gen-agents/gen.sh` (agy_words), found in the #13 smoke (agy conversation 10bbf01e).
+- Red 1: 15a6cb0 `test(gen-agents): agy pair check step never says to invoke the verifier`; FAIL `chk: agy check step never says to invoke the verifier`.
+- Green 1: cdba6d0 `fix(gen-agents): agy pair stops a high-risk story without invoking the verifier`; the judgment-day fallback kept in the rewrite so the existing `agy pair marks judgment-day Claude Code only` assert stays green (no test changed).
+- Red 2: 3ab2dc6 `test(gen-agents): agy high-risk check stops with NEEDS DECISION and leaves the story open`; FAIL on that assert.
+- Green 2: de571cb `fix(gen-agents): agy high-risk check stops with NEEDS DECISION and leaves the story open`; only the agy `flow-pair` golden changed, OpenCode golden identical; `gen-agents.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)"; tamper checks empty.
+- Verifier: PASS (both criteria; notes: the agy step still carries the source FAIL/recheck text, unreachable after the stop; the appended agy line relies on sed order; live obedience left to the #13 re-run).
+- Risk: item 6 (whether a model obeys the rewritten step is proven only by a live agy run)
