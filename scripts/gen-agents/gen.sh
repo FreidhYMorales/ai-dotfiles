@@ -245,7 +245,7 @@ rules antigravity Antigravity agy_rules
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier readonly-shell
 agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
-agy_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier
+# No agy verifier: without a shell tool it made up PASS reports (#13, #38).
 opencode_skill flow plan-review
 opencode_skill flow backlog
 opencode_skill flow story
