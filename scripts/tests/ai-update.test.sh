@@ -216,6 +216,12 @@ mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
 update "$home" ''
 assert 'both installed: both builds are regenerated' installed_with "$home" '--target opencode,antigravity'
 
+home=$(sandbox regen-fail 3.4.0 3.4.0)
+mkdir -p "$home/.config/opencode"
+FAKE_INSTALL_FAIL=1 update "$home" ''
+assert 'a failed generation fails ai-update' test "$LAST_EXIT" -ne 0
+assert 'a failed generation is reported' says 'gen.sh failed; the previous build is kept'
+
 echo "== failures leave engram intact =="
 
 home=$(sandbox badsum 3.4.0 3.5.0)
