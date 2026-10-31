@@ -431,6 +431,19 @@ raw=$(find "$agy_skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
 assert 'no raw repo skill link is left for antigravity' same "$raw" ''
 [[ -z $raw ]] || printf '%s\n' "$raw"
 
+echo "== antigravity reads the generated rules =="
+
+# An earlier run linked the raw rules (story 31).
+home=$(sandbox antigravity-rules)
+mkdir -p "$home/.gemini/config"
+ln -s "$ROOT/AGENTS.md" "$home/.gemini/config/AGENTS.md"
+install "$home" --target antigravity
+assert 'antigravity rules run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the agy rules are the generated ones' \
+  same "$(readlink "$home/.gemini/config/AGENTS.md")" "$home/build/agents/antigravity/AGENTS.md"
+assert 'the raw agy rules link leaves no backup' \
+  test -z "$(find "$home/.gemini/config" -maxdepth 1 -name 'AGENTS.md.bak-*')"
+
 echo "== antigravity gets the generated plan review =="
 
 home=$(sandbox antigravity-plan-review)
