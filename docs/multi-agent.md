@@ -75,7 +75,20 @@ Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 `scripts/gen-agents/gen.sh` turns ported skills and agents into each target's format; that is every `flow` and `toolkit` skill but `toolkit:judgment-day`, plus the `flow:plan-reviewer` agent and, for OpenCode only, `flow:verifier`. Their model comes from one role map, `scripts/gen-agents/models.json`: the `reviewer` role holds one model per target. OpenCode takes any `provider/id` (for a local model, `ollama/<model>`; `inherit` runs on the session model), Antigravity takes `inherit`, `pro` or `flash`; a missing entry or another agy value stops the generator. Edit the line and rerun `./install.sh`. Names follow one map (`flow:x` → `flow-x`, `toolkit:x` → `toolkit-x`), plugin-relative paths become absolute, and Claude tool names become the target's. `install.sh` generates into a new dir, points the gitignored `build/agents` symlink at it in one rename and links from there; a failed generation keeps the previous build. `make check` compares a fresh generation with `scripts/gen-agents/golden/` and fails on any Claude-only form left in it; the header of `scripts/gen-agents/verify.sh` shows how to regenerate the goldens.
 
-In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its registry (`read_file`, `view_file`, `grep_search`): without `Glob` and `Bash` it cannot convert .docx/.pdf sources or run `git log`. An unmapped tool stops the generator, because agy silently never builds such a subagent.
+In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its registry (`read_file`, `view_file`, `grep_search`): without `Glob` and `Bash` it cannot convert .docx/.pdf sources or run `git log`; agy 1.4.12 also has `find_by_name` and `run_command` (below), but the generator does not map them yet (backlog #44). An unmapped tool stops the generator, because agy silently never builds such a subagent.
+
+### Antigravity subagents: engram and registry tools
+
+Checked live on 2026-11-02 (story #42) on agy 1.4.12, Gemini 3.8 Flash: one temporary sentinel agent per row in `~/.gemini/config/agents/` (`model: flash`), each invoked through `invoke_subagent` from `agy -p` outside any repo, with no permission flag; every sentinel was removed afterwards and the dir matched its backup. A row passes when the subagent's own transcript shows the call and its answer holds a value the prompt did not contain.
+
+| Case | Result |
+|---|---|
+| engram under `mcpServers:` exactly as the generator emits it, asked for observation #762 by ID | pass: the subagent called `call_mcp_tool` (server `engram`, tool `mem_get_observation`) and returned the exact title; the main agent called no engram tool; nothing was saved |
+| `tools: [find_by_name]`, asked to find a file by name | pass: built, `find_by_name` returned the file's path |
+| `tools: [run_command]` (no `commandExecutionPolicy`), asked to run `bat -pp <file>` | pass: built, `run_command` ran it and returned the file's random token; `bat` is in the user's agy allow list, so `-p` did not soft-deny it |
+| control: `tools: [view_file]` | pass: built, returned the same token |
+
+No log showed a registry error. Subagents also get `send_message` (to answer the main agent) without declaring it.
 
 ## Antigravity hooks
 
