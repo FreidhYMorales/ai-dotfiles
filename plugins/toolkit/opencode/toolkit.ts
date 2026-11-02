@@ -98,7 +98,8 @@ export default {
         if (block) request.system.push({ type: "text", text: block });
         // The pause hook runs once per user message; a tool loop reuses its answer.
         const user = (request.messages ?? []).filter((message) => message.role === "user").at(-1);
-        if (!user) return;
+        // A user message without an id is never a pause: there is nothing to key it on.
+        if (!user?.id) return;
         let paused = pauses.get(request.sessionID);
         if (paused?.messageID !== user.id) {
           paused = { messageID: user.id, protocol: pause(ctx.location.directory, user) };
