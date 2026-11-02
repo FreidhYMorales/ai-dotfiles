@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a repo with uncommitted changes and a failing `make check`, when agy ends a normal turn (`NO_TOOL_CALL`, `executionNum` 0), then agy continues with the check's failure as the reason.
-- [ ] Given agy is already continuing because of a Stop hook (`executionNum` 1 or more), or the payload has no usable `executionNum` (missing, null, a string, negative), when the turn ends with the check still failing, then agy is let stop.
-- [ ] Given the fix installed, when the user ends a real agy turn in a repo with a failing `make check`, then agy continues once with the failure and then stops, and `docs/multi-agent.md` records it in place of the #40 failure (manual check).
+- [x] Given a repo with uncommitted changes and a failing `make check`, when agy ends a normal turn (`NO_TOOL_CALL`, `executionNum` 0), then agy continues with the check's failure as the reason.
+- [x] Given agy is already continuing because of a Stop hook (`executionNum` 1 or more), or the payload has no usable `executionNum` (missing, null, a string, negative), when the turn ends with the check still failing, then agy is let stop.
+- [x] Given the fix installed, when the user ends a real agy turn in a repo with a failing `make check`, then agy continues once with the failure and then stops, and `docs/multi-agent.md` records it in place of the #40 failure (manual check).
 
 ## Plan
 
@@ -36,3 +36,7 @@ Risk: item 6 (agy's real Stop behaviour is only checkable by hand)
 
 - L1 request: /flow:story 43
 - L2 assumptions for approval: the edge case in the story line is accepted, since it matches Claude's `stop_hook_active` (true after any Stop hook's continue) and agy's payload names no hook; the evidence is #40's live payloads on agy 1.4.12 (0 on a normal end, 2 after two continues); existing adapter tests change values on purpose (pair stop rule 3 is pre-agreed here, still shown per test).
+- L3 cycles (mode C): 9e6a951→1a9eddc a failing check at `executionNum` 0 continues (first-turn fixtures moved 1→0, 0 dropped from the unusable loop, as agreed in L2); 9288bcb→143a6c5 `executionNum` 1 lets agy stop (`$n >= 1`); 927a824 test-only: -1 lets agy stop (green on first run; a copy of the adapter without `select(. >= 0)` fails exactly that case); 31765fd docs: plan Core model and `docs/multi-agent.md` rows. `make check`: "All checks passed (7 steps)".
+- L4 manual (agy 1.4.12, new session in a throwaway repo with a failing slow check): "hola", then 23 s later "Stop hook blocked termination: make check failed …", "hola" again, then agy stopped.
+- L5 verifier: PASS (red before green replayed per test commit; tamper check clean). Non-blocking: the test comment at the executionNum 2 case still says "because of this gate"; plan rows R3-6 and R4-6 still state the old rule as a historical record.
+- Risk: item 6 (agy's real Stop behaviour is only checkable by hand)
