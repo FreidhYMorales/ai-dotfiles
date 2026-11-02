@@ -5,6 +5,7 @@ tools:
   - read_file
   - view_file
   - grep_search
+  - find_by_name
 model: pro
 commandExecutionPolicy: off
 ---
