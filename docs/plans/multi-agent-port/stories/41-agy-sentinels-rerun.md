@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a unique sentinel in each candidate rules file and sentinel skills in each candidate skills dir (including a `.bak-*` dir, a same-name clash and `skills-backup/`), when `agy -p` runs twice outside any repo on the installed agy, then `docs/multi-agent.md` shows both tables re-checked on that version, with any changed row marked (manual check).
-- [ ] Given a sentinel agent saved as a `.bak-*` file in agy's agents dir, when `agy -p` is asked which subagents it has, then `docs/multi-agent.md` records whether agy discovers it; if it does, a new backlog story covers moving such files out (manual check).
-- [ ] Given every re-checked row matches the current tables and the `.bak-*` agent is not discovered, when the installer runs on that agy version, then it prints no version warning, and another version still warns naming the new proven version.
+- [x] Given a unique sentinel in each candidate rules file and sentinel skills in each candidate skills dir (including a `.bak-*` dir, a same-name clash and `skills-backup/`), when `agy -p` runs twice outside any repo on the installed agy, then `docs/multi-agent.md` shows both tables re-checked on that version, with any changed row marked (manual check).
+- [x] Given a sentinel agent saved as a `.bak-*` file in agy's agents dir, when `agy -p` is asked which subagents it has, then `docs/multi-agent.md` records whether agy discovers it; if it does, a new backlog story covers moving such files out (manual check).
+- [x] Given every re-checked row matches the current tables and the `.bak-*` agent is not discovered, when the installer runs on that agy version, then it prints no version warning, and another version still warns naming the new proven version.
 
 ## Plan
 
@@ -37,3 +37,7 @@ Risk: item 5, 6 (temporary sentinels in agy's config dirs and the installer's pr
 - L1 request: /flow:story 41
 - L2 question: bump the installer's pin in this story if the re-run matches? User: "si".
 - L3 assumptions for approval: the installed agy is 1.4.12; Claude runs `agy -p` itself (it needs no permission flag); a subagent counts as discovered when `agy -p` lists it or can call it by its sentinel name.
+- L4 manual (agy 1.4.12, Claude ran `agy -p` twice outside any repo, then a control): rules loaded from `~/.gemini/config/AGENTS.md`, `~/.gemini/AGENTS.md`, `~/.gemini/GEMINI.md`, not `antigravity-cli/AGENTS.md`; skills discovered in all three dirs and in a `.bak-*` dir, the clash won by `antigravity-cli/skills/`, `skills-backup/` not discovered: every row as before. A `.md.bak-*` agent in `~/.gemini/config/agents/` is not discovered; a control `.md` beside it is. Control run: none. Sentinels removed, the rules link restored, entry counts as before.
+- L5 cycle (mode C): 4586df4 test (existing pin asserts and the sandbox's default `agy --version` moved 1.4.9 → 1.4.12, approved in the test list; red: 2 cases failed) → 602beec feat `AGY_PINNED=1.4.12`; dd591ce docs. `make check`: "All checks passed (7 steps)".
+- L6 verifier: PASS (red replayed against the parent; tamper check clean; dirs restored). Note: agy's own session transcripts of the three `-p` runs hold the sentinel text; they do not affect discovery.
+- Risk: item 5, 6 (temporary sentinels in agy's config dirs and the installer's proven-version pin; agy's discovery is only checkable by hand)
