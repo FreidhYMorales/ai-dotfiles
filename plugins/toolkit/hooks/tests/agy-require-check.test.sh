@@ -78,7 +78,7 @@ fi
 
 # Without a numeric executionNum the adapter cannot tell a re-entry apart, so
 # it must not risk continuing forever.
-for n in null '"1"'; do
+for n in null -1 '"1"'; do
   expect "executionNum $n lets agy stop on a failing check" '. == {decision: "stop"}' \
     "$(stop_payload "$red" NO_TOOL_CALL 0 | jq -c --argjson n "$n" '.executionNum = $n')"
 done
