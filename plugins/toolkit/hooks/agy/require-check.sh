@@ -16,8 +16,9 @@ stop() {
 dir=$(jq -er '.workspacePaths[0] | strings | select(startswith("/"))' <<<"$input" 2>/dev/null) || stop
 # A later execution is agy continuing because of this gate: Claude's
 # stop_hook_active, so the gate lets go instead of trapping the session.
-# Without a count of at least 1 a re-entry cannot be told apart: stop.
-n=$(jq -e '.executionNum | numbers | select(. >= 1)' <<<"$input" 2>/dev/null) || stop
+# agy counts from 0 (a normal turn end); without a count of at least 0 a
+# re-entry cannot be told apart: stop.
+n=$(jq -e '.executionNum | numbers | select(. >= 0)' <<<"$input" 2>/dev/null) || stop
 active=$(jq -n --argjson n "$n" '$n > 1')
 reason=$(jq -n --arg cwd "$dir" --argjson active "$active" '{cwd: $cwd, stop_hook_active: $active}' |
   bash "$(dirname "${BASH_SOURCE[0]}")/../require-check.sh" 2>&1 >/dev/null) && stop
