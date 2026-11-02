@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a throwaway repo with uncommitted changes and a `make check` that fails, when agy ends a turn without a tool call, then agy continues with the check's failure as the reason and the next turn end is let stop (no trap), and `docs/multi-agent.md` records the real Stop payloads and what `executionNum` counts over two user turns in the same session (manual check).
-- [ ] Given the same repo, when the user cancels a running turn, then agy stops without the gate holding it, and the recorded `terminationReason` of that payload is not `NO_TOOL_CALL` (manual check).
-- [ ] Given the toolkit hooks installed, when a new agy session starts in a workspace, then the model can quote the session-start context (host info), and the recorded SessionStart payload carries `workspacePaths` where the adapter reads it (manual check).
+- [x] Given a throwaway repo with uncommitted changes and a `make check` that fails, when agy ends a turn without a tool call, then agy continues with the check's failure as the reason and the next turn end is let stop (no trap), and `docs/multi-agent.md` records the real Stop payloads and what `executionNum` counts over two user turns in the same session (manual check).
+- [x] Given the same repo, when the user cancels a running turn, then agy stops without the gate holding it, and the recorded `terminationReason` of that payload is not `NO_TOOL_CALL` (manual check).
+- [x] Given the toolkit hooks installed, when a new agy session starts in a workspace, then the model can quote the session-start context (host info), and the recorded SessionStart payload carries `workspacePaths` where the adapter reads it (manual check).
 
 ## Plan
 
@@ -38,3 +38,5 @@ Risk: item 5, 6 (a temporary hook in agy's runtime config; agy's real Stop and s
 - L2 assumptions for approval: run on the installed agy 1.4.12; the user runs every agy session; no code changes, so no automated test and no `test:`/`fix:` commits; the cleanup of the probe is checked like #39's (backup diff empty) though it is not its own criterion, to stay at three.
 - L3 pair (agy 1.4.12): C1 fail of agy vs adapter: every normal turn end sends `executionNum: 0`, the adapter gates only ≥ 1, so `make check` never runs; after a probe-forced `continue` the toolkit gate ran (inferred `executionNum` 1) and the next Stop carried 2; recorded in 3707a16, backlog #43 added. C2: esc stopped agy, no Stop hook ran at all (agy had moved `sleep 60` to a background task). C3 pass: SessionStart injection quoted by the model. Probe removed, `hooks.json` diff against the backup empty. `make check`: "All checks passed (7 steps)".
 - L4 verifier: NEEDS DECISION: the doc is accurate; the user decides whether to close with C1 handed to #43 and C2's `terminationReason` clause met vacuously. Notes: say `executionNum` 1 is inferred, mention the background task; #43 as written skips the check after a continue forced by another Stop hook.
+- L5 decision (user: "si, cerrala con los ajustes"): close with C1 recorded as an agy-vs-adapter failure handed to #43 and C2's `terminationReason` clause met vacuously (no Stop hook on cancel). Wording fixes in 0d7de12: `executionNum` 1 marked inferred, the background task noted, #43 names the edge case of a continue forced by another Stop hook.
+- Risk: item 5, 6 (a temporary hook in agy's runtime config; agy's real Stop and session-start behaviour is only checkable by hand)
