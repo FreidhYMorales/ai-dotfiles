@@ -118,7 +118,7 @@ assert 'agy rules hold no make check line' \
   test -f "$OUT/antigravity/AGENTS.md" -a -z "$(grep -F 'Before saying work is done' "$OUT/antigravity/AGENTS.md" 2>/dev/null)"
 
 echo "== Antigravity plan reviewer agent =="
-# Only registry tool names agy proved (stories 16, 42); Bash is left out.
+# Only registry tool names agy proved (stories 16, 42).
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
 
 echo "== no Antigravity verifier agent =="
@@ -282,11 +282,13 @@ assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_
 assert 'mem: an agent without engram has no mcpServers' \
   test -z "$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" | grep '^mcpServers:')"
 
-echo "== agy maps Glob to find_by_name, Bash to nothing =="
-# find_by_name proven on agy 1.4.12 (story 42); run_command waits for #46.
+echo "== agy maps Glob to find_by_name, Bash to run_command =="
+# Both proven on agy 1.4.12 (story 42). commandExecutionPolicy stays off: in
+# a live -p run every value ran an allow-listed command and refused the rest
+# (story 46), and off is the most restrictive.
 REV_FM=$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" 2>/dev/null)
 assert 'agy reviewer gets find_by_name for Glob' grep -qx '  - find_by_name' <<<"$REV_FM"
-assert 'agy reviewer gets no run_command' test -z "$(grep -x '  - run_command' <<<"$REV_FM")"
+assert 'agy reviewer gets run_command for Bash' grep -qx '  - run_command' <<<"$REV_FM"
 assert 'agy reviewer keeps commandExecutionPolicy off' grep -qx 'commandExecutionPolicy: off' <<<"$REV_FM"
 
 echo "== the agy verifier step ends in NEEDS DECISION =="
