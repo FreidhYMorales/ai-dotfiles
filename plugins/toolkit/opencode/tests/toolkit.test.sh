@@ -260,6 +260,21 @@ expect_pause 'the next message that is not a pause drops the protocol' \
   'length == 2 and (.[0] | length) == 2 and .[1] == [{type: "text", text: "base"}]' 1 \
   "[$p]" "[$p, $loop, $(user_msg msg_3 'sigamos')]"
 
+echo "== opencode: a user message without an id is never a pause (story 21) =="
+no_id='{"role": "user", "content": [{"type": "text", "text": "pausa"}], "metadata": {}}'
+rm -f "$TMP_ROOT/engram-saves"
+got=$(AI_HOOKS_OFF=pack-hint,backup-status PATH="$TMP_ROOT/engram:$PATH" turns "[$no_id]")
+saves=$(rg -c 'checkpoint/pause' "$TMP_ROOT/engram-saves" 2>/dev/null || echo 0)
+label='a first pausa without an id keeps the host info, adds no protocol and saves nothing'
+if jq -e '(.[0] | length) == 2 and .[0][0] == {type: "text", text: "base"}
+  and (.[0][1].text | contains("Fakedistro 1") and (contains("PAUSE REQUESTED") | not))' \
+  >/dev/null 2>&1 <<<"$got" && [[ $saves -eq 0 ]]; then
+  printf 'PASS  %s\n' "$label"
+else
+  printf 'FAIL  %s (got: %s; checkpoints: %s)\n' "$label" "$got" "$saves"
+  failures=$((failures + 1))
+fi
+
 echo "== opencode: a silent or failing pause hook leaves the system untouched =="
 # expect_pause_untouched LABEL ENV...: "pausa" with ENV leaves the system as it was.
 expect_pause_untouched() {
