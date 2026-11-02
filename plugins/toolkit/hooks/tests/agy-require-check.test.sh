@@ -54,6 +54,8 @@ expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload
 
 # A later execution means agy is already continuing because of this gate.
 echo "== agy: the gate never traps a session =="
+expect 'a failing check at executionNum 1 lets agy stop' '. == {decision: "stop"}' \
+  "$(stop_payload "$red" NO_TOOL_CALL 1)"
 expect 'a failing check on a later execution lets agy stop' '. == {decision: "stop"}' \
   "$(stop_payload "$red" NO_TOOL_CALL 2)"
 expect 'a cancel lets agy stop on a failing check' '. == {decision: "stop"}' \
