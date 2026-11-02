@@ -75,7 +75,7 @@ Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 `scripts/gen-agents/gen.sh` turns ported skills and agents into each target's format; that is every `flow` and `toolkit` skill but `toolkit:judgment-day`, plus the `flow:plan-reviewer` agent and, for OpenCode only, `flow:verifier`. Their model comes from one role map, `scripts/gen-agents/models.json`: the `reviewer` role holds one model per target. OpenCode takes any `provider/id` (for a local model, `ollama/<model>`; `inherit` runs on the session model), Antigravity takes `inherit`, `pro` or `flash`; a missing entry or another agy value stops the generator. Edit the line and rerun `./install.sh`. Names follow one map (`flow:x` → `flow-x`, `toolkit:x` → `toolkit-x`), plugin-relative paths become absolute, and Claude tool names become the target's. `install.sh` generates into a new dir, points the gitignored `build/agents` symlink at it in one rename and links from there; a failed generation keeps the previous build. `make check` compares a fresh generation with `scripts/gen-agents/golden/` and fails on any Claude-only form left in it; the header of `scripts/gen-agents/verify.sh` shows how to regenerate the goldens.
 
-In Antigravity the reviewer gets only tool names agy proved in its registry: `read_file`, `view_file`, `grep_search` (1.4.9) and `find_by_name` for `Glob` (1.4.12, story #45: the installed reviewer listed a plan folder with it). Without a shell tool it cannot convert .docx/.pdf sources or run `git log`; `run_command` is proven (below) but mapping `Bash` to it waits for #46. An unmapped tool stops the generator, because agy silently never builds such a subagent.
+In Antigravity the reviewer gets only tool names agy proved in its registry: `read_file`, `view_file`, `grep_search` (1.4.9) and `find_by_name` for `Glob` (1.4.12, story #45: the installed reviewer listed a plan folder with it). `Bash` becomes `run_command` (story #46: the installed reviewer ran `git log -1 --oneline` in a repo), with `commandExecutionPolicy: off`; agy then runs only commands on the user's agy allow list without asking (below), so .docx/.pdf conversions need `pandoc`/`pdftotext` there. An unmapped tool stops the generator, because agy silently never builds such a subagent.
 
 ### Antigravity subagents: engram and registry tools
 
@@ -89,6 +89,19 @@ Checked live on 2026-11-02 (story #42) on agy 1.4.12, Gemini 3.8 Flash: one temp
 | control: `tools: [view_file]` | pass: built, returned the same token |
 
 No log showed a registry error. Subagents also get `send_message` (to answer the main agent) without declaring it.
+
+### Antigravity `commandExecutionPolicy`
+
+agy documents four values (`off`, `auto`, `eager`, `sandbox`; default `sandbox`) without saying what each does. Checked live on 2026-11-02 (story #46) on agy 1.4.12, Gemini 3.8 Flash, `agy -p` with no permission flag, one temporary sentinel agent per value with only `run_command`:
+
+| Value | `cd <repo> && git log -1 --oneline` (on the allow list) | `cd <repo> && uname -r` (not on it) |
+|---|---|---|
+| `off` | ran, real hash | refused: "permission check failed for unsandboxed ...: user denied permission to run command" |
+| `auto` | ran, real hash | refused, same error |
+| `eager` | ran, real hash | refused, same error |
+| `sandbox` | ran, real hash | refused, same error |
+
+In `-p` the user's agy allow list (the `command(...)` entries agy prints as its permissions) decides, not the policy; subagents inherit it. The match is on the command prefix: the reviewer's `git -C <repo> log` was refused while `git log` ran. The generator keeps `off`, the most restrictive name. The `prefer-modern-cli` hook also blocks a subagent's `ls`. The allow list holds `git add` and `git commit`, so a subagent with `run_command` can commit without asking; trim the list by hand if that matters.
 
 ## Antigravity hooks
 
