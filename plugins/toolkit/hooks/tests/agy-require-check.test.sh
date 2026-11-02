@@ -44,29 +44,29 @@ expect() {
 
 echo "== agy: a failing make check keeps the turn going =="
 red=$(repo red 1)
-expect 'a failing check continues with the failure tail' \
+expect 'a failing check at executionNum 0 continues with the failure tail' \
   '.decision == "continue" and (.reason | startswith("make check failed")) and (.reason | contains("lint: broken thing"))' \
-  "$(stop_payload "$red" NO_TOOL_CALL 1)"
+  "$(stop_payload "$red" NO_TOOL_CALL 0)"
 
 echo "== agy: a passing make check lets agy stop =="
 green=$(repo green 0)
-expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$green" NO_TOOL_CALL 1)"
+expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$green" NO_TOOL_CALL 0)"
 
 # A later execution means agy is already continuing because of this gate.
 echo "== agy: the gate never traps a session =="
 expect 'a failing check on a later execution lets agy stop' '. == {decision: "stop"}' \
   "$(stop_payload "$red" NO_TOOL_CALL 2)"
 expect 'a cancel lets agy stop on a failing check' '. == {decision: "stop"}' \
-  "$(stop_payload "$red" USER_CANCELED 1)"
+  "$(stop_payload "$red" USER_CANCELED 0)"
 expect 'hitting the invocation limit lets agy stop on a failing check' '. == {decision: "stop"}' \
-  "$(stop_payload "$red" MAX_INVOCATIONS 1)"
+  "$(stop_payload "$red" MAX_INVOCATIONS 0)"
 
 # A Stop adapter never answers continue on input it cannot read.
 echo "== agy: an unreadable payload lets agy stop =="
 expect 'an empty payload lets agy stop' '. == {decision: "stop"}' ''
 expect 'a payload that is not JSON lets agy stop' '. == {decision: "stop"}' 'not json {'
 # Run from inside the failing repo: a missing workspace must not fall back to it.
-out=$(cd "$red" && jq -n '{executionNum: 1, terminationReason: "NO_TOOL_CALL"}' | bash "$ADAPTER" 2>/dev/null)
+out=$(cd "$red" && jq -n '{executionNum: 0, terminationReason: "NO_TOOL_CALL"}' | bash "$ADAPTER" 2>/dev/null)
 if jq -e '. == {decision: "stop"}' >/dev/null 2>&1 <<<"$out"; then
   printf 'PASS  %s\n' 'a payload without workspacePaths lets agy stop, even inside a failing repo'
 else
@@ -76,18 +76,18 @@ fi
 
 # Without a numeric executionNum the adapter cannot tell a re-entry apart, so
 # it must not risk continuing forever.
-for n in null 0 '"1"'; do
+for n in null '"1"'; do
   expect "executionNum $n lets agy stop on a failing check" '. == {decision: "stop"}' \
-    "$(stop_payload "$red" NO_TOOL_CALL 1 | jq -c --argjson n "$n" '.executionNum = $n')"
+    "$(stop_payload "$red" NO_TOOL_CALL 0 | jq -c --argjson n "$n" '.executionNum = $n')"
 done
 expect 'a missing executionNum lets agy stop on a failing check' '. == {decision: "stop"}' \
-  "$(stop_payload "$red" NO_TOOL_CALL 1 | jq -c 'del(.executionNum)')"
+  "$(stop_payload "$red" NO_TOOL_CALL 0 | jq -c 'del(.executionNum)')"
 
 # Run from inside the failing repo: an empty or relative workspace must not
 # resolve against the hook's own cwd.
 for ws in '' '.' 'red'; do
   label="workspace path '$ws' lets agy stop, even inside a failing repo"
-  out=$(cd "$red" && stop_payload "$ws" NO_TOOL_CALL 1 | bash "$ADAPTER" 2>/dev/null)
+  out=$(cd "$red" && stop_payload "$ws" NO_TOOL_CALL 0 | bash "$ADAPTER" 2>/dev/null)
   if jq -e '. == {decision: "stop"}' >/dev/null 2>&1 <<<"$out"; then
     printf 'PASS  %s\n' "$label"
   else
@@ -102,10 +102,10 @@ git -C "$pair" add -A
 git -C "$pair" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm 'test: red'
 printf 'wip\n' >"$pair/wip.txt"
 # Same failing repo without the marker: the gate holds, so the marker is what lets go.
-expect 'without the marker the red repo continues' '.decision == "continue"' "$(stop_payload "$pair" NO_TOOL_CALL 1)"
+expect 'without the marker the red repo continues' '.decision == "continue"' "$(stop_payload "$pair" NO_TOOL_CALL 0)"
 marker=$(cd "$pair" && git rev-parse --path-format=absolute --git-path flow-pair-red)
 printf '%s\n%s\n' "$(git -C "$pair" branch --show-current)" "$(git -C "$pair" rev-parse HEAD)" >"$marker"
-expect 'a red marker on the branch lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$pair" NO_TOOL_CALL 1)"
+expect 'a red marker on the branch lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$pair" NO_TOOL_CALL 0)"
 
 echo
 if [[ $failures -gt 0 ]]; then
