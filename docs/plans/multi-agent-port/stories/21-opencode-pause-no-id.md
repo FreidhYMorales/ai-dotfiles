@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given a new OpenCode session whose latest user message has no id, when the model is called (even if the text is "pausa"), then the call goes on without an error, no checkpoint is saved, no pause protocol is added and the session-start context is still there.
-- [ ] Given a pause message with an id already handled in that session, when the next user message has no id, then no new checkpoint is saved and the earlier pause protocol is no longer added.
-- [ ] Given user messages that carry ids, when I send "pausa" and then a normal message, then the behaviour is exactly as in story 20 (one checkpoint, protocol on that message only).
+- [x] Given a new OpenCode session whose latest user message has no id, when the model is called (even if the text is "pausa"), then the call goes on without an error, no checkpoint is saved, no pause protocol is added and the session-start context is still there.
+- [x] Given a pause message with an id already handled in that session, when the next user message has no id, then no new checkpoint is saved and the earlier pause protocol is no longer added.
+- [x] Given user messages that carry ids, when I send "pausa" and then a normal message, then the behaviour is exactly as in story 20 (one checkpoint, protocol on that message only).
 
 ## Plan
 

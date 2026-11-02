@@ -30,7 +30,7 @@
 18. [x] a671015 As a developer, I want the session-start hooks (host info, pack hint, backup status) in Antigravity so that agy starts with the same context as Claude. Requires: #05
 19. [x] cb83ca5 As a developer, I want the session-start hooks (host info, pack hint, backup status) in OpenCode so that OpenCode starts with the same context as Claude. Requires: #05
 20. [x] 65a0908 As a developer, I want `pause` in OpenCode so that I can stop an OpenCode session safely with a checkpoint saved. Requires: #19
-21. [~] As a developer, I want the OpenCode pause hook to skip a user message without an id instead of throwing so that a malformed history never breaks a session. Requires: #20
+21. [x] 5e00538 As a developer, I want the OpenCode pause hook to skip a user message without an id instead of throwing so that a malformed history never breaks a session. Requires: #20
 22. [-] split → #34, #35, #36
 23. [-] split → #24, #25, #26
 24. [x] 0f05602 As a developer, I want the generator to turn bare support-file references into absolute repo paths only when the file exists in that skill's dir, with `verify.sh` flagging any it missed, so that generated skills never point at missing files and skill-creator's layout prose stays intact. Requires: #08
