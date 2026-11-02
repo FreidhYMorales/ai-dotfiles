@@ -164,7 +164,8 @@ opencode_skill() {
 }
 
 # agy_tools TOOL: the agy registry names for a Claude tool. Only names agy
-# 1.4.9 proved (story 16); Glob and Bash wait for a real run (story 17).
+# 1.4.9 proved (story 16). agy 1.4.12 has find_by_name and run_command
+# (story 42); mapping Glob and Bash to them is backlog #44.
 agy_tools() {
   case $1 in
     Read) echo read_file view_file ;;
