@@ -75,7 +75,7 @@ support_paths() {
   # agy_words: subagents are launched through invoke_subagent; engram tools
   # go by their own names. pair's verifier step ends in NEEDS DECISION while
   # the agy generator maps no shell tool (run_command is proven, story 42;
-  # mapping and the verifier decision are backlog #44).
+  # mapping it is backlog #46, the verifier decision #47).
   agy_words() {
     sed -E \
       -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
@@ -165,13 +165,14 @@ opencode_skill() {
 }
 
 # agy_tools TOOL: the agy registry names for a Claude tool. Only names agy
-# 1.4.9 proved (story 16). agy 1.4.12 has find_by_name and run_command
-# (story 42); mapping Glob and Bash to them is backlog #44.
+# proved: read_file, view_file, grep_search on 1.4.9 (story 16), find_by_name
+# on 1.4.12 (story 42). run_command is proven too; mapping Bash to it is #46.
 agy_tools() {
   case $1 in
     Read) echo read_file view_file ;;
     Grep) echo grep_search ;;
-    Glob | Bash) ;;
+    Glob) echo find_by_name ;;
+    Bash) ;;
     # Engram is declared under mcpServers: (agy_agent), never as a tool.
     mcp__engram__*) ;;
     *)
@@ -200,7 +201,7 @@ agy_agent() {
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
-    # No agent gets a shell tool until backlog #44 maps run_command (proven in
+    # No agent gets a shell tool until backlog #46 maps run_command (proven in
     # story 42), so no agent runs commands.
     printf 'model: %s\ncommandExecutionPolicy: off\n' "$model"
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
