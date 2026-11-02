@@ -74,8 +74,7 @@ support_paths() {
 
   # agy_words: subagents are launched through invoke_subagent; engram tools
   # go by their own names. pair's verifier step ends in NEEDS DECISION while
-  # the agy generator maps no shell tool (run_command is proven, story 42;
-  # mapping it is backlog #46, the verifier decision #47).
+  # no agy verifier is built (#38); whether it comes back is backlog #47.
   agy_words() {
     sed -E \
       -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
