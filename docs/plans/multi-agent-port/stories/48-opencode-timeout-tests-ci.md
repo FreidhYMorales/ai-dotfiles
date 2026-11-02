@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given the full parallel `make check` on a single CPU (the CI-like setup that reproduced the pack-hint flake in #514), when it runs twice in a row, then every OpenCode hook-timeout case passes both times.
-- [ ] Given a hook that is no longer cut off at its timeout (the cut-off removed by hand), when the OpenCode plugin tests run, then the matching timeout case fails, so the tests still prove the cut-off.
-- [ ] Given the fix on `main`, when GitHub Actions runs `check`, then it is green (manual check).
+- [x] Given the full parallel `make check` on a single CPU (the CI-like setup that reproduced the pack-hint flake in #514), when it runs twice in a row, then every OpenCode hook-timeout case passes both times.
+- [x] Given a hook that is no longer cut off at its timeout (the cut-off removed by hand), when the OpenCode plugin tests run, then the matching timeout case fails, so the tests still prove the cut-off.
+- [x] Given the fix on `main`, when GitHub Actions runs `check`, then it is green (manual check).
 
 ## Plan
 
@@ -40,3 +40,6 @@ Risk: item 4, 5 (timing under parallel test runs; the CI check)
 - L4 red (approved list, no test commit: the failing cases already exist): full `make check` in `archlinux:latest` with `docker --cpus=1` (CI's tool set, no Claude Code): "the pack hint is cut off at its 2 s timeout (took 5s)", "the pause hook ... (took 9s)", "the shell check is cut off at the 10 s default (took 12s)". Also failing there, out of scope: `plugins/toolkit/hooks/tests/pack-hint.test.sh` (parallel-sessions and fallback cases; green on CI).
 - L5 fix a32d3dc: hanging stub 20 s → 60 s; limits 4/7/12 s → 12/15/20 s (timeout + 10 s), approved in the test list. Two full `make check` runs in the same 1-CPU container: the OpenCode plugin tests passed both times (only `pack-hint.test.sh` failed, as before). Local `make check`: "All checks passed (7 steps)".
 - L6 mutation (criterion 2): the plugin's `spawnSync` `timeout` removed by hand: the three cases failed (took 180s, 241s, 120s); the plugin was restored with `git checkout`.
+- L7 verifier: PASS (C1 from the logged container runs, C2 from the 60 s stub against the 20 s limit; plugin code unchanged vs main).
+- L8 manual (criterion 3): merged as e3051fe and pushed; GitHub Actions run 41542453058 on `main`: check success, recovery success.
+- Risk: item 4, 5 (timing under parallel test runs; the CI check)
