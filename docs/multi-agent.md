@@ -76,6 +76,36 @@ Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 In Antigravity the reviewer gets only the tool names agy 1.4.9 proved in its registry (`read_file`, `view_file`, `grep_search`): without `Glob` and `Bash` it cannot convert .docx/.pdf sources or run `git log`. An unmapped tool stops the generator, because agy silently never builds such a subagent.
 
+## Antigravity hooks
+
+Checked live on 2026-11-02 (story #39) on agy 1.4.12 (the installer pins 1.4.9), Gemini 3.8 Flash, with a temporary probe as its own `hooks.json` key next to `toolkit` (matcher `run_command`, logging the payload); `toolkit` and `herdr` were identical to the backup afterwards.
+
+| Check | Result |
+|---|---|
+| probe answers `deny`, agy run with `--dangerously-skip-permissions`, asked for `echo probe39-hola > /tmp/probe39.txt` | pass: blocked ("tool call denied by pre-tool hook"), the file was not created. The flag does not bypass PreToolUse hooks, so the agy hook checks are proven, not "unproven" |
+| toolkit hook, no flag, asked for `eza /tmp` | pass: agy showed its own "Run this command?" prompt; the real payload replayed through `hooks/agy/prefer-modern-cli.sh` answers `{"decision": "ask"}` |
+| payload fields the adapter reads | pass: `.toolCall.name` is `"run_command"`, `.toolCall.args.CommandLine` holds the command line as typed |
+
+The PreToolUse payload agy sends for `run_command` (values shortened):
+
+```json
+{
+  "artifactDirectoryPath": "~/.gemini/antigravity-cli/brain/<conversationId>",
+  "conversationId": "<uuid>",
+  "lastUserInput": "<the user's last message>",
+  "modelName": "gemini-3.8-flash-high",
+  "stepIdx": 3,
+  "toolCall": {
+    "name": "run_command",
+    "args": {"CommandLine": "eza /tmp", "WaitMsBeforeAsync": 5000, "toolSummary": "<model's summary>"}
+  },
+  "transcriptPath": "<artifactDirectoryPath>/.system_generated/logs/transcript_full.jsonl",
+  "workspacePaths": ["<the session's working dir>"]
+}
+```
+
+It has no working-directory field for the command itself; `workspacePaths` is the closest.
+
 ## Smoke run
 
 Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, four stories, all high risk), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
