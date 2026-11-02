@@ -274,6 +274,9 @@ else
   printf 'FAIL  %s (got: %s; checkpoints: %s)\n' "$label" "$got" "$saves"
   failures=$((failures + 1))
 fi
+expect_pause 'a message without an id after a pause drops the protocol and saves no second checkpoint' \
+  'length == 2 and (.[0][1].text | startswith("PAUSE REQUESTED")) and .[1] == [{type: "text", text: "base"}]' 1 \
+  "[$p]" "[$p, $loop, $no_id]"
 
 echo "== opencode: a silent or failing pause hook leaves the system untouched =="
 # expect_pause_untouched LABEL ENV...: "pausa" with ENV leaves the system as it was.
