@@ -106,6 +106,19 @@ The PreToolUse payload agy sends for `run_command` (values shortened):
 
 It has no working-directory field for the command itself; `workspacePaths` is the closest.
 
+### Stop and SessionStart
+
+Checked live on 2026-11-02 (story #40), same agy and model, in a throwaway repo with an uncommitted file and a `make check` that sleeps 20 s and fails, under `--dangerously-skip-permissions`. A probe key logged every Stop and SessionStart payload and answered `{}`; for one turn it answered `continue` once. `toolkit` and `herdr` were identical to the backup afterwards.
+
+| Check | Result |
+|---|---|
+| failing `make check`, two user turns that end without a tool call | **fail**: both Stop payloads carry `executionNum: 0`; the adapter treats only `executionNum` ≥ 1 as a turn end to gate, so it answered `stop` without running `make check` and the gate never held a turn (backlog #43) |
+| what `executionNum` counts | the continuations forced by a Stop hook inside one user turn: 0 on a normal turn end, 1 after one `continue`. After the probe's `continue`, the next turn end was gated by the toolkit hook (agy injected "Stop hook blocked termination: make check failed …", so the adapter saw 1, ran the check and continued); the model then fixed the Makefile and the next Stop carried 2. Each new user turn starts at 0 again. The probe was not called on the turn end right after its own `continue` |
+| cancel (esc) while `sleep 60` runs | pass: agy stopped and the gate did not hold it. No Stop hook ran at all on the cancel, so there is no `terminationReason` to record |
+| session start | pass: agy injected the adapter's message as a system message ("injected by a SessionStart hook"), and the model quoted the host info and the backup notice. The SessionStart payload carries `conversationId`, `modelName`, `lastUserInput`, `workspacePaths` (absolute), `transcriptPath` and `artifactDirectoryPath`; replayed, the adapter returns the same host info |
+
+The Stop payload adds `executionNum`, `terminationReason` (`NO_TOOL_CALL` on a normal end), `error` (empty) and `fullyIdle` (`true`) to the SessionStart fields.
+
 ## Smoke run
 
 Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, four stories, all high risk), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
