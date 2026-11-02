@@ -106,7 +106,7 @@ A throwaway toy repo (e.g. a tiny CLI with one function) used for the manual smo
 | OpenCode command names with a colon (`flow:story`) | Not allowed; every command is `flow-` prefixed in both targets (`/flow-story`) | user | yes |
 | What `engram setup opencode|antigravity-cli` writes | Not run by the installer; verify only, `engram setup` is a documented manual step | me | yes |
 | OpenCode plugin API | The 2.x `{ id, setup }` shape proven in story 05; versions pinned in Platforms | me | yes |
-| Exact agy tool names for each Claude tool | `read_file`, `view_file`, `grep_search` proven (story 16); `find_by_name`/`run_command` proven on 1.4.12 (story 42); `Glob` → `find_by_name` mapped (#45); `Bash` → `run_command` mapped (#46); generator fails on any other unmapped tool | me | yes | |
+| Exact agy tool names for each Claude tool | `read_file`, `view_file`, `grep_search` proven (story 16); `find_by_name`/`run_command` proven on 1.4.12 (story 42); `Glob` → `find_by_name` mapped (#45); `Bash` → `run_command` mapped (#46); generator fails on any other unmapped tool | me | yes |
 | agy tool approvals | `-p` mode soft-denies subagent tools that need approval; `--mode auto` unavailable on the account; manual agy runs use `--dangerously-skip-permissions`, run by the user; `commandExecutionPolicy` set per generated agent | user, me | no (#17) |
 
 ## Deferred to v2
