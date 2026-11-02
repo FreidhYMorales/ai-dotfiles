@@ -166,13 +166,13 @@ opencode_skill() {
 
 # agy_tools TOOL: the agy registry names for a Claude tool. Only names agy
 # proved: read_file, view_file, grep_search on 1.4.9 (story 16), find_by_name
-# on 1.4.12 (story 42). run_command is proven too; mapping Bash to it is #46.
+# and run_command on 1.4.12 (story 42).
 agy_tools() {
   case $1 in
     Read) echo read_file view_file ;;
     Grep) echo grep_search ;;
     Glob) echo find_by_name ;;
-    Bash) ;;
+    Bash) echo run_command ;;
     # Engram is declared under mcpServers: (agy_agent), never as a tool.
     mcp__engram__*) ;;
     *)
@@ -201,8 +201,8 @@ agy_agent() {
   {
     printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
     printf '  - %s\n' "${names[@]}"
-    # No agent gets a shell tool until backlog #46 maps run_command (proven in
-    # story 42), so no agent runs commands.
+    # off for every agent: in a live -p run each policy value ran a command on
+    # the user's agy allow list and refused the rest (story 46).
     printf 'model: %s\ncommandExecutionPolicy: off\n' "$model"
     [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
     printf -- '---\n'
