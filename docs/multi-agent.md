@@ -83,7 +83,7 @@ Checked live on 2026-11-02 (story #39) on agy 1.4.12 (the installer pins 1.4.9),
 | Check | Result |
 |---|---|
 | probe answers `deny`, agy run with `--dangerously-skip-permissions`, asked for `echo probe39-hola > /tmp/probe39.txt` | pass: blocked ("tool call denied by pre-tool hook"), the file was not created. The flag does not bypass PreToolUse hooks, so the agy hook checks are proven, not "unproven" |
-| toolkit hook, no flag, asked for `eza /tmp` | pass: agy showed its own "Run this command?" prompt; the real payload replayed through `hooks/agy/prefer-modern-cli.sh` answers `{"decision": "ask"}` |
+| toolkit hook, no flag, asked for `eza /tmp` | pass: agy showed its own "Run this command?" prompt (the probe, still installed, also answered `ask`); the real payload replayed through `hooks/agy/prefer-modern-cli.sh` answers `{"decision": "ask"}` |
 | payload fields the adapter reads | pass: `.toolCall.name` is `"run_command"`, `.toolCall.args.CommandLine` holds the command line as typed |
 
 The PreToolUse payload agy sends for `run_command` (values shortened):
