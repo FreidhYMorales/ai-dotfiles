@@ -31,7 +31,7 @@ PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
 # The agy version the Antigravity discovery checks in docs/multi-agent.md ran on.
-AGY_PINNED=1.4.9
+AGY_PINNED=1.4.12
 # Claude-only skills: judgment-day relies on Claude Code agents, so
 # link_skills keeps it out of OpenCode and Antigravity until v2.
 CLAUDE_ONLY_SKILLS="judgment-day"

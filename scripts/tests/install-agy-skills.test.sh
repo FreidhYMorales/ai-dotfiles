@@ -168,23 +168,23 @@ assert 'agy with engram prints no engram warning' \
 
 echo "== antigravity warns on an unpinned agy version =="
 
-# The rules and skills discovery tables were proven on agy 1.4.9 (story 35).
+# The rules and skills discovery tables were proven on agy 1.4.12 (story 41).
 home=$(sandbox antigravity-agy-upgrade)
 mkdir -p "$home/.gemini/config"
 printf '1.5.0\n' >"$home/state/agy-version"
 install "$home" --target antigravity
 assert 'antigravity run on agy 1.5.0 succeeds' test "$LAST_EXIT" -eq 0
-assert 'agy 1.5.0 warns that discovery was proven on 1.4.9' \
-  rg -qF 'warning: agy is 1.5.0, but its rules and skills paths were proven on 1.4.9' <<<"$LAST_OUTPUT"
+assert 'agy 1.5.0 warns that discovery was proven on 1.4.12' \
+  rg -qF 'warning: agy is 1.5.0, but its rules and skills paths were proven on 1.4.12' <<<"$LAST_OUTPUT"
 assert 'the version warning names how to re-run the checks' \
   rg -qF "re-run the sentinel checks in $ROOT/docs/multi-agent.md" <<<"$LAST_OUTPUT"
 
-# The sandbox's default `agy --version` prints the pinned 1.4.9.
+# The sandbox's default `agy --version` prints the pinned 1.4.12.
 home=$(sandbox antigravity-agy-pinned)
 mkdir -p "$home/.gemini/config"
 install "$home" --target antigravity
-assert 'antigravity run on agy 1.4.9 succeeds' test "$LAST_EXIT" -eq 0
-assert 'agy 1.4.9 prints no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
+assert 'antigravity run on agy 1.4.12 succeeds' test "$LAST_EXIT" -eq 0
+assert 'agy 1.4.12 prints no version warning' test -z "$(rg -F 'warning: agy is' <<<"$LAST_OUTPUT")"
 
 # No agy at all: the engram warning already says so, no version warning.
 home=$(sandbox antigravity-agy-version-missing)
