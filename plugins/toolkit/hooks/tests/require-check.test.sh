@@ -253,6 +253,15 @@ write_marker "$repo" story/03-x 0123456789abcdef0123456789abcdef01234567
 expect 2 'marker whose sha is not in HEAD still blocks' "$(payload "$repo")"
 assert 'stale marker reports no systemMessage' test -z "$LAST_STDOUT"
 
+repo=$(red_repo marker-forgotten)
+sha=$(git -C "$repo" rev-parse HEAD)
+printf 'green\n' >"$repo/green.txt"
+git -C "$repo" add green.txt
+git -C "$repo" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm green
+write_marker "$repo" story/03-x "$sha"
+expect 2 'marker whose red commit is no longer HEAD still blocks' "$(payload "$repo")"
+assert 'forgotten marker reports no systemMessage' test -z "$LAST_STDOUT"
+
 repo=$(red_repo marker-branch)
 write_marker "$repo" story/99-other "$(git -C "$repo" rev-parse HEAD)"
 expect 2 'marker for another branch still blocks' "$(payload "$repo")"
