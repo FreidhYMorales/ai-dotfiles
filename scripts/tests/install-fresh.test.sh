@@ -36,4 +36,14 @@ assert 'it lists the generated OpenCode skill links' would_link "$home/\.config/
 assert 'it lists the generated Antigravity agent links' would_link "$home/\.gemini/config/agents/flow-plan-reviewer\.md"
 assert 'it lists the generated Antigravity skill links' would_link "$home/\.gemini/antigravity-cli/skills/flow-backlog"
 
+# Everything in the sandbox but its own stubs (bin/) and their state (state/).
+# BUILD_DIR lives in the sandbox here (AI_BUILD_DIR), so this also covers the
+# repo's build dir.
+home=$(sandbox dry-clean)
+mkdir -p "$home/tmp"
+TMPDIR="$home/tmp" install "$home" --dry-run --target all
+assert 'the dry run leaves nothing in the home' \
+  test -z "$(find "$home" -mindepth 1 -not -path "$home/bin*" -not -path "$home/state*" -not -path "$home/tmp")"
+assert 'the dry run leaves no temp build behind' test -z "$(find "$home/tmp" -mindepth 1)"
+
 finish_cases
