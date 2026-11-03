@@ -68,7 +68,17 @@ err_has 'a doubled slash: the reason names .config/gh' '.config/gh'
 block 'bat ~/.config/./gh/hosts.yml'
 block 'jq . ~/.config/././restic//engram.env'
 
+echo "== brace, glob and .. spellings are blocked =="
+block 'bat .env.{local,prod}'
+block 'bat ~/.config/{gh,restic}/*'
+err_has 'a brace group: the reason names it' '.config/{gh,restic}'
+block 'bat ~/.config/g?/hosts.yml'
+block 'bat ~/.config/[g]h/hosts.yml'
+block 'bat ~/.git-cred*'
+block 'bat ~/.config/x/../gh/hosts.yml'
+
 echo "== tools that do not name the files run =="
+allow 'bat ~/.config/nvim/init.lua'
 allow 'gh pr checks 31'
 allow 'engram-backup --verify'
 allow 'rg foo .'
