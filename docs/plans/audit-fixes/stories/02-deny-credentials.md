@@ -21,6 +21,7 @@
 
 - OS-level `sandbox.filesystem.denyRead` (decided: it would break `gh` and `engram-backup` run by Claude).
 - Catching obfuscated paths (variables built at run time, base64, scripts that read the files themselves); the guard catches accidental and agent-typed reads only.
+- Relative paths after a `cd` (`cd ~/.config && bat gh/hosts.yml`): catching them means resolving the shell's working directory (decided by the user after the first verifier pass).
 - Porting the guard to OpenCode or agy.
 - Changing the existing 25 deny rules.
 
@@ -39,3 +40,5 @@ Risk: item 2 (credential reads: restic key, gh token, git credentials), item 5 (
 
 - L1 request: haz la sugerecnai y luego vamos con la siguiente story
 - L2 decision (user): Read denies plus a Bash PreToolUse path guard, not the OS sandbox.
+- L3 manual test 2 (fresh session, after `./install.sh --target claude` merged 29 denies; backup `~/.claude/settings.json.bak-20261103-111620`): Read of a control file succeeded; Read of `~/pairtest/.env.pairtest` was denied ("denied by your permission settings"); `bat` on it was blocked by the hook ("protected credential path (.env.pairtest)"). Dummy files removed.
+- L4 verifier pass 1: FAIL. The guard missed the globs (`cat .env.*`, `rg TOKEN .env*`) and the `//` and `/./` spellings. Fixed red→green: d6d061b → 9d86fd2 (globs), a754b65 → 0042296 (path normalisation). The user moved relative paths after a `cd` to Out of scope.
