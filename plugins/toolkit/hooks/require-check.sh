@@ -13,7 +13,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh" && hook_off
 
 input=$(cat)
 if [[ -n $input ]] && jq -e . >/dev/null 2>&1 <<<"$input"; then
-  [[ $(jq -r '.stop_hook_active // false' <<<"$input") == true ]] && exit 0
+  active=$(jq -r '.stop_hook_active // false' <<<"$input")
   dir=$(jq -r '.cwd // empty' <<<"$input")
 fi
 dir=${dir:-$PWD}
@@ -84,6 +84,14 @@ output=$(cd "$dir" && timeout 300 make -f "$makefile" check 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
   mkdir -p "${cache_file%/*}" && printf '%s\n' "$state" >"$cache_file.tmp" && mv -f "$cache_file.tmp" "$cache_file"
+  exit 0
+fi
+
+# Already blocked once this turn: never block again (that would loop), but
+# say the check is still red instead of letting the stop pass silently.
+if [[ ${active:-false} == true ]]; then
+  jq -n --arg m "require-check: make check is still red, stopping anyway:
+$(tail -n 60 <<<"$output")" '{systemMessage: $m}'
   exit 0
 fi
 
