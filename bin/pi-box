@@ -70,7 +70,11 @@ if [[ -n $hooks && $hooks == "${root%/}/"* && $hooks != "${root%/}/.git/"* ]]; t
     echo "pi-box: refusing to open $root: core.hooksPath ($hooks) is inside it but does not exist, so the box could create it. Create it first." >&2
     exit 1
   fi
-  args+=(--ro-bind "$hooks" "$hooks")
+  # Bind its top folder below the root: a deeper mount point alone would let
+  # the box rename a parent and rebuild the path.
+  rel=${hooks#"${root%/}/"}
+  top="${root%/}/${rel%%/*}"
+  args+=(--ro-bind "$top" "$top")
 fi
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
 # into the parent terminal; a new session prevents that (at the cost of job control).
