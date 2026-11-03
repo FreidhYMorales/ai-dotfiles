@@ -56,6 +56,12 @@ err_has '.env.*: the reason names the file' '.env.production'
 block 'cd app && bat ./config/.env.local'
 err_has '.env.* in a subdirectory: the reason names the file' '.env.local'
 
+echo "== globs that expand to a .env.* file are blocked =="
+block 'cat .env.*'
+err_has 'a .env.* glob: the reason names it' '.env.*'
+block 'rg TOKEN .env*'
+block 'bat config/.env.[lp]*'
+
 echo "== tools that do not name the files run =="
 allow 'gh pr checks 31'
 allow 'engram-backup --verify'
