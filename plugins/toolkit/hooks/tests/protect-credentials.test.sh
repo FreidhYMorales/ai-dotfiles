@@ -41,6 +41,20 @@ echo "== must block =="
 block 'bat ~/.config/gh/hosts.yml'
 err_has 'the reason names the protected path' '.config/gh'
 
+echo "== every spelling and program is blocked =="
+# shellcheck disable=SC2016 # $HOME is command text, not expanded here
+block 'bat $HOME/.config/gh/hosts.yml'
+# shellcheck disable=SC2016
+block 'jq . "${HOME}/.config/restic/engram.env"'
+err_has 'restic: the reason names .config/restic' '.config/restic'
+block 'bat /home/u/.git-credentials'
+err_has 'git credentials: the reason names .git-credentials' '.git-credentials'
+block 'cp ~/.git-credentials /tmp/x'
+block 'rg token .env.production'
+err_has '.env.*: the reason names the file' '.env.production'
+block 'cd app && bat ./config/.env.local'
+err_has '.env.* in a subdirectory: the reason names the file' '.env.local'
+
 if [[ $failures -gt 0 ]]; then
   printf '%d case(s) failed\n' "$failures"
   exit 1
