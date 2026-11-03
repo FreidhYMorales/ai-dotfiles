@@ -55,6 +55,20 @@ err_has '.env.*: the reason names the file' '.env.production'
 block 'cd app && bat ./config/.env.local'
 err_has '.env.* in a subdirectory: the reason names the file' '.env.local'
 
+echo "== the block never shows the secret =="
+FAKE_HOME=$(mktemp -d)
+trap 'rm -rf "$FAKE_HOME"' EXIT
+printf 'https://user:SECRET123@github.com\n' >"$FAKE_HOME/.git-credentials"
+payload=$(jq -n '{tool_name: "Bash", tool_input: {command: "bat ~/.git-credentials"}}')
+out=$(printf '%s' "$payload" | HOME=$FAKE_HOME bash "$HOOK" 2>&1)
+code=$?
+if [[ $code -eq 2 && $out != *SECRET123* ]]; then
+  printf 'PASS  blocked without echoing the file content\n'
+else
+  printf 'FAIL  blocked without echoing the file content (exit %d, output: %s)\n' "$code" "$out"
+  failures=$((failures + 1))
+fi
+
 if [[ $failures -gt 0 ]]; then
   printf '%d case(s) failed\n' "$failures"
   exit 1
