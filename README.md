@@ -6,7 +6,7 @@ Personal configuration for AI coding tools. Planning-first workflow and a story-
 
 | Path | What | How it is installed |
 |---|---|---|
-| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | Symlinked to `~/.config/opencode/AGENTS.md` and `~/.gemini/antigravity-cli/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
+| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | A generated copy per target (`/flow-x` names plus each target's closing rules) is linked to `~/.config/opencode/AGENTS.md` and `~/.gemini/config/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
 | `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
