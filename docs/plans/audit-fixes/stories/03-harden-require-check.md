@@ -42,3 +42,5 @@ Risk: item 2 (an untrusted clone's Makefile runs code on the host), item 5 (inst
 - L1 request: /flow:story 03
 - L2 decision (user): trust rule = per-repo opt-in in the local git config (option a), not a trusted-roots list.
 - L3 approved (user): story and the three assumptions as written (note only with a dirty tree and a root Makefile; local scope only; rerun the check on the second stop).
+- L4 test list approved (user), including two changes to existing tests: the fixtures in `require-check.test.sh` (`new_repo`) and `agy-require-check.test.sh` (`repo`) opt in, and the old `stop_hook_active true skips` case is replaced by the second-stop test (criterion 1 changes that behaviour).
+- L5 verifier pass 1: FAIL. A clone can ship a subdirectory that looks like a git dir (`HEAD`, `objects/`, `refs/`, `config` with `core.worktree=.` and `require-check.trusted=true`); with the session cwd inside it, discovery picked it and its Makefile ran. Fixed red→green: 58ec8d5 → daad54d (`safe.bareRepository=explicit` on discovery; also stops a planted `core.fsmonitor` from running through the hook's `git status`).
