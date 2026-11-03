@@ -13,12 +13,20 @@ unset SKIP_REQUIRE_CHECK
 # Isolate the green-state cache from the real ~/.cache.
 export XDG_CACHE_HOME="$TMP_ROOT/cache"
 
-# new_repo NAME: create an empty git repo and print its path.
+# new_repo NAME: create an empty git repo the gate trusts and print its path.
 new_repo() {
   local dir="$TMP_ROOT/$1"
   mkdir -p "$dir"
   git -C "$dir" init -q
+  git -C "$dir" config require-check.trusted true
   printf '%s\n' "$dir"
+}
+
+# new_untrusted_repo NAME: like new_repo, without the opt-in.
+new_untrusted_repo() {
+  new_repo "$1" >/dev/null
+  git -C "$TMP_ROOT/$1" config --unset require-check.trusted
+  printf '%s\n' "$TMP_ROOT/$1"
 }
 
 # commit_all DIR: commit everything so the working tree is clean.
@@ -69,14 +77,27 @@ assert() {
 
 lacks_line() { ! grep -qx "$1" <<<"$2"; }
 
+# message_has REGEX JSON: the hook's systemMessage matches REGEX.
+message_has() { jq -e --arg re "$1" '.systemMessage | test($re)' >/dev/null 2>&1 <<<"$2"; }
+
 payload() { jq -n --arg cwd "$1" '{hook_event_name: "Stop", stop_hook_active: false, cwd: $cwd}'; }
 
 echo "== skip branches (exit 0) =="
 
 repo=$(new_repo active)
-write_makefile "$repo" 'exit 1'
-expect 0 'stop_hook_active true skips' \
+# shellcheck disable=SC2016 # $$ is make syntax, expanded by the recipe shell.
+write_makefile "$repo" 'for i in $$(seq 1 100); do echo "line-$$i"; done' 'exit 1'
+expect 0 'stop_hook_active with a red check does not block again' \
   "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop says make check is still red' message_has 'make check is still red' "$LAST_STDOUT"
+assert 'second stop message has the failure tail' message_has 'line-100' "$LAST_STDOUT"
+
+active_green=$(new_repo active-green)
+write_makefile "$active_green" 'touch ran-check' 'true'
+expect 0 'stop_hook_active with a green check passes' \
+  "$(jq -n --arg cwd "$active_green" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop with a green check stays silent' test -z "$LAST_STDOUT"
+assert 'second stop still runs make check' test -e "$active_green/ran-check"
 
 expect 0 'SKIP_REQUIRE_CHECK=1 skips' "$(payload "$repo")" SKIP_REQUIRE_CHECK=1
 
@@ -105,6 +126,46 @@ write_makefile "$repo" 'exit 1'
 pushd "$repo" >/dev/null || exit 1
 expect 2 'empty stdin falls back to PWD' ''
 popd >/dev/null || exit 1
+
+echo "== trust: only opted-in repos run make =="
+
+# untrusted_makefile DIR: a failing check whose parse alone leaves ran-shell.
+untrusted_makefile() {
+  # shellcheck disable=SC2016 # $(shell) is make syntax, written literally.
+  printf 'X := $(shell touch ran-shell)\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$1/Makefile"
+}
+names_opt_in() { jq -e '.systemMessage | test("git config require-check.trusted true")' >/dev/null 2>&1 <<<"$1"; }
+
+repo=$(new_untrusted_repo untrusted)
+untrusted_makefile "$repo"
+expect 0 'untrusted repo with a failing check does not block' "$(payload "$repo")"
+assert 'untrusted repo says how to opt in' names_opt_in "$LAST_STDOUT"
+assert 'untrusted repo runs no make, not even detection' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
+
+repo=$(new_untrusted_repo global-only)
+untrusted_makefile "$repo"
+global_config="$TMP_ROOT/global-trusted.gitconfig"
+printf '[require-check]\n\ttrusted = true\n' >"$global_config"
+expect 0 'a global-only opt-in does not trust the repo' "$(payload "$repo")" GIT_CONFIG_GLOBAL="$global_config"
+assert 'global-only opt-in still says how to opt in' names_opt_in "$LAST_STDOUT"
+assert 'global-only opt-in runs no make' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
+
+# A clone can ship a directory that looks like a git dir and trusts itself;
+# a session whose cwd is inside it must not run its Makefile.
+repo=$(new_untrusted_repo planted)
+planted="$repo/evil"
+mkdir -p "$planted/objects" "$planted/refs"
+touch "$planted/objects/.keep" "$planted/refs/.keep"
+printf 'ref: refs/heads/main\n' >"$planted/HEAD"
+printf '[core]\n\trepositoryformatversion = 0\n\tbare = false\n\tworktree = .\n[require-check]\n\ttrusted = true\n' >"$planted/config"
+untrusted_makefile "$planted"
+expect 0 'a planted git dir inside a clone does not block' "$(payload "$planted")"
+assert 'a planted git dir cannot trust itself to run make' test ! -e "$planted/ran-shell" -a ! -e "$planted/ran-check"
+
+repo=$(new_untrusted_repo untrusted-nomakefile)
+printf 'x\n' >"$repo/file.txt"
+expect 0 'untrusted repo without a Makefile does not block' "$(payload "$repo")"
+assert 'untrusted repo without a Makefile stays silent' test -z "$LAST_STDOUT"
 
 echo "== run make check =="
 
@@ -203,6 +264,15 @@ repo=$(red_repo marker-stale)
 write_marker "$repo" story/03-x 0123456789abcdef0123456789abcdef01234567
 expect 2 'marker whose sha is not in HEAD still blocks' "$(payload "$repo")"
 assert 'stale marker reports no systemMessage' test -z "$LAST_STDOUT"
+
+repo=$(red_repo marker-forgotten)
+sha=$(git -C "$repo" rev-parse HEAD)
+printf 'green\n' >"$repo/green.txt"
+git -C "$repo" add green.txt
+git -C "$repo" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm green
+write_marker "$repo" story/03-x "$sha"
+expect 2 'marker whose red commit is no longer HEAD still blocks' "$(payload "$repo")"
+assert 'forgotten marker reports no systemMessage' test -z "$LAST_STDOUT"
 
 repo=$(red_repo marker-branch)
 write_marker "$repo" story/99-other "$(git -C "$repo" rev-parse HEAD)"
