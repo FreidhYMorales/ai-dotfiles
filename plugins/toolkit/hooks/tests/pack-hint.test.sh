@@ -250,7 +250,7 @@ for i in 1 2 3; do
   for n in a b; do
     jq -nc --arg c "$PROJ" '{source: "startup", cwd: $c}' |
       env HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_HOME" XDG_DATA_HOME="$HOME_DIR/data" PATH="$BINDIR:$CLEAN_PATH" \
-        AI_PACK_NOW="$NOW" bash "$HOOK" >"$TMP_ROOT/par$i/out-$n" 2>/dev/null &
+        AI_PACK_NOW="$NOW" PACK_HINT_TIMEOUT=10 bash "$HOOK" >"$TMP_ROOT/par$i/out-$n" 2>/dev/null &
   done
   wait
   total=$(cat "$TMP_ROOT/par$i/out-a" "$TMP_ROOT/par$i/out-b" | rg -c systemMessage)
@@ -304,7 +304,7 @@ fresh homefb
 mkdir -p "$HOME_DIR/.local/bin"
 ln -sf "$ROOT/bin/ai-pack" "$HOME_DIR/.local/bin/ai-pack"
 OUT=$(jq -nc --arg c "$PROJ" '{source: "startup", cwd: $c}' |
-  env -u XDG_BIN_HOME HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_HOME" PATH="$BINDIR:$CLEAN_PATH" AI_PACK_NOW="$NOW" bash "$HOOK" 2>/dev/null)
+  env -u XDG_BIN_HOME HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_HOME" PATH="$BINDIR:$CLEAN_PATH" AI_PACK_NOW="$NOW" PACK_HINT_TIMEOUT=10 bash "$HOOK" 2>/dev/null)
 CODE=$?
 assert "default ~/.local/bin fallback: hint printed" msg_has "ai-pack add web"
 fresh pathfirst
