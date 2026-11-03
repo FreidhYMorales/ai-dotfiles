@@ -31,11 +31,10 @@ echo "== the drill checks its tools first =="
 # drill_without TOOL: run the drill with a PATH holding every /usr/bin command
 # but TOOL; output in $drill_out, exit status in $drill_exit.
 drill_without() {
-  local bin="$TMP_ROOT/bin-no-$1" cmd
+  local bin="$TMP_ROOT/bin-no-$1"
   mkdir -p "$bin"
-  for cmd in /usr/bin/*; do
-    [[ $(basename "$cmd") == "$1" ]] || ln -s "$cmd" "$bin/$(basename "$cmd")"
-  done
+  ln -s /usr/bin/* "$bin/"
+  rm -f "$bin/$1"
   drill_out=$(PATH="$bin" bash "$ROOT/scripts/recovery-e2e.sh" "$ROOT" 2>&1)
   drill_exit=$?
 }
