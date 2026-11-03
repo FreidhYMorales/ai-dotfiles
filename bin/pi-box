@@ -62,20 +62,25 @@ args=(
   --unshare-all
   --die-with-parent
 )
-# A core.hooksPath inside the project (e.g. a dotfiles repo's git-hooks/ set
-# globally) runs in every host repo, so it is read-only too.
-hooks=$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)
-if [[ -n $hooks && $hooks == "${root%/}/"* && $hooks != "${root%/}/.git/"* ]]; then
-  if [[ ! -e $hooks ]]; then
-    echo "pi-box: refusing to open $root: core.hooksPath ($hooks) is inside it but does not exist, so the box could create it. Create it first." >&2
+# Host git runs what core.hooksPath and the global git config say, in every
+# repo. When either lives inside the project (e.g. a dotfiles repo), it must
+# be read-only in the box.
+# protect PATH WHAT: bind the top folder of PATH below the root read-only (a
+# deeper mount point alone would let the box rename a parent and rebuild the
+# path); refuse to start when PATH is inside the project but missing.
+protect() {
+  local path=$1 what=$2 rel
+  [[ -n $path && $path == "${root%/}/"* && $path != "${root%/}/.git/"* ]] || return 0
+  if [[ ! -e $path ]]; then
+    echo "pi-box: refusing to open $root: $what ($path) is inside it but does not exist, so the box could create it. Create it first." >&2
     exit 1
   fi
-  # Bind its top folder below the root: a deeper mount point alone would let
-  # the box rename a parent and rebuild the path.
-  rel=${hooks#"${root%/}/"}
-  top="${root%/}/${rel%%/*}"
-  args+=(--ro-bind "$top" "$top")
-fi
+  rel=${path#"${root%/}/"}
+  args+=(--ro-bind "${root%/}/${rel%%/*}" "${root%/}/${rel%%/*}")
+}
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)" core.hooksPath
+protect "$(realpath -m "${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}")" 'the global git config'
+protect "$(realpath -m "${XDG_CONFIG_HOME:-$HOME/.config}/git/config")" 'the global git config'
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
 # into the parent terminal; a new session prevents that (at the cost of job control).
 if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
