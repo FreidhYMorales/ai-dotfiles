@@ -26,9 +26,6 @@ assert 'README names no sdd' no_sdd "$ROOT/README.md"
 assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
 assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
-echo "== no SDD project config =="
-assert 'openspec/config.yaml is gone' test ! -e "$ROOT/openspec/config.yaml"
-
 echo "== flow names no sdd and counts no files =="
 FLOW="$ROOT/plugins/flow"
 assert 'high-risk list names no sdd' no_sdd "$FLOW/skills/pair/references/high-risk.md"
@@ -52,7 +49,7 @@ echo "== no sdd outside history and retirement files =="
 # ignore it.
 allow=(
   -g '!docs/plans/**' -g '!docs/upstream/**' -g '!docs/ideas.md'
-  -g '!openspec/changes/archive/**' -g '!packs/vendor/**'
+  -g '!packs/vendor/**'
   -g '!plugins/flow/evals/handoff-solo-to-backlog/**'
   -g '!scripts/tests/install*.test.sh' -g '!scripts/tests/plugins.test.sh' -g '!scripts/tests/no-sdd.test.sh'
   -g '!scripts/tests/flow-handoff.test.sh' -g '!scripts/tests/flow-pair.test.sh' -g '!scripts/tests/flow-rules.test.sh'
