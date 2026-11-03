@@ -171,6 +171,16 @@ GIT_CONFIG_GLOBAL=/dev/null
 assert 'a global hooksPath shadowed by a local one cannot be written' \
   test ! -e "$eproj/ghooks/pre-commit"
 
+# A relative global hooksPath (e.g. .githooks) is per repo, not a path inside
+# a folder outside git: pi-box still opens such a folder.
+relplain="$home/relplain"
+mkdir -p "$relplain"
+GIT_CONFIG_GLOBAL="$TMP_ROOT/relative.gitconfig"
+git config --global core.hooksPath .githooks
+box "$relplain" 'echo ok >here.txt'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a relative global hooksPath does not block a folder outside git' test -f "$relplain/here.txt"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
