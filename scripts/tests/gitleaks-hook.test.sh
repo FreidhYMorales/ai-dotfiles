@@ -102,6 +102,24 @@ else
   echo "SKIP  gitleaks not installed; block, bypass and chaining tests not run"
 fi
 
+echo "== gitleaks missing =="
+# A PATH with only what git and the dispatcher need, so gitleaks is not found.
+nobin="$TMP_ROOT/no-gitleaks-bin"
+mkdir -p "$nobin"
+for tool in git bash basename readlink; do
+  ln -s "$(command -v "$tool")" "$nobin/$tool"
+done
+repo=$(new_repo missing)
+printf 'more\n' >>"$repo/README"
+git -C "$repo" add README
+try_commit "$repo" PATH="$nobin"
+if [[ $LAST_EXIT -eq 0 && $LAST_OUTPUT == *"gitleaks not installed; secret scan skipped"* && $(commit_count "$repo") == 2 ]]; then
+  pass 'without gitleaks the commit goes through with a warning'
+else
+  fail 'without gitleaks the commit goes through with a warning' "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+fi
+
 [[ $failures -eq 0 ]] || {
   echo "$failures failure(s)"
   exit 1
