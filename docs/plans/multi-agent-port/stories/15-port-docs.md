@@ -37,3 +37,4 @@ Risk: none
 - L1 request: /flow:story 15
 - L2 assumptions: the agy `mcp_config.json` line already exists in `docs/multi-agent.md` and stays as is; the agy freeze note comes from backlog #47 (user decision, 2026-11-02); the hang is documented for OpenCode 2.2.2, the version it was seen on (plan-review-4, story 20 L43).
 - L3 user: leave the R3-11 `AGENTS.md` line out of this story.
+- L4 pair step 1 (mode B): 865bb51 red test (README AGENTS.md row); README fixed, test green, but `make check` fails shellcheck SC2088 (literal `~/` in quotes) on the committed test; stopped (stop rule 3) to ask before adding a `# shellcheck disable=SC2088` line, assertions unchanged.
