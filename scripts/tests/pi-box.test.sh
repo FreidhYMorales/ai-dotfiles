@@ -144,6 +144,20 @@ assert 'a ~/.gitconfig inside the project cannot be written' \
 assert 'an XDG git config inside the project cannot be written' \
   test "$(cat "$project/conf/xdg-config")" == $'[user]\n\tname = t'
 
+# A .git file pointing to a git dir inside the project (bare + worktree
+# layout): that git dir's config must stay read-only, also when a hooksPath
+# elsewhere means the hooks check never looks at it.
+bareproj="$home/work/bareproj"
+mkdir -p "$bareproj" "$TMP_ROOT/elsewhere-hooks"
+git init -q --bare "$bareproj/.bare"
+printf 'gitdir: ./.bare\n' >"$bareproj/.git"
+GIT_CONFIG_GLOBAL="$TMP_ROOT/elsewhere.gitconfig"
+git config --global core.hooksPath "$TMP_ROOT/elsewhere-hooks"
+box "$bareproj" 'git config core.fsmonitor "touch /tmp/pwned"; true'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a git dir behind a .git file cannot be configured' \
+  test -z "$(git -C "$bareproj" config --get core.fsmonitor)"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
