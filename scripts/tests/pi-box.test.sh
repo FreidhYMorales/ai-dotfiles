@@ -158,6 +158,19 @@ GIT_CONFIG_GLOBAL=/dev/null
 assert 'a git dir behind a .git file cannot be configured' \
   test -z "$(git -C "$bareproj" config --get core.fsmonitor)"
 
+# A local hooksPath hides the global one from this repo, but every other host
+# repo still runs the global one: it stays read-only when inside the project.
+eproj="$home/work/eproj"
+mkdir -p "$eproj/ghooks"
+git -C "$eproj" init -q
+git -C "$eproj" config core.hooksPath "$TMP_ROOT/elsewhere-hooks"
+GIT_CONFIG_GLOBAL="$TMP_ROOT/shadowed.gitconfig"
+git config --global core.hooksPath "$eproj/ghooks"
+box "$eproj" 'printf "#!/bin/sh\necho pwned\n" >ghooks/pre-commit; true'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a global hooksPath shadowed by a local one cannot be written' \
+  test ! -e "$eproj/ghooks/pre-commit"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
