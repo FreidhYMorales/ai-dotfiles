@@ -13,12 +13,20 @@ unset SKIP_REQUIRE_CHECK
 # Isolate the green-state cache from the real ~/.cache.
 export XDG_CACHE_HOME="$TMP_ROOT/cache"
 
-# new_repo NAME: create an empty git repo and print its path.
+# new_repo NAME: create an empty git repo the gate trusts and print its path.
 new_repo() {
   local dir="$TMP_ROOT/$1"
   mkdir -p "$dir"
   git -C "$dir" init -q
+  git -C "$dir" config require-check.trusted true
   printf '%s\n' "$dir"
+}
+
+# new_untrusted_repo NAME: like new_repo, without the opt-in.
+new_untrusted_repo() {
+  new_repo "$1" >/dev/null
+  git -C "$TMP_ROOT/$1" config --unset require-check.trusted
+  printf '%s\n' "$TMP_ROOT/$1"
 }
 
 # commit_all DIR: commit everything so the working tree is clean.
@@ -105,6 +113,21 @@ write_makefile "$repo" 'exit 1'
 pushd "$repo" >/dev/null || exit 1
 expect 2 'empty stdin falls back to PWD' ''
 popd >/dev/null || exit 1
+
+echo "== trust: only opted-in repos run make =="
+
+# untrusted_makefile DIR: a failing check whose parse alone leaves ran-shell.
+untrusted_makefile() {
+  # shellcheck disable=SC2016 # $(shell) is make syntax, written literally.
+  printf 'X := $(shell touch ran-shell)\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$1/Makefile"
+}
+names_opt_in() { jq -e '.systemMessage | test("git config require-check.trusted true")' >/dev/null 2>&1 <<<"$1"; }
+
+repo=$(new_untrusted_repo untrusted)
+untrusted_makefile "$repo"
+expect 0 'untrusted repo with a failing check does not block' "$(payload "$repo")"
+assert 'untrusted repo says how to opt in' names_opt_in "$LAST_STDOUT"
+assert 'untrusted repo runs no make, not even detection' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
 
 echo "== run make check =="
 

@@ -15,11 +15,12 @@ unset SKIP_REQUIRE_CHECK AI_HOOKS_OFF
 # Isolate the green-state cache from the real ~/.cache.
 export XDG_CACHE_HOME="$TMP_ROOT/cache"
 
-# repo NAME STATUS: a repo with uncommitted changes whose `make check` exits STATUS.
+# repo NAME STATUS: a trusted repo with uncommitted changes whose `make check` exits STATUS.
 repo() {
   local dir="$TMP_ROOT/$1"
   mkdir -p "$dir"
   git -C "$dir" init -q
+  git -C "$dir" config require-check.trusted true
   printf 'check:\n\t@echo "lint: broken thing"; exit %s\n' "$2" >"$dir/Makefile"
   printf '%s\n' "$dir"
 }
