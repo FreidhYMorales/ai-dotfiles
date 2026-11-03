@@ -77,14 +77,20 @@ assert() {
 
 lacks_line() { ! grep -qx "$1" <<<"$2"; }
 
+# message_has REGEX JSON: the hook's systemMessage matches REGEX.
+message_has() { jq -e --arg re "$1" '.systemMessage | test($re)' >/dev/null 2>&1 <<<"$2"; }
+
 payload() { jq -n --arg cwd "$1" '{hook_event_name: "Stop", stop_hook_active: false, cwd: $cwd}'; }
 
 echo "== skip branches (exit 0) =="
 
 repo=$(new_repo active)
-write_makefile "$repo" 'exit 1'
-expect 0 'stop_hook_active true skips' \
+# shellcheck disable=SC2016 # $$ is make syntax, expanded by the recipe shell.
+write_makefile "$repo" 'for i in $$(seq 1 100); do echo "line-$$i"; done' 'exit 1'
+expect 0 'stop_hook_active with a red check does not block again' \
   "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop says make check is still red' message_has 'make check is still red' "$LAST_STDOUT"
+assert 'second stop message has the failure tail' message_has 'line-100' "$LAST_STDOUT"
 
 expect 0 'SKIP_REQUIRE_CHECK=1 skips' "$(payload "$repo")" SKIP_REQUIRE_CHECK=1
 
