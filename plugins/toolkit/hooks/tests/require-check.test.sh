@@ -137,6 +137,11 @@ expect 0 'a global-only opt-in does not trust the repo' "$(payload "$repo")" GIT
 assert 'global-only opt-in still says how to opt in' names_opt_in "$LAST_STDOUT"
 assert 'global-only opt-in runs no make' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
 
+repo=$(new_untrusted_repo untrusted-nomakefile)
+printf 'x\n' >"$repo/file.txt"
+expect 0 'untrusted repo without a Makefile does not block' "$(payload "$repo")"
+assert 'untrusted repo without a Makefile stays silent' test -z "$LAST_STDOUT"
+
 echo "== run make check =="
 
 repo=$(new_repo passing)
