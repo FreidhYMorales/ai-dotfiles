@@ -32,6 +32,15 @@ for name in GNUmakefile makefile Makefile; do
 done
 [[ -n $makefile ]] || exit 0
 
+# Trust: never run (or even parse) a Makefile the owner has not opted in to.
+# Only the repo's local config counts: a clone never carries it, and a global
+# value would trust every repo at once.
+if [[ $(git -C "$dir" config --local --get require-check.trusted 2>/dev/null) != true ]]; then
+  jq -n --arg m "require-check: $dir is not trusted, so make check was not run. Opt in from that repo with: git config require-check.trusted true" \
+    '{systemMessage: $m}'
+  exit 0
+fi
+
 # Detect a `check` target from make's database without running any recipe:
 # the goal `.DEFAULT` has no recipe, and -q never executes commands.
 has_check=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
