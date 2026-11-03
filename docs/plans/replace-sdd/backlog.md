@@ -21,4 +21,4 @@
 08. [x] 995a114 As a developer, I want the `multi-agent-port` plan to drop the SDD port so that it ports the new loop instead. Requires: #10
 09. [x] 3bbe68a As a developer, I want the `sdd` plugin removed from the repo, the marketplace and my machine so that only the new loop is installed. Requires: #03, #05, #06
 10. [x] e3d1647 As a developer, I want every reference to SDD gone outside history so that there is one workflow to read and maintain. Requires: #09
-11. [ ] As a developer, I want `openspec/` deleted and the legacy `openspec/changes/` plan lookup dropped from the flow skills so that the repo holds only what is used and history stays in git. Requires: #10
+11. [x] 6aea8de As a developer, I want `openspec/` deleted and the legacy `openspec/changes/` plan lookup dropped from the flow skills so that the repo holds only what is used and history stays in git. Requires: #10

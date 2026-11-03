@@ -30,7 +30,7 @@ Load after `/flow:plan` or `/flow:fill-gaps`, or when the user asks to review a 
 
 ## Execution Steps
 
-1. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). Ask only if several candidates exist.
+1. Plan lookup: `docs/plans/<feature>/plan.md`. Ask only if several candidates exist.
 2. Collect inputs: plan path, prior proposal/spec paths, source material paths, deadline and team mode from the plan header, previous review files in the plan dir.
 3. Launch the `flow:plan-reviewer` agent with those inputs and: "Review blind. Follow your rubric and output structure exactly."
 4. Save the returned review verbatim to `<plan-dir>/plan-review-<N>.md` (N = 1, 2, ...).

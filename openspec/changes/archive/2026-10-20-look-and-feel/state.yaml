@@ -1,7 +1,0 @@
-change: look-and-feel
-phase: apply
-completed: [proposal, spec, design, tasks]
-delivery_strategy: ask-on-risk
-chain_strategy: stacked-to-main
-review_budget_lines: 400
-current_pr: "1"

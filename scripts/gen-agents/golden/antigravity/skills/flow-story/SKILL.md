@@ -37,7 +37,7 @@ Load when the user wants one story from `backlog.md` refined right before buildi
 
 ## Execution Steps
 
-1. Look up the backlog: `docs/plans/<feature>/backlog.md` first, then legacy `openspec/changes/<change>/backlog.md`. Read the story line, `## Context`, the plan next to it, and the stories it `Requires:`.
+1. Look up the backlog: `docs/plans/<feature>/backlog.md`. Read the story line, `## Context`, the plan next to it, and the stories it `Requires:`.
 2. Read `AGENTS.md`/`CLAUDE.md` and the code the story touches (a bounded look, not the whole repo).
 3. Ask one question if a real ambiguity remains; otherwise list your assumptions inside the story for approval.
 4. Write 2-3 acceptance criteria as checkboxes: `- [ ] Given <context>, when <action>, then <result>.`
@@ -62,7 +62,7 @@ Risk: none
 
 ## Output Contract
 
-- `docs/plans/<feature>/stories/NN-<slug>.md` with `## Story`, `## Acceptance criteria`, `## Plan`, `## Out of scope`, `## Suggestions (your call)`, `## Size`, `## Log` (legacy plans: `stories/` next to the backlog).
+- `docs/plans/<feature>/stories/NN-<slug>.md` with `## Story`, `## Acceptance criteria`, `## Plan`, `## Out of scope`, `## Suggestions (your call)`, `## Size`, `## Log`.
 - `backlog.md`: the story line marked `[~]` (or split as above).
 - Engram: one `decision` entry (`mem_save`, topic `story/<feature>/NN`) with the story path, size and `Risk:` line.
 - Final message: the story, the `Risk:` line, a request for approval, then next step `/flow-pair NN`.

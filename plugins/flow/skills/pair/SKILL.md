@@ -49,7 +49,7 @@ Run only when the user types `/flow:pair NN`. You drive (write tests and code), 
 
 ## Execution Steps
 
-1. **Read.** `docs/plans/<feature>/backlog.md` (then legacy `openspec/changes/<change>/`): story line NN, `## Context` (`Test command:`, `Single test:`); `stories/NN-<slug>.md` (or the chat-only story); `references/high-risk.md`. Check the plan against the current code; mismatch → stop.
+1. **Read.** `docs/plans/<feature>/backlog.md`: story line NN, `## Context` (`Test command:`, `Single test:`); `stories/NN-<slug>.md` (or the chat-only story); `references/high-risk.md`. Check the plan against the current code; mismatch → stop.
 2. **Start.** Delete a stale red marker: `rm -f "$(git rev-parse --git-path flow-pair-red)"`. Create or switch to branch `story/NN-<slug>` (from `main` unless the story `Requires:` an unmerged branch; then ask).
 3. **Test list.** Propose names and level only (unit, integration, e2e; highest practical level), mapped to each criterion; visual criteria marked **manual**. Write nothing; wait for approval. The approved list is the spec.
 4. **Mode C step** (default), one test from the list:
