@@ -6,7 +6,7 @@ Personal configuration for AI coding tools. Planning-first workflow and a story-
 
 | Path | What | How it is installed |
 |---|---|---|
-| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | Symlinked to `~/.config/opencode/AGENTS.md` and `~/.gemini/antigravity-cli/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
+| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | A generated copy per target (`/flow-x` names plus each target's closing rules) is linked to `~/.config/opencode/AGENTS.md` and `~/.gemini/config/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
 | `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
@@ -123,4 +123,4 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
 - [x] OpenCode and Antigravity basics: shared rules, skill files and a multi-target installer ([docs/multi-agent.md](docs/multi-agent.md))
-- [ ] Port the Claude-only parts to OpenCode and Antigravity: the loop skills (`backlog`, `story`, `pair`), the `verifier`, `plan-review` and `judgment-day` agents, `${CLAUDE_PLUGIN_ROOT}` paths, hooks, engram MCP setup
+- [x] Port the Claude-only parts to OpenCode and Antigravity: every `flow` and `toolkit` skill generated as `flow-x`/`toolkit-x`, the `plan-reviewer` and (OpenCode only) `verifier` agents, the hooks, the engram MCP check; agy work is frozen, OpenCode is the secondary agent; judgment-day stays Claude-only until v2 ([docs/multi-agent.md](docs/multi-agent.md))

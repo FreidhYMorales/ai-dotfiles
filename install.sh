@@ -10,12 +10,24 @@
 #     - Merges claude/settings.json into ~/.claude/settings.json.
 #     - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
 #     - Registers this repo as a plugin marketplace and installs plugins.
+#   - OpenCode and Antigravity share one generated build (scripts/gen-agents/gen.sh
+#     into build/agents; a failed generation keeps the previous build).
 #   - OpenCode:
-#     - Symlinks AGENTS.md into ~/.config/opencode/AGENTS.md.
-#     - Symlinks all skills into ~/.config/opencode/skills/.
+#     - Symlinks the generated AGENTS.md into ~/.config/opencode/AGENTS.md.
+#     - Symlinks the generated flow-x/toolkit-x skills, commands and agents into
+#       ~/.config/opencode/{skills,commands,agents}/.
+#     - Symlinks the toolkit.ts hooks plugin into ~/.config/opencode/plugins/.
+#     - Warns when engram is not registered in opencode.json.
 #   - Antigravity:
-#     - Symlinks AGENTS.md into ~/.gemini/config/ (the global rules path agy reads).
-#     - Symlinks all skills into ~/.gemini/antigravity-cli/skills/.
+#     - Symlinks the generated AGENTS.md into ~/.gemini/config/ (the global rules
+#       path agy reads) and moves ~/.gemini/GEMINI.md aside.
+#     - Merges a "toolkit" key into ~/.gemini/config/hooks.json; other keys stay.
+#     - Symlinks the generated skills into ~/.gemini/antigravity-cli/skills/ and
+#       agents into ~/.gemini/config/agents/.
+#     - Moves *.bak-* entries and gentle-ai copies of repo skills out of the agy
+#       skills dirs into ~/.gemini/antigravity-cli/skills-backup/; never deletes.
+#     - Warns when engram is not registered or agy is not the pinned version.
+#   - Details: docs/multi-agent.md.
 #
 # Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
 set -euo pipefail
