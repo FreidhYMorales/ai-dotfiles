@@ -68,6 +68,13 @@ assert 'the shards take 2 and 1 of the 3 files' test "$(count "$one")$(count "$t
 assert 'no file runs in both shards' test -z "$(comm -12 <(echo "$one") <(echo "$two"))"
 assert 'together the shards run every file' test "$(sort <<<"$one"$'\n'"$two")" = "$ALL"
 
+echo "== a test file does not inherit TEST_SHARD =="
+# Tests that run run-tests.sh themselves (checks.test.sh) must see every file.
+# shellcheck disable=SC2016
+printf '#!/usr/bin/env bash\necho "seen:${TEST_SHARD:-none}" >>"$RUN_LOG"\n' >"$REPO/scripts/tests/c.test.sh"
+ran 1/2
+assert 'a file in shard 1/2 sees no TEST_SHARD' test "$GOT" = $'plugins/p/tests/a.test.sh\nseen:none'
+
 echo "== a bad TEST_SHARD fails loudly =="
 for bad in 3/2 0/2 x 1/0; do
   ran "$bad"
