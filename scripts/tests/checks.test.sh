@@ -158,6 +158,14 @@ printf '#!/usr/bin/env bash\necho "why-it-failed"\nexit 1\n' >"$root/scripts/lou
 expect 1 'a failing test file still fails' run-tests.sh "$root"
 output_has 'shows the failing test output' 'why-it-failed'
 
+# A failure reported early in a long output is still shown (CI hid look's).
+root=$(fixture tests-early-failure)
+mkdir -p "$root/scripts"
+printf '#!/usr/bin/env bash\necho "FAIL  early bash case"\necho "(fail) early bun case [5000.00ms]"\nseq 60\nexit 1\n' >"$root/scripts/long.test.sh"
+expect 1 'a failing file with a long output still fails' run-tests.sh "$root"
+output_has 'shows a FAIL line printed before the last 40 lines' 'FAIL  early bash case'
+output_has 'shows a (fail) line printed before the last 40 lines' '(fail) early bun case'
+
 root=$(fixture tests-parallel)
 mkdir -p "$root/scripts"
 for n in 1 2 3; do
