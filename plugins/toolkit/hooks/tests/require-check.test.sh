@@ -150,6 +150,18 @@ expect 0 'a global-only opt-in does not trust the repo' "$(payload "$repo")" GIT
 assert 'global-only opt-in still says how to opt in' names_opt_in "$LAST_STDOUT"
 assert 'global-only opt-in runs no make' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
 
+# A clone can ship a directory that looks like a git dir and trusts itself;
+# a session whose cwd is inside it must not run its Makefile.
+repo=$(new_untrusted_repo planted)
+planted="$repo/evil"
+mkdir -p "$planted/objects" "$planted/refs"
+touch "$planted/objects/.keep" "$planted/refs/.keep"
+printf 'ref: refs/heads/main\n' >"$planted/HEAD"
+printf '[core]\n\trepositoryformatversion = 0\n\tbare = false\n\tworktree = .\n[require-check]\n\ttrusted = true\n' >"$planted/config"
+untrusted_makefile "$planted"
+expect 0 'a planted git dir inside a clone does not block' "$(payload "$planted")"
+assert 'a planted git dir cannot trust itself to run make' test ! -e "$planted/ran-shell" -a ! -e "$planted/ran-check"
+
 repo=$(new_untrusted_repo untrusted-nomakefile)
 printf 'x\n' >"$repo/file.txt"
 expect 0 'untrusted repo without a Makefile does not block' "$(payload "$repo")"
