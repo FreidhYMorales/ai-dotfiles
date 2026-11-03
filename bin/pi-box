@@ -62,6 +62,12 @@ args=(
   --unshare-all
   --die-with-parent
 )
+# A core.hooksPath inside the project (e.g. a dotfiles repo's git-hooks/ set
+# globally) runs in every host repo, so it is read-only too.
+hooks=$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)
+if [[ -n $hooks && $hooks == "${root%/}/"* ]]; then
+  args+=(--ro-bind-try "$hooks" "$hooks")
+fi
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
 # into the parent terminal; a new session prevents that (at the cost of job control).
 if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
