@@ -26,6 +26,7 @@ check() {
 }
 
 block() { check 2 "$1"; }
+allow() { check 0 "$1"; }
 
 # err_has LABEL TEXT: the last stderr contains TEXT.
 err_has() {
@@ -54,6 +55,14 @@ block 'rg token .env.production'
 err_has '.env.*: the reason names the file' '.env.production'
 block 'cd app && bat ./config/.env.local'
 err_has '.env.* in a subdirectory: the reason names the file' '.env.local'
+
+echo "== tools that do not name the files run =="
+allow 'gh pr checks 31'
+allow 'engram-backup --verify'
+allow 'rg foo .'
+allow 'bat ~/.config/ghostty/config'
+allow "node -e 'console.log(process.env.HOME)'"
+allow 'bat .envrc'
 
 echo "== the block never shows the secret =="
 FAKE_HOME=$(mktemp -d)
