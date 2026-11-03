@@ -37,6 +37,14 @@ done
 assert 'the goldens are present' test -d "$GOLDEN/opencode/skills" -a -d "$GOLDEN/antigravity/skills"
 assert 'no golden names openspec' no_openspec "$GOLDEN"
 
+echo "== only history names openspec =="
+hits=$(cd "$ROOT" && rg -l openspec --hidden -g '!.git')
+# Guard against a scan that finds nothing at all: the ideas log must show up.
+assert 'the scan sees the ideas log' rg -qx 'docs/ideas.md' <<<"$hits"
+stray=$(rg -v '^(docs/plans/|docs/upstream/|docs/ideas\.md$|scripts/tests/no-openspec\.test\.sh$)' <<<"$hits")
+assert 'no file outside history names openspec' test -z "$stray"
+[[ -n $stray ]] && printf '%s\n' "$stray"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
