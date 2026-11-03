@@ -222,10 +222,22 @@ link_skills() {
 # build_agents: generate the OpenCode and Antigravity files once per run into
 # a new dir, then point BUILD_DIR at it with one rename, so a reader never sees
 # half a build; the previous generation is removed after the swap.
+# A dry run generates into a throwaway dir instead (GEN_DIR), removed on
+# exit, so it can list the real links without leaving anything behind.
 BUILT=0
+GEN_DIR=$BUILD_DIR
 build_agents() {
   ((BUILT)) && return 0
   BUILT=1
+  if ((DRY_RUN)); then
+    GEN_DIR=$(mktemp -d)
+    trap 'rm -rf "$GEN_DIR"' EXIT
+    bash "$REPO_DIR/scripts/gen-agents/gen.sh" "$GEN_DIR" >/dev/null || {
+      echo "error: scripts/gen-agents/gen.sh failed" >&2
+      exit 1
+    }
+    return 0
+  fi
   local new old
   new="$BUILD_DIR.$(date +%Y%m%d%H%M%S).$$"
   old=$(readlink "$BUILD_DIR" 2>/dev/null || true)
@@ -246,12 +258,12 @@ build_agents() {
 # link_generated TARGET KIND DIR: link each generated TARGET/KIND entry into
 # DIR through BUILD_DIR, so the links survive the next swap.
 link_generated() {
-  local src_dir="$BUILD_DIR/$1/$2" dir=$3 src
+  local dir=$3 src
   build_agents
   prune_links "$dir"
-  for src in "$src_dir"/*; do
+  for src in "$GEN_DIR/$1/$2"/*; do
     [[ -e $src ]] || continue
-    link_file "$src" "$dir/$(basename "$src")"
+    link_file "$BUILD_DIR/$1/$2/$(basename "$src")" "$dir/$(basename "$src")"
   done
 }
 
