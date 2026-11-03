@@ -43,3 +43,4 @@ Risk: item 5 (CI workflow and test runner layout)
 - L6 evidence: under half load (each shard twice at once on one CPU) all four runs pass, look included (308 s and 255 s). `make check`: "All checks passed (7 steps)", 2:51. Draft PR #31, CI run 41668933542: check (1/2) 5:27, check (2/2) 5:08, recovery 0:45, all green.
 - L7 verifier: NEEDS DECISION. Branch sound (commit order, tamper check, assertions PASS). C2 is proven on the PR, not yet on main; C3 (five green runs on main) is only possible after the merge.
 - Risk: item 5 (CI workflow and test runner layout)
+- L8 merged to main as 58497be (`--no-ff`); PR #31 closed as merged. First main run: check (1/2) 5:17, check (2/2) 5:21, recovery 0:34, all green. C2 proven on main. C3: 1 of 5 consecutive green runs; close the story (`[x]`) at 5.
