@@ -88,6 +88,21 @@ for name in flow-plan flow-fill-gaps; do
   assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
 done
 
+echo "== OpenCode remaining commands =="
+# Every ported skill has a command that loads it (story 14); judgment-day stays
+# Claude-only.
+REMAINING_COMMANDS="toolkit-work-unit-commits flow-research flow-handoff flow-next flow-idea
+  flow-split flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr
+  toolkit-cli-tools toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local
+  toolkit-go-testing toolkit-skill-creator toolkit-skill-improver"
+for name in $REMAINING_COMMANDS; do
+  assert "commands/$name.md matches golden" same_as_golden "opencode/commands/$name.md"
+done
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the /flow-next command loads the flow-next skill' \
+  grep -qxF 'Load the `flow-next` skill and follow it. $ARGUMENTS' "$OUT/opencode/commands/flow-next.md"
+assert 'judgment-day gets no OpenCode command' test ! -e "$OUT/opencode/commands/toolkit-judgment-day.md"
+
 echo "== OpenCode rules =="
 # The shared rules plus the lines OpenCode's hooks do not cover (story 31):
 # the make check gate and the raw support-file names; pause is a hook (#20).
