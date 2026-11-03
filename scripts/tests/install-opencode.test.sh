@@ -147,6 +147,14 @@ for name in flow-plan flow-fill-gaps; do
   assert "the /$name command is the generated one" \
     diff -q "$ROOT/scripts/gen-agents/golden/opencode/commands/$name.md" "$oc/commands/$name.md"
 done
+# Every ported skill has a command (story 14).
+for name in toolkit-work-unit-commits flow-research flow-handoff flow-next flow-idea flow-split \
+  flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr toolkit-cli-tools \
+  toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local toolkit-go-testing \
+  toolkit-skill-creator toolkit-skill-improver; do
+  assert "the /$name command is the generated one" \
+    same "$(readlink "$oc/commands/$name.md")" "$home/build/agents/opencode/commands/$name.md"
+done
 raw=$(find "$oc/skills" -maxdepth 1 -type l -lname "$ROOT/plugins/*")
 assert 'no raw repo skill link is left for opencode' same "$raw" ''
 [[ -z $raw ]] || printf '%s\n' "$raw"
