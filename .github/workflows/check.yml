@@ -17,10 +17,18 @@ jobs:
   # Arch is the only target platform, so the gate runs where the code runs
   # (e.g. `mv --exchange` needs coreutils >= 9.5; Ubuntu 24.04 ships 9.4).
   # Arch's shfmt and actionlint are the versions used locally.
+  # The test files are split over two runners (TEST_SHARD, scripts/run-tests.sh):
+  # one 2-core runner under the whole parallel suite made timing tests flaky
+  # and the job ran close to its timeout.
   check:
+    name: check (${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
     container: archlinux:latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Install tools
         run: |
@@ -41,6 +49,7 @@ jobs:
       - name: make check
         env:
           LOOK_REQUIRE_CLAUDE: "1"
+          TEST_SHARD: ${{ matrix.shard }}/2
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make check
