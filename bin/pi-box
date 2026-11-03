@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Run pi (or any command) in a bubblewrap sandbox confined to the project.
 #   - Read-write: only the project (the git root, or the current folder).
-#   - Read-only: the system (/usr, /etc) and the pi install (~/.pi/agent), so
-#     pi cannot rewrite its own config.
+#   - Read-only: the system (/usr, /etc), the pi install (~/.pi/agent), so
+#     pi cannot rewrite its own config, and the project's .git, so no config
+#     key or hook planted here runs when git is used on the host.
 #   - Invisible: the rest of HOME (~/.ssh, ~/.config/gh, restic password,
 #     ~/.claude, sibling projects) and the host /tmp.
 #   - Sessions go to ~/.local/state/pi-box/sessions.
@@ -53,6 +54,7 @@ args=(
   --overlay-src "$pi_dir" --tmp-overlay "$pi_dir"
   --bind "$state" "$state"
   --bind "$root" "$root"
+  --ro-bind-try "$root/.git" "$root/.git"
   --chdir "$PWD"
   --setenv HOME "$HOME"
   --setenv PATH "$pi_dir/bin:/usr/local/bin:/usr/bin"
@@ -60,6 +62,32 @@ args=(
   --unshare-all
   --die-with-parent
 )
+# Host git runs what core.hooksPath and the global git config say, in every
+# repo. When either lives inside the project (e.g. a dotfiles repo), it must
+# be read-only in the box.
+# protect PATH WHAT: bind the top folder of PATH below the root read-only (a
+# deeper mount point alone would let the box rename a parent and rebuild the
+# path); refuse to start when PATH is inside the project but missing.
+protect() {
+  local path=$1 what=$2 rel
+  [[ -n $path && $path == "${root%/}/"* && $path != "${root%/}/.git/"* ]] || return 0
+  if [[ ! -e $path ]]; then
+    echo "pi-box: refusing to open $root: $what ($path) is inside it but does not exist, so the box could create it. Create it first." >&2
+    exit 1
+  fi
+  rel=${path#"${root%/}/"}
+  args+=(--ro-bind "${root%/}/${rel%%/*}" "${root%/}/${rel%%/*}")
+}
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)" core.hooksPath
+# A local hooksPath hides the global one here, but other host repos run it.
+# A relative one is per repo, and --git-path above already covers this repo.
+global_hooks=$(git config --global --path --get core.hooksPath 2>/dev/null || true)
+[[ $global_hooks != /* ]] || protect "$(realpath -m "$global_hooks")" 'the global core.hooksPath'
+# A .git file can point to a git dir elsewhere in the project (bare + worktree).
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)" 'the git dir'
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)" 'the git dir'
+protect "$(realpath -m "${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}")" 'the global git config'
+protect "$(realpath -m "${XDG_CONFIG_HOME:-$HOME/.config}/git/config")" 'the global git config'
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
 # into the parent terminal; a new session prevents that (at the cost of job control).
 if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
