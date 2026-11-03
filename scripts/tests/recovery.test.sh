@@ -46,6 +46,21 @@ for tool in zellij bwrap; do
   assert "no drill step runs without $tool" test -z "$(rg '^== ' <<<"$drill_out")"
 done
 
+echo "== the CI drill installs from the doc =="
+
+job=$(awk '/^  recovery:$/ {p = 1; next} p && /^  [a-z][a-z-]*:$/ {exit} p' "$ROOT/.github/workflows/check.yml")
+assert 'the recovery job is found' rg -q 'recovery-e2e.sh' <<<"$job"
+assert 'the recovery job installs the packages the doc lists' \
+  rg -q 'pacman .*\$\(bash scripts/recovery-packages.sh\)' <<<"$job"
+assert 'the recovery job keeps no package list of its own' test -z "$(rg 'pacman .*gitleaks' <<<"$job")"
+# A clean container has no ripgrep before the packages are installed.
+no_rg="$TMP_ROOT/bin-no-rg"
+mkdir -p "$no_rg"
+ln -s /usr/bin/* "$no_rg/"
+rm -f "$no_rg/rg"
+assert 'the package list is read without ripgrep' \
+  rg -qxF zellij <<<"$(PATH="$no_rg" bash "$ROOT/scripts/recovery-packages.sh" 2>&1)"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
