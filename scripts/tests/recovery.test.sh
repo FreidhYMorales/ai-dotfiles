@@ -61,6 +61,14 @@ rm -f "$no_rg/rg"
 assert 'the package list is read without ripgrep' \
   rg -qxF zellij <<<"$(PATH="$no_rg" bash "$ROOT/scripts/recovery-packages.sh" 2>&1)"
 
+echo "== the drill runs the real systemctl with no user bus =="
+
+drill="$ROOT/scripts/recovery-e2e.sh"
+assert 'the drill stubs claude only' rg -qx 'for tool in claude; do' "$drill"
+# Without a bus the real systemctl cannot touch the caller's own timers.
+assert 'the drill installs with no user bus' rg -q 'env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR' "$drill"
+assert 'the drill checks the install explained the timers' rg -qF "rg -q 'timers not enabled'" "$drill"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
