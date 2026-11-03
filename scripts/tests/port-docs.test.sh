@@ -2,6 +2,8 @@
 # Structural test for the multi-agent port docs: the README, the install.sh
 # header and docs/multi-agent.md describe how each agent is set up.
 # Run: bash scripts/tests/port-docs.test.sh
+# The docs name paths like `~/.config`: a quoted `~` here is literal text.
+# shellcheck disable=SC2088
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
