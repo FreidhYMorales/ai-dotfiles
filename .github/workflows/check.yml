@@ -62,8 +62,14 @@ jobs:
     container: archlinux:latest
     timeout-minutes: 10
     steps:
-      - name: Install the packages a new machine needs
-        run: pacman -Sy --noconfirm --needed git jq ripgrep restic sqlite openssl procps-ng gitleaks
+      # git first, so checkout makes a real clone; the rest from docs/recovery.md.
+      - name: Install git
+        run: pacman -Sy --noconfirm --needed git
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the packages docs/recovery.md lists
+        # One package per word: the split is the point.
+        run: |
+          # shellcheck disable=SC2046
+          pacman -S --noconfirm --needed $(bash scripts/recovery-packages.sh)
       - name: Recovery drill
         run: bash scripts/recovery-e2e.sh

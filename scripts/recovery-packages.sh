@@ -6,7 +6,8 @@
 set -euo pipefail
 
 doc=${1:-"$(cd "$(dirname "$0")/.." && pwd)/docs/recovery.md"}
-lines=$(rg '^sudo pacman -S --needed ' "$doc" || true)
+# grep, not rg: a clean machine has no ripgrep until these are installed.
+lines=$(grep '^sudo pacman -S --needed ' "$doc" || true)
 if [[ -z $lines || $(wc -l <<<"$lines") -ne 1 ]]; then
   echo "recovery-packages: expected one 'sudo pacman -S --needed' line in $doc" >&2
   exit 1
