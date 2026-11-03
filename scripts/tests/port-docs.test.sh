@@ -33,6 +33,12 @@ assert 'README names the OpenCode rules path' has "$row" '~/.config/opencode/AGE
 assert 'README names the agy rules path' has "$row" '~/.gemini/config/AGENTS.md'
 assert 'README drops the path agy does not read' lacks "$row" '~/.gemini/antigravity-cli/AGENTS.md'
 
+echo "== README closes the port roadmap item =="
+item=$(rg -F 'Port the Claude-only parts' "$README")
+assert 'the port roadmap item is found once' test "$(wc -l <<<"$item")" -eq 1 -a -n "$item"
+assert 'the port roadmap item is checked off' has "$item" '- [x] Port the Claude-only parts'
+assert 'the port item leaves judgment-day for v2' rg -q 'judgment-day.*v2' <<<"$item"
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
