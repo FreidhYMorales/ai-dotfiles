@@ -23,6 +23,7 @@
 - Hardening the host side of delegate-local (`git -c core.fsmonitor= ...` flags in the skill): the sandbox fix closes the hole at its source.
 - Nested repositories or submodules a worker might create inside the project.
 - Accepted risk (user, 2026-11-03, verifier pass 1): pi-box opened in a folder outside git can `git init` and plant `core.fsmonitor`, which a later host `git status` there runs. Fixing it needs its own design call (refuse or warn); left for a separate story.
+- Follow-up (user, 2026-11-03, verifier pass 3): a hooksPath equal to the project root, `include.path` / `includeIf` targets of the global config, symlink chains that pass through the project, and a relative global hooksPath that climbs (`../`) into the project from another repo (verifier pass 5). None applies to the current setup; to be triaged with `/flow:idea`, weighing "pi-box only opens throwaway clones" instead of path enumeration.
 - Workers committing inside the box: nothing in delegate-local or the bench needs it (diffs are taken on the host).
 - Network, HOME or `/tmp` confinement changes.
 
@@ -46,3 +47,6 @@ Risk: item 2 (sandbox escape to unsandboxed code execution on the host)
 - Risk: item 2 (sandbox escape to unsandboxed code execution on the host)
 - L7 user: A/B/C in scope. e2caa16 → 6c77003 (A: refuse a missing hooksPath inside root); 117b7a1 → 1e20487 (B: ro-bind the top folder below root); 7c1b2a8 → 5c19f76 (C: `protect` helper also covers ~/.gitconfig / GIT_CONFIG_GLOBAL and XDG git config). make check green each step; probed on the real repo: box cannot write git-hooks/ or .git/config.
 - L8 verifier pass 3: FAIL. D: `.git` file pointing to a gitdir inside the project (bare + worktree layout) leaves that gitdir's config writable when a hooksPath is set (reproduced by the driver). E: a local core.hooksPath hides a global one inside the project. Follow-up candidates: hooksPath == project root, include.path/includeIf targets, symlink chains through the project. Stopped for a user decision.
+- L9 user: fix D and E here, exotic cases to follow-up. 6ed1306 → 0a58fca (D: protect --git-dir / --git-common-dir); 01d7500 → 9060ea1 (E: protect the absolute global hooksPath). Verifier pass 4: FAIL, 9060ea1 broke C3 with a relative global hooksPath. f95b02e → 2a1c0ea (only an absolute global hooksPath is protected).
+- L10 verifier pass 5: PASS (C1, C2, C3 at HEAD; red before fix confirmed for every pair; tamper check clean on all 9 test commits). make check: All checks passed (7 steps); pi-box.test.sh: All cases passed.
+- Risk: item 2 (sandbox escape to unsandboxed code execution on the host)
