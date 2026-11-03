@@ -64,6 +64,22 @@ allow 'bat ~/.config/ghostty/config'
 allow "node -e 'console.log(process.env.HOME)'"
 allow 'bat .envrc'
 
+echo "== fails open =="
+run_raw 0 'a non-Bash tool is not checked' \
+  '{"tool_name":"Write","tool_input":{"file_path":"notes.md","content":"see ~/.git-credentials"}}'
+run_raw 0 'invalid JSON is let through' 'not json ~/.git-credentials'
+nojq=$(mktemp -d)
+ln -s "$(command -v bash)" "$nojq/bash"
+out=$(printf '%s' '{"tool_name":"Bash","tool_input":{"command":"bat ~/.git-credentials"}}' | PATH=$nojq bash "$HOOK" 2>&1)
+code=$?
+rm -rf "$nojq"
+if [[ $code -eq 0 ]]; then
+  printf 'PASS  [exit 0] without jq the command is let through\n'
+else
+  printf 'FAIL  [want 0, got %d] without jq the command is let through (%s)\n' "$code" "$out"
+  failures=$((failures + 1))
+fi
+
 echo "== the block never shows the secret =="
 FAKE_HOME=$(mktemp -d)
 trap 'rm -rf "$FAKE_HOME"' EXIT
