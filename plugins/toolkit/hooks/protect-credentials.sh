@@ -22,8 +22,14 @@ after='([^A-Za-z0-9_.-]|$)'
 patterns=(
   "$before(\\.config/(gh|restic))$after"
   "$before(\\.git-credentials)$after"
-  # .env.<name>, or a glob that can expand to one (.env.*, .env*, .env.[lp]*).
-  "$before(\\.env(\\.[]A-Za-z0-9_*?[-]|\\*)[]A-Za-z0-9_.*?[-]*)"
+  # .env.<name>, or a glob or brace group that can expand to one
+  # (.env.*, .env*, .env.[lp]*, .env.{local,prod}).
+  "$before(\\.env(\\.[]A-Za-z0-9_*?[{-]|\\*)[]A-Za-z0-9_.*?[{},-]*)"
+  # Shell expansion that can reach gh or restic: a glob or brace group in the
+  # segment after .config/ (.config/{gh,restic}, .config/g?), or a .. under it.
+  "$before(\\.config/[^/[:space:]\"']*[*?[{][^/[:space:]\"']*)"
+  "$before(\\.config/([^[:space:]\"']*/)?\\.\\.)(/|[[:space:]\"']|$)"
+  "$before(\\.git-cred[A-Za-z0-9_-]*[*?[{])"
 )
 for re in "${patterns[@]}"; do
   if [[ $cmd =~ $re ]]; then
