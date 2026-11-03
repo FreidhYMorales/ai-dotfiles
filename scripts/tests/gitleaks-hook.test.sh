@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# Behaviour tests for git-hooks/_dispatch, the global hook dispatcher: real
+# `git commit` calls in throwaway repos whose core.hooksPath points at this
+# repo's git-hooks/. Run: bash scripts/tests/gitleaks-hook.test.sh
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOKS="$ROOT/git-hooks"
+failures=0
+
+TMP_ROOT=$(mktemp -d)
+trap 'rm -rf "$TMP_ROOT"' EXIT
+# Keep the host's global git config (and its own hooksPath) out of the tests.
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+unset SKIP_GITLEAKS
+
+# A GitHub token gitleaks detects, built at runtime so this file holds no secret.
+FAKE_SECRET="gh""p_$(printf 'aZ3kQ9vL2mX7pR4tW8yB1nC6dF0gH5jK2sE9')"
+
+pass() { echo "PASS  $1"; }
+fail() {
+  echo "FAIL  $1"
+  [[ -n ${2:-} ]] && printf '%s\n' "$2" | while IFS= read -r line; do echo "      $line"; done
+  failures=$((failures + 1))
+}
+
+# new_repo NAME: a repo using the dispatcher, with one initial commit.
+new_repo() {
+  local repo="$TMP_ROOT/$1"
+  git init -q "$repo"
+  git -C "$repo" config user.name test
+  git -C "$repo" config user.email test@example.com
+  git -C "$repo" config core.hooksPath "$HOOKS"
+  printf 'hello\n' >"$repo/README"
+  git -C "$repo" add README
+  SKIP_GITLEAKS=1 git -C "$repo" commit -q -m init
+  printf '%s\n' "$repo"
+}
+
+# try_commit REPO [ENV...]: commit what is staged; sets LAST_EXIT, LAST_OUTPUT.
+LAST_OUTPUT=""
+LAST_EXIT=0
+try_commit() {
+  local repo=$1
+  shift
+  LAST_OUTPUT=$(cd "$repo" && env "$@" git commit -q -m change 2>&1)
+  LAST_EXIT=$?
+}
+
+commit_count() { git -C "$1" rev-list --count HEAD; }
+
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "== gitleaks block =="
+  repo=$(new_repo block)
+  printf 'token = "%s"\n' "$FAKE_SECRET" >"$repo/config.ini"
+  git -C "$repo" add config.ini
+  try_commit "$repo"
+  if [[ $LAST_EXIT -ne 0 && $LAST_OUTPUT == *"Commit blocked"* && $(commit_count "$repo") == 1 ]]; then
+    pass 'a staged secret blocks the commit'
+  else
+    fail 'a staged secret blocks the commit' "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
+
+  echo "== SKIP_GITLEAKS bypass =="
+  try_commit "$repo" SKIP_GITLEAKS=1
+  if [[ $LAST_EXIT -eq 0 && $(commit_count "$repo") == 2 ]] &&
+    git -C "$repo" show --name-only --format= HEAD | rg -qx 'config.ini'; then
+    pass 'SKIP_GITLEAKS=1 lets the same secret through'
+  else
+    fail 'SKIP_GITLEAKS=1 lets the same secret through' "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
+
+  echo "== chaining to the repo's own hook =="
+  repo=$(new_repo chain-ok)
+  printf '#!/usr/bin/env bash\ntouch "%s/local-hook-ran"\n' "$TMP_ROOT" >"$repo/.git/hooks/pre-commit"
+  chmod +x "$repo/.git/hooks/pre-commit"
+  printf 'more\n' >>"$repo/README"
+  git -C "$repo" add README
+  try_commit "$repo"
+  if [[ $LAST_EXIT -eq 0 && -e $TMP_ROOT/local-hook-ran && $(commit_count "$repo") == 2 ]]; then
+    pass "the repo's own pre-commit runs and the commit goes through"
+  else
+    fail "the repo's own pre-commit runs and the commit goes through" "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
+
+  repo=$(new_repo chain-fail)
+  printf '#!/usr/bin/env bash\necho "local hook says no" >&2\nexit 3\n' >"$repo/.git/hooks/pre-commit"
+  chmod +x "$repo/.git/hooks/pre-commit"
+  printf 'more\n' >>"$repo/README"
+  git -C "$repo" add README
+  try_commit "$repo"
+  if [[ $LAST_EXIT -ne 0 && $LAST_OUTPUT == *"local hook says no"* && $(commit_count "$repo") == 1 ]]; then
+    pass "a failing repo pre-commit refuses the commit"
+  else
+    fail "a failing repo pre-commit refuses the commit" "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
+else
+  echo "SKIP  gitleaks not installed; block, bypass and chaining tests not run"
+fi
+
+echo "== gitleaks missing =="
+# A PATH with only what git and the dispatcher need, so gitleaks is not found.
+nobin="$TMP_ROOT/no-gitleaks-bin"
+mkdir -p "$nobin"
+for tool in git bash basename readlink; do
+  ln -s "$(command -v "$tool")" "$nobin/$tool"
+done
+repo=$(new_repo missing)
+printf 'more\n' >>"$repo/README"
+git -C "$repo" add README
+try_commit "$repo" PATH="$nobin"
+if [[ $LAST_EXIT -eq 0 && $LAST_OUTPUT == *"gitleaks not installed; secret scan skipped"* && $(commit_count "$repo") == 2 ]]; then
+  pass 'without gitleaks the commit goes through with a warning'
+else
+  fail 'without gitleaks the commit goes through with a warning' "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+fi
+
+[[ $failures -eq 0 ]] || {
+  echo "$failures failure(s)"
+  exit 1
+}
+echo "all passed"
