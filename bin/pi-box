@@ -79,6 +79,9 @@ protect() {
   args+=(--ro-bind "${root%/}/${rel%%/*}" "${root%/}/${rel%%/*}")
 }
 protect "$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)" core.hooksPath
+# A .git file can point to a git dir elsewhere in the project (bare + worktree).
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)" 'the git dir'
+protect "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)" 'the git dir'
 protect "$(realpath -m "${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}")" 'the global git config'
 protect "$(realpath -m "${XDG_CONFIG_HOME:-$HOME/.config}/git/config")" 'the global git config'
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
