@@ -114,6 +114,15 @@ jq '.permissions.deny -= ["Read(~/.ssh/**)"]' "$REPO/claude/settings.json" >"$ro
 expect 1 'dropping a secret deny rule fails' check-settings.sh "$root"
 output_has 'names the dropped rule' 'Read(~/.ssh/\*\*)'
 
+# The credential denies of audit-fixes story 02: restic key, gh token, git
+# credentials and every .env.* file.
+for rule in 'Read(~/.config/restic/**)' 'Read(~/.config/gh/**)' 'Read(~/.git-credentials)' 'Read(//**/.env.*)'; do
+  root=$(fixture settings-drop-credential)
+  jq --arg r "$rule" '.permissions.deny -= [$r]' "$REPO/claude/settings.json" >"$root/claude/settings.json"
+  expect 1 "dropping $rule fails" check-settings.sh "$root"
+  output_has "names $rule" "missing deny rule ${rule//\*/\\*}"
+done
+
 root=$(fixture settings-missing)
 rm "$root/claude/settings.json"
 expect 1 'missing settings.json fails' check-settings.sh "$root"
