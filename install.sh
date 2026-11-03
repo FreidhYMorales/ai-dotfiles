@@ -293,7 +293,12 @@ install_units() {
     link_file "$src" "$unit_dir/$(basename "$src")"
   done
   command -v systemctl >/dev/null || return 0
-  run systemctl --user daemon-reload
+  # No user bus (ssh, sudo, container): the units stay linked, the rest of
+  # the install goes on.
+  if ! run systemctl --user daemon-reload 2>/dev/null; then
+    echo "no systemd user session: timers not enabled; re-run ./install.sh from a login session to enable them"
+    return 0
+  fi
   run systemctl --user enable --now upstream-watch.timer
   if [[ -f "$backup_env" ]]; then
     run systemctl --user enable --now engram-backup.timer
