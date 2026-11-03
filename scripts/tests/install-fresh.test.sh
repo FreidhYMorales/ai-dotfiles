@@ -46,4 +46,27 @@ assert 'the dry run leaves nothing in the home' \
   test -z "$(find "$home" -mindepth 1 -not -path "$home/bin*" -not -path "$home/state*" -not -path "$home/tmp")"
 assert 'the dry run leaves no temp build behind' test -z "$(find "$home/tmp" -mindepth 1)"
 
+echo "== missing tools the install does not need =="
+
+# install_without TOOL: install into a fresh sandbox whose PATH holds every
+# /usr/bin command but TOOL.
+install_without() {
+  local bin="$TMP_ROOT/usr-bin-no-$1"
+  mkdir -p "$bin"
+  ln -s /usr/bin/* "$bin/"
+  rm -f "$bin/$1"
+  home=$(sandbox "no-$1")
+  PATH="$bin" install "$home" --target claude
+}
+
+for tool in zellij bwrap; do
+  install_without "$tool"
+  assert "install without $tool succeeds" test "$LAST_EXIT" -eq 0
+  assert "install without $tool reaches the end" rg -q '^done\. Active targets:' <<<"$LAST_OUTPUT"
+  assert "install warns that $tool is missing" rg -q "^warning: $tool not found" <<<"$LAST_OUTPUT"
+done
+home=$(sandbox all-tools)
+install "$home" --target claude
+assert 'with every tool present nothing is reported missing' test -z "$(rg '^warning: \S+ not found' <<<"$LAST_OUTPUT")"
+
 finish_cases
