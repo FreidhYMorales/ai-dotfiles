@@ -20,6 +20,17 @@ fail() {
   exit 1
 }
 
+# Every command the rebuilt setup uses, from the packages docs/recovery.md
+# step 1 lists: a package dropped from the doc fails here, before any step.
+missing=0
+for tool in git gh jq rg restic sqlite3 openssl pgrep gitleaks make shellcheck zellij bwrap socat; do
+  command -v "$tool" >/dev/null || {
+    echo "missing tool: $tool (add its package to docs/recovery.md step 1)" >&2
+    missing=1
+  }
+done
+((missing == 0)) || fail "the packages in docs/recovery.md do not cover the setup"
+
 # Stubs: `claude` (no real CLI in the container) and `systemctl` (the real one
 # talks to the caller's session manager, not to the fake HOME).
 mkdir -p "$WORK/stub"
