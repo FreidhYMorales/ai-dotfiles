@@ -25,6 +25,8 @@ assert() {
 REPO=$TMP/repo
 mkdir -p "$REPO/plugins/p/tests" "$REPO/scripts/tests"
 for f in plugins/p/tests/a.test.sh plugins/p/tests/b.test.sh scripts/tests/c.test.sh; do
+  # $RUN_LOG expands when the fake test runs, not here.
+  # shellcheck disable=SC2016
   printf '#!/usr/bin/env bash\necho %s >>"$RUN_LOG"\n' "$f" >"$REPO/$f"
 done
 git -C "$REPO" init -q
@@ -61,7 +63,7 @@ two=$GOT
 code2=$CODE
 assert 'shard 1/2 exits 0' test "$code1" -eq 0
 assert 'shard 2/2 exits 0' test "$code2" -eq 0
-count() { [[ -z $1 ]] && echo 0 || wc -l <<<"$1"; }
+count() { if [[ -z $1 ]]; then echo 0; else wc -l <<<"$1"; fi; }
 assert 'the shards take 2 and 1 of the 3 files' test "$(count "$one")$(count "$two")" = 21 -o "$(count "$one")$(count "$two")" = 12
 assert 'no file runs in both shards' test -z "$(comm -12 <(echo "$one") <(echo "$two"))"
 assert 'together the shards run every file' test "$(sort <<<"$one"$'\n'"$two")" = "$ALL"
