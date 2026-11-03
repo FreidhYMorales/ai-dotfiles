@@ -117,6 +117,15 @@ assert 'a missing hooksPath inside the project is refused' test "$LAST_EXIT" -ne
 assert 'the missing hooksPath refusal explains why' says 'refusing'
 assert 'a missing hooksPath is never created' test ! -e "$project/new-hooks"
 
+# A nested hooksPath: renaming its parent and rebuilding it must fail too.
+mkdir -p "$project/tools/hooks"
+GIT_CONFIG_GLOBAL="$TMP_ROOT/nested-hooks.gitconfig"
+git config --global core.hooksPath "$project/tools/hooks"
+box "$project" 'mv tools tools.old && mkdir -p tools/hooks && printf "#!/bin/sh\necho pwned\n" >tools/hooks/pre-commit; true'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a nested hooksPath cannot be rebuilt' test ! -e "$project/tools/hooks/pre-commit"
+assert 'the parent of a nested hooksPath cannot be moved' test ! -e "$project/tools.old"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
