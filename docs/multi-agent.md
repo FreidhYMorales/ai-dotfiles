@@ -2,6 +2,8 @@
 
 Claude Code is the full target. OpenCode and Antigravity get the shared rules, the skill files and the generated ports. This page says what `install.sh` does for each one and what still works only in Claude Code.
 
+Status (2026-11-02): agy work is frozen (little expected use) and OpenCode is the secondary agent. The agy port stays installed as documented here; open agy stories are parked in the backlog.
+
 ## What the installer does
 
 `./install.sh` detects the installed agents; `--target claude|opencode|antigravity|all` (comma-separated) picks them by hand.
@@ -22,6 +24,10 @@ The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode and Antig
 ## Manual setup per machine
 
 OpenCode's background service (`opencode serve --service`) loads plugins when it starts and `opencode run` talks to it, so after updating `toolkit.ts` restart that service; `opencode run --standalone` uses a private server with the current plugin and your environment.
+
+Any extra file in OpenCode's `plugins/` dir (`~/.config/opencode/plugins/`), even an empty one, made `opencode run --standalone` hang on OpenCode 2.2.2 (story #20). Keep a debug probe inside `toolkit.ts` instead of a file of its own, and remove leftovers there before blaming the hooks.
+
+herdr rewrites agy's `~/.gemini/config/hooks.json` and can drop the `toolkit` key; the next `./install.sh` puts it back, because the installer merges only that key and leaves herdr's as it is.
 
 The installer never writes engram's MCP config outside Claude Code (`engram setup` may rewrite the agent's config); it only checks it and prints a warning naming the manual step:
 
