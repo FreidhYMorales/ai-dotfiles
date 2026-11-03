@@ -21,7 +21,9 @@ dir=${dir:-$PWD}
 
 [[ -d $dir ]] || exit 0
 # Always check from the repo root, so stopping in a subdirectory is no escape.
-dir=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
+# Refuse git dirs found by discovery that are not a `.git` (a clone can ship
+# a directory that looks like a git dir and carries its own config and trust).
+dir=$(git -c safe.bareRepository=explicit -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
 [[ -n $(git -C "$dir" status --porcelain 2>/dev/null) ]] || exit 0
 
 makefile=""
