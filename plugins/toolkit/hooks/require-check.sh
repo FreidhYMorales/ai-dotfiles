@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Stop hook: refuse to finish while the project's `make check` fails.
 # Runs from the git root of the cwd when the repo has uncommitted changes and a
-# root Makefile that defines a `check` target. Exit 2 feeds the failure tail
-# back to Claude. A tree identical to the last green run is skipped (cache in
+# root Makefile that defines a `check` target, and only in a repo opted in
+# with `git config require-check.trusted true`. Exit 2 feeds the failure tail
+# back to Claude; a second stop in the same turn reports it instead. A tree identical to the last green run is skipped (cache in
 # ~/.cache/require-check). Opt out with SKIP_REQUIRE_CHECK=1. A branch-bound
 # /flow:pair red marker turns the block into a systemMessage (see below).
 set -u
