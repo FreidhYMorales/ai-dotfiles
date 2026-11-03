@@ -64,6 +64,16 @@ allow 'bat ~/.config/ghostty/config'
 allow "node -e 'console.log(process.env.HOME)'"
 allow 'bat .envrc'
 
+echo "== registered for every Bash call =="
+hooks_json="$(dirname "$HOOK")/hooks.json"
+if jq -e '[.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].command
+    | select(endswith("/hooks/protect-credentials.sh"))] | length == 1' "$hooks_json" >/dev/null 2>&1; then
+  printf 'PASS  hooks.json runs protect-credentials on PreToolUse Bash\n'
+else
+  printf 'FAIL  hooks.json runs protect-credentials on PreToolUse Bash\n'
+  failures=$((failures + 1))
+fi
+
 echo "== fails open =="
 run_raw 0 'a non-Bash tool is not checked' \
   '{"tool_name":"Write","tool_input":{"file_path":"notes.md","content":"see ~/.git-credentials"}}'
