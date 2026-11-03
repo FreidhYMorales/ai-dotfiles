@@ -6,6 +6,7 @@ Triage log for ideas outside current scope. One row per idea; details below.
 |---|---|---|---|---|---|---|
 | 01 | Replace SDD with a light backlog → story → pair loop | GO | v1 (before multi-agent-port) | 3–5 | 2026-10-26 | [01](#01-replace-sdd-with-a-light-backlog--story--pair-loop) |
 | 02 | Split install.test.sh so make check fits the Stop gate comfortably | GO | backlog (multi-agent-port #33) | 0.5 | 2026-10-30 | [02](#02-split-installtestsh-so-make-check-fits-the-stop-gate-comfortably) |
+| 03 | Retire openspec/ and the legacy plan lookup | GO | backlog (replace-sdd #11) | 0.5–1 | 2026-11-02 | [03](#03-retire-openspec-and-the-legacy-plan-lookup) |
 
 ---
 
@@ -43,3 +44,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high; complexity low (move sections into 3-4 files with a shared helper, no assert changes); effort 0.5 d; value high here (make check ~131s → ~55s); risk low (order-dependent sections surface); no dependencies; fits the multi-agent-port backlog as a standalone tooling story; displaces nothing on the cut line, done before #12.
 - Recommendation: GO; tradeoff: half a day not spent on #12, for ~75s saved on every turn end. Plus a practice rule: never end a turn while a background `make check` or test suite runs.
 - Decision: GO (user, 2026-10-30) → backlog #33.
+
+## 03. Retire openspec/ and the legacy plan lookup
+
+- Idea: delete `openspec/` (5 frozen specs and 2 archived changes; git keeps them) and drop the legacy `openspec/changes/<change>/` lookup from the 9 `flow` skills, their goldens and tests.
+- Motivation: the repo should hold only what is used; history lives in git (local and remote). No active plan lives under `openspec/changes/`, so the lookup never finds anything, and no code or current doc reads `openspec/specs/`.
+- Revisits: idea 01's "`openspec/specs/` stays as behavior documentation" (replace-sdd plan: frozen history).
+- Score: feasibility high (all local); complexity low (one repeated line in 9 skills); effort 0.5–1 d; value medium-low (cleaner tree, one dead step less per skill run); risk items 3 and 6 (skills read by three agents, wording graded only by a paid `make eval`, max ~USD 6); no dependencies; fits the replace-sdd backlog; displaces nothing (no deadline, no open stories).
+- Recommendation: GO; tradeoff: the specs leave the tree (still reachable with `git show`) for one paid eval run.
+- Decision: GO (user, 2026-11-02) → replace-sdd backlog #11.
