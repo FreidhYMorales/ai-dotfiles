@@ -129,6 +129,14 @@ expect 0 'untrusted repo with a failing check does not block' "$(payload "$repo"
 assert 'untrusted repo says how to opt in' names_opt_in "$LAST_STDOUT"
 assert 'untrusted repo runs no make, not even detection' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
 
+repo=$(new_untrusted_repo global-only)
+untrusted_makefile "$repo"
+global_config="$TMP_ROOT/global-trusted.gitconfig"
+printf '[require-check]\n\ttrusted = true\n' >"$global_config"
+expect 0 'a global-only opt-in does not trust the repo' "$(payload "$repo")" GIT_CONFIG_GLOBAL="$global_config"
+assert 'global-only opt-in still says how to opt in' names_opt_in "$LAST_STDOUT"
+assert 'global-only opt-in runs no make' test ! -e "$repo/ran-shell" -a ! -e "$repo/ran-check"
+
 echo "== run make check =="
 
 repo=$(new_repo passing)
