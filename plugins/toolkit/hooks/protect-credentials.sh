@@ -16,7 +16,8 @@ after='([^A-Za-z0-9_.-]|$)'
 patterns=(
   "$before(\\.config/(gh|restic))$after"
   "$before(\\.git-credentials)$after"
-  "$before(\\.env\\.[A-Za-z0-9_-][A-Za-z0-9_.-]*)"
+  # .env.<name>, or a glob that can expand to one (.env.*, .env*, .env.[lp]*).
+  "$before(\\.env(\\.[]A-Za-z0-9_*?[-]|\\*)[]A-Za-z0-9_.*?[-]*)"
 )
 for re in "${patterns[@]}"; do
   if [[ $cmd =~ $re ]]; then
