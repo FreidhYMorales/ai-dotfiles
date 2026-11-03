@@ -76,7 +76,7 @@ assert 'OpenCode story reaches high-risk.md by an absolute path' \
 
 echo "== OpenCode remaining skills and planning commands =="
 # Every other flow and toolkit skill but judgment-day (story 30); only the
-# planning path gets commands here, the rest wait for #14.
+# planning path gets commands here, the rest in story 14 below.
 REMAINING="flow-plan flow-research flow-fill-gaps flow-handoff flow-next flow-idea flow-split
   flow-integrate flow-foundation flow-bootstrap toolkit-ship toolkit-chained-pr toolkit-cli-tools
   toolkit-cognitive-doc-design toolkit-comment-writer toolkit-delegate-local toolkit-go-testing
@@ -102,6 +102,20 @@ done
 assert 'the /flow-next command loads the flow-next skill' \
   grep -qxF 'Load the `flow-next` skill and follow it. $ARGUMENTS' "$OUT/opencode/commands/flow-next.md"
 assert 'judgment-day gets no OpenCode command' test ! -e "$OUT/opencode/commands/toolkit-judgment-day.md"
+
+echo "== OpenCode commands never shadow a built-in =="
+# The TUI slash commands and aliases of OpenCode 2.2.5 (read from its binary,
+# story 14) plus the server's init and review. Refresh on an OpenCode upgrade.
+OPENCODE_BUILTINS="agents btw cd clear compact connect copy debug diff editor exit quit q export
+  fork help highlights mcps models new open projects project pair web plugins redo reload rename
+  restart sessions resume continue settings skills stats status terminal themes timeline undo
+  update usage variants thinking effort worktrees init review"
+collisions=""
+for builtin in $OPENCODE_BUILTINS; do
+  [[ -e $OUT/opencode/commands/$builtin.md ]] && collisions+="commands/$builtin.md "
+done
+assert 'no generated command shares a name with an OpenCode built-in' test -z "$collisions"
+[[ -z $collisions ]] || printf 'colliding: %s\n' "$collisions"
 
 echo "== OpenCode rules =="
 # The shared rules plus the lines OpenCode's hooks do not cover (story 31):
