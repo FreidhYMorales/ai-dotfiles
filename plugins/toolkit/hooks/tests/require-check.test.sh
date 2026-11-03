@@ -92,6 +92,13 @@ expect 0 'stop_hook_active with a red check does not block again' \
 assert 'second stop says make check is still red' message_has 'make check is still red' "$LAST_STDOUT"
 assert 'second stop message has the failure tail' message_has 'line-100' "$LAST_STDOUT"
 
+active_green=$(new_repo active-green)
+write_makefile "$active_green" 'touch ran-check' 'true'
+expect 0 'stop_hook_active with a green check passes' \
+  "$(jq -n --arg cwd "$active_green" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop with a green check stays silent' test -z "$LAST_STDOUT"
+assert 'second stop still runs make check' test -e "$active_green/ran-check"
+
 expect 0 'SKIP_REQUIRE_CHECK=1 skips' "$(payload "$repo")" SKIP_REQUIRE_CHECK=1
 
 notgit="$TMP_ROOT/notgit"
