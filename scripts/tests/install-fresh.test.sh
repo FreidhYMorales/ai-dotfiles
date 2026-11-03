@@ -24,4 +24,16 @@ assert 'the Claude step runs' same "$(readlink "$home/.claude/CLAUDE.md")" "$ROO
 assert 'it says the timers were not enabled' rg -q 'timers not enabled' <<<"$LAST_OUTPUT"
 assert 'it says how to enable them later' rg -q 're-run \./install\.sh from a login session' <<<"$LAST_OUTPUT"
 
+echo "== dry run before any build =="
+
+home=$(sandbox dry-fresh)
+install "$home" --dry-run --target all
+assert 'dry run succeeds' test "$LAST_EXIT" -eq 0
+# would_link DST: the dry run prints the link it would make at DST.
+would_link() { rg -q "^\[dry-run\] ln -s .+ $1\$" <<<"$LAST_OUTPUT"; }
+assert 'it lists the generated OpenCode agent links' would_link "$home/\.config/opencode/agents/flow-verifier\.md"
+assert 'it lists the generated OpenCode skill links' would_link "$home/\.config/opencode/skills/flow-backlog"
+assert 'it lists the generated Antigravity agent links' would_link "$home/\.gemini/config/agents/flow-plan-reviewer\.md"
+assert 'it lists the generated Antigravity skill links' would_link "$home/\.gemini/antigravity-cli/skills/flow-backlog"
+
 finish_cases
