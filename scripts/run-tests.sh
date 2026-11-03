@@ -20,6 +20,8 @@ if [[ -n ${TEST_SHARD:-} ]]; then
     finish tests
   fi
   k=${BASH_REMATCH[1]} n=${BASH_REMATCH[2]}
+  # Tests that run run-tests.sh themselves must see every file.
+  export -n TEST_SHARD
   shard=()
   for i in "${!files[@]}"; do
     ((i % n == k - 1)) && shard+=("${files[i]}")
