@@ -107,6 +107,16 @@ GIT_CONFIG_GLOBAL=/dev/null
 assert 'a hooksPath inside the project cannot be written' \
   test ! -e "$project/git-hooks/pre-commit"
 
+# A hooksPath inside the project that does not exist yet could be created
+# from the box, so pi-box refuses to open the project.
+GIT_CONFIG_GLOBAL="$TMP_ROOT/missing-hooks.gitconfig"
+git config --global core.hooksPath "$project/new-hooks"
+box "$project" 'mkdir new-hooks && printf "#!/bin/sh\necho pwned\n" >new-hooks/pre-commit; true'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a missing hooksPath inside the project is refused' test "$LAST_EXIT" -ne 0
+assert 'the missing hooksPath refusal explains why' says 'refusing'
+assert 'a missing hooksPath is never created' test ! -e "$project/new-hooks"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
