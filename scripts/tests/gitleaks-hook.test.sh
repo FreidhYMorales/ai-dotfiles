@@ -61,6 +61,16 @@ if command -v gitleaks >/dev/null 2>&1; then
     fail 'a staged secret blocks the commit' "exit=$LAST_EXIT commits=$(commit_count "$repo")
 $LAST_OUTPUT"
   fi
+
+  echo "== SKIP_GITLEAKS bypass =="
+  try_commit "$repo" SKIP_GITLEAKS=1
+  if [[ $LAST_EXIT -eq 0 && $(commit_count "$repo") == 2 ]] &&
+    git -C "$repo" show --name-only --format= HEAD | rg -qx 'config.ini'; then
+    pass 'SKIP_GITLEAKS=1 lets the same secret through'
+  else
+    fail 'SKIP_GITLEAKS=1 lets the same secret through' "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
 else
   echo "SKIP  gitleaks not installed; block, bypass and chaining tests not run"
 fi
