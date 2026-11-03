@@ -53,14 +53,15 @@ has_check=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
 # /flow:pair commits a failing test on purpose before the code that makes it
 # pass. While that red test is committed it writes a marker (branch name, then
 # the red test commit sha) at `git rev-parse --git-path flow-pair-red`, which
-# resolves per worktree. Honour it only for the same branch with that commit
-# in HEAD, so a stale marker never disables the gate.
+# resolves per worktree. Honour it only for the same branch while that commit
+# is HEAD itself, so a marker forgotten after the green commit never disables
+# the gate.
 marker=$(cd "$dir" && git rev-parse --path-format=absolute --git-path flow-pair-red 2>/dev/null)
 if [[ -n $marker && -f $marker ]]; then
   { IFS= read -r red_branch && IFS= read -r red_sha; } <"$marker"
   branch=$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null)
   if [[ -n ${red_branch:-} && -n ${red_sha:-} && $branch == "$red_branch" ]] &&
-    git -C "$dir" merge-base --is-ancestor "$red_sha" HEAD 2>/dev/null; then
+    [[ $(git -C "$dir" rev-parse --verify --quiet HEAD 2>/dev/null) == "$red_sha" ]]; then
     jq -n --arg m "require-check: a red test is committed on purpose by /flow:pair on $branch ($red_sha); make check is expected to fail until it is green." \
       '{systemMessage: $m}'
     exit 0
