@@ -80,8 +80,9 @@ protect() {
 }
 protect "$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)" core.hooksPath
 # A local hooksPath hides the global one here, but other host repos run it.
+# A relative one is per repo, and --git-path above already covers this repo.
 global_hooks=$(git config --global --path --get core.hooksPath 2>/dev/null || true)
-[[ -z $global_hooks ]] || protect "$(realpath -m "$global_hooks")" 'the global core.hooksPath'
+[[ $global_hooks != /* ]] || protect "$(realpath -m "$global_hooks")" 'the global core.hooksPath'
 # A .git file can point to a git dir elsewhere in the project (bare + worktree).
 protect "$(git -C "$root" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)" 'the git dir'
 protect "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)" 'the git dir'
