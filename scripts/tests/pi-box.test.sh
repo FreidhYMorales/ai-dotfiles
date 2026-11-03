@@ -126,6 +126,24 @@ GIT_CONFIG_GLOBAL=/dev/null
 assert 'a nested hooksPath cannot be rebuilt' test ! -e "$project/tools/hooks/pre-commit"
 assert 'the parent of a nested hooksPath cannot be moved' test ! -e "$project/tools.old"
 
+# A global git config symlinked into the project (a dotfiles repo) runs in
+# every host repo: both ~/.gitconfig and the XDG location stay read-only.
+mkdir -p "$project/conf" "$home/.config/git"
+printf '[user]\n\tname = t\n' >"$project/conf/gitconfig"
+printf '[user]\n\tname = t\n' >"$project/conf/xdg-config"
+ln -s "$project/conf/gitconfig" "$home/.gitconfig"
+ln -s "$project/conf/xdg-config" "$home/.config/git/config"
+saved_xdg_config=${XDG_CONFIG_HOME-}
+unset GIT_CONFIG_GLOBAL XDG_CONFIG_HOME
+box "$project" 'printf "[core]\n\tfsmonitor = x\n" >>conf/gitconfig; printf "[core]\n\tfsmonitor = x\n" >>conf/xdg-config; true'
+export GIT_CONFIG_GLOBAL=/dev/null
+[[ -n $saved_xdg_config ]] && export XDG_CONFIG_HOME=$saved_xdg_config
+rm "$home/.gitconfig" "$home/.config/git/config"
+assert 'a ~/.gitconfig inside the project cannot be written' \
+  test "$(cat "$project/conf/gitconfig")" == $'[user]\n\tname = t'
+assert 'an XDG git config inside the project cannot be written' \
+  test "$(cat "$project/conf/xdg-config")" == $'[user]\n\tname = t'
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
