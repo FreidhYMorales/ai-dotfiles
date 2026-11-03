@@ -2,8 +2,9 @@
 # Structural test for the multi-agent port docs: the README, the install.sh
 # header and docs/multi-agent.md describe how each agent is set up.
 # Run: bash scripts/tests/port-docs.test.sh
-# The docs name paths like `~/.config`: a quoted `~` here is literal text.
-# shellcheck disable=SC2088
+# The docs name paths like `~/.config` in markdown backticks: a quoted `~` or
+# backtick here is literal text.
+# shellcheck disable=SC2088,SC2016
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -53,6 +54,18 @@ done
 for piece in 'generated AGENTS.md' '~/.gemini/config/' 'skills' 'agents' 'hooks.json' 'GEMINI.md' 'skills-backup/' 'engram'; do
   assert "Antigravity header names $piece" has "$agy" "$piece"
 done
+
+echo "== docs/multi-agent.md holds the setup notes =="
+doc=$(<"$ROOT/docs/multi-agent.md")
+# The manual setup section, up to the next level-2 heading.
+setup=$(awk '/^## Manual setup per machine/ { on = 1; next } /^## / { on = 0 } on' <<<"$doc")
+assert 'the manual setup section is found' test -n "$setup"
+assert 'setup says herdr can drop the toolkit key' rg -q 'herdr.*drop.*`toolkit`' <<<"$setup"
+assert 'setup says the next install puts the key back' rg -q 'install.*(puts|writes) it back' <<<"$setup"
+assert 'setup names the extra plugin file hang on 2.2.2' rg -q 'extra file.*`plugins/`.*hang.*2\.2\.2|2\.2\.2.*extra file.*`plugins/`.*hang' <<<"$setup"
+assert 'setup keeps probes inside toolkit.ts' rg -q 'probe.*inside `toolkit\.ts`' <<<"$setup"
+assert 'the doc says agy work is frozen' rg -q 'agy work is frozen' <<<"$doc"
+assert 'the doc names OpenCode the secondary agent' rg -q 'OpenCode is the secondary agent' <<<"$doc"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
