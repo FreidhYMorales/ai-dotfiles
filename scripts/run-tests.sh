@@ -50,6 +50,9 @@ for i in "${!files[@]}"; do
   if [[ $(<"$results/$i.status") == 0 ]]; then
     ok "${files[i]}"
   else
+    # Failure lines first: a long output (look's bun run) can push them out
+    # of the tail.
+    rg -N '^FAIL|\(fail\)' "$results/$i.out" >&2
     tail -n 40 "$results/$i.out" >&2
     err "test failed: ${files[i]}"
   fi
