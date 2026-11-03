@@ -65,8 +65,12 @@ args=(
 # A core.hooksPath inside the project (e.g. a dotfiles repo's git-hooks/ set
 # globally) runs in every host repo, so it is read-only too.
 hooks=$(git -C "$root" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || true)
-if [[ -n $hooks && $hooks == "${root%/}/"* ]]; then
-  args+=(--ro-bind-try "$hooks" "$hooks")
+if [[ -n $hooks && $hooks == "${root%/}/"* && $hooks != "${root%/}/.git/"* ]]; then
+  if [[ ! -e $hooks ]]; then
+    echo "pi-box: refusing to open $root: core.hooksPath ($hooks) is inside it but does not exist, so the box could create it. Create it first." >&2
+    exit 1
+  fi
+  args+=(--ro-bind "$hooks" "$hooks")
 fi
 # Without the kernel's TIOCSTI block, a sandboxed process could inject input
 # into the parent terminal; a new session prevents that (at the cost of job control).
