@@ -62,6 +62,12 @@ err_has 'a .env.* glob: the reason names it' '.env.*'
 block 'rg TOKEN .env*'
 block 'bat config/.env.[lp]*'
 
+echo "== redundant slashes and dot segments are blocked =="
+block 'bat ~/.config//gh/hosts.yml'
+err_has 'a doubled slash: the reason names .config/gh' '.config/gh'
+block 'bat ~/.config/./gh/hosts.yml'
+block 'jq . ~/.config/././restic//engram.env'
+
 echo "== tools that do not name the files run =="
 allow 'gh pr checks 31'
 allow 'engram-backup --verify'
