@@ -97,6 +97,16 @@ assert 'git hooks cannot be added' test ! -e "$project/.git/hooks/pre-commit"
 box "$project" 'mv .git .git-old && mkdir .git; true'
 assert 'the git dir cannot be swapped' test ! -e "$project/.git-old"
 
+# A core.hooksPath inside the project (the dotfiles repo sets its git-hooks/
+# globally) would let the box plant a hook every host repo runs.
+mkdir -p "$project/git-hooks"
+GIT_CONFIG_GLOBAL="$TMP_ROOT/hooks.gitconfig"
+git config --global core.hooksPath "$project/git-hooks"
+box "$project/src" 'printf "#!/bin/sh\necho pwned\n" >../git-hooks/pre-commit; true'
+GIT_CONFIG_GLOBAL=/dev/null
+assert 'a hooksPath inside the project cannot be written' \
+  test ! -e "$project/git-hooks/pre-commit"
+
 # The worker flow still works: edits made in the box show up in host git.
 printf 'old\n' >"$project/tracked.txt"
 git -C "$project" add tracked.txt
