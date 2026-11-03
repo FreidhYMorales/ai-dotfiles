@@ -39,6 +39,21 @@ assert 'the port roadmap item is found once' test "$(wc -l <<<"$item")" -eq 1 -a
 assert 'the port roadmap item is checked off' has "$item" '- [x] Port the Claude-only parts'
 assert 'the port item leaves judgment-day for v2' rg -q 'judgment-day.*v2' <<<"$item"
 
+echo "== install.sh header describes each port target =="
+# The comment block before the first command, split at each target heading.
+header=$(awk 'NR > 1 && !/^#/ { exit } NR > 1' "$ROOT/install.sh")
+opencode=$(awk '/^#   - OpenCode:/ { on = 1; next } /^#   - / { on = 0 } on' <<<"$header")
+agy=$(awk '/^#   - Antigravity:/ { on = 1; next } /^#   - / { on = 0 } on' <<<"$header")
+assert 'the header has an OpenCode section' test -n "$opencode"
+assert 'the header has an Antigravity section' test -n "$agy"
+assert 'the header links no raw skills' lacks "$header" 'Symlinks all skills'
+for piece in 'generated AGENTS.md' 'skills' 'commands' 'agents' 'toolkit.ts' 'engram'; do
+  assert "OpenCode header names $piece" has "$opencode" "$piece"
+done
+for piece in 'generated AGENTS.md' '~/.gemini/config/' 'skills' 'agents' 'hooks.json' 'GEMINI.md' 'skills-backup/' 'engram'; do
+  assert "Antigravity header names $piece" has "$agy" "$piece"
+done
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
   exit 1
