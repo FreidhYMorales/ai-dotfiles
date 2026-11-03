@@ -61,7 +61,7 @@ Load during planning of a greenfield project (or one with no established convent
 9. **Observability/errors**, proportional: logging, error boundaries, surfacing sync failures.
 10. **Accessibility and i18n** when there is UI (UI language may differ from code language).
 11. Write `docs/architecture.md` (`"/repo path/plugins/flow/skills/foundation/templates/architecture.md"`), `docs/development.md` (`"/repo path/plugins/flow/skills/foundation/templates/development.md"`), one ADR per major decision in `docs/adr/NNNN-<slug>.md` (`"/repo path/plugins/flow/skills/foundation/templates/adr.md"`), `AGENTS.md` (`"/repo path/plugins/flow/skills/foundation/templates/agents.md"`) a `CLAUDE.md` containing only `@AGENTS.md`, and `.claude/settings.json` (step 8); add `.claude/settings.local.json` to `.gitignore`.
-12. Update the plan's `## Foundation` section with links and a 3–5 line summary. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). Search both trees with no depth limit. Several → ask which; none → say so.
+12. Update the plan's `## Foundation` section with links and a 3–5 line summary. Plan lookup: `docs/plans/<feature>/plan.md`. Search it with no depth limit. Several → ask which; none → say so.
 13. Tell the user next: `/flow-bootstrap` (creates the repo, tree, tooling and green `make check`, or the reorganization PR), then `/flow-plan-review`; `/flow-split` later inlines these conventions into every work package.
 
 ## Output Contract

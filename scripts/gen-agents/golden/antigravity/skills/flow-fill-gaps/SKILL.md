@@ -35,7 +35,7 @@ Load after `/flow-plan-review` returns FAIL or PASS WITH CHANGES, or when the us
 
 ## Execution Steps
 
-1. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). Load the latest `<plan-dir>/plan-review-<N>.md` and the plan.
+1. Plan lookup: `docs/plans/<feature>/plan.md`. Load the latest `<plan-dir>/plan-review-<N>.md` and the plan.
 2. Build the gap queue: blockers, then majors, then the reviewer's user questions, then minors. Mark which you will decide yourself.
 3. Announce the technical decisions you made in one short list.
 4. Ask the first user question; wait; record the answer; continue until the queue is empty or the user stops.

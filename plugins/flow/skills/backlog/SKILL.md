@@ -29,9 +29,8 @@ Load when the user wants an idea or an approved plan (the `/flow:plan` handoff) 
 
 | Situation | Action |
 |---|---|
-| Approved plan exists (`docs/plans/<feature>/plan.md`, else legacy `openspec/changes/<change>/plan.md`) | Take What, Stack and decisions from it; ask only about gaps |
+| Approved plan exists (`docs/plans/<feature>/plan.md`) | Take What, Stack and decisions from it; ask only about gaps |
 | Bare idea, no plan | Write to `docs/plans/<project>/backlog.md` (small projects) or `docs/plans/<feature>/backlog.md` |
-| Plan found under legacy `openspec/changes/<change>/` | Write `backlog.md` next to it (legacy stays read-write) |
 | Idea is large (new product, several actors, deadline) | Suggest `/flow:plan` first; its handoff ends here |
 | `backlog.md` already exists | Edit it in place: append, reorder, split, drop; never renumber |
 | No runnable test command found | Write `Test command: none`; warn that `/flow:pair` will stop with "no runnable test" |
@@ -39,7 +38,7 @@ Load when the user wants an idea or an approved plan (the `/flow:plan` handoff) 
 
 ## Execution Steps
 
-1. Look up the plan: `docs/plans/<feature>/` first, then `openspec/changes/<change>/`. Read `backlog.md` if present.
+1. Look up the plan: `docs/plans/<feature>/`. Read `backlog.md` if present.
 2. Restate the idea in one or two lines; confirm it.
 3. New project: agree the stack only. Then ask which expensive-to-change decisions apply: multi-tenant or multi-organization, roles and permissions, offline or sync, i18n or multi-currency, others the idea suggests. Ask, do not design.
 4. Detect the test commands once (first match wins) and confirm them:
@@ -76,7 +75,7 @@ NN. [s] As a <who>, I want <what> so that <why>.[ Requires: #N(, #N)*]
 
 ## Output Contract
 
-- `docs/plans/<feature>/backlog.md` (small projects without a plan: `docs/plans/<project>/backlog.md`; legacy plans: next to the plan).
+- `docs/plans/<feature>/backlog.md` (small projects without a plan: `docs/plans/<project>/backlog.md`).
 - Engram: one `decision` entry (`mcp__engram__mem_save`, topic `backlog/<feature>`) with the backlog path and story count.
 - Final message: path, story count, the test commands (or the `none` warning), next step `/flow:story 01`.
 

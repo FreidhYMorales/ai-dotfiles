@@ -37,7 +37,7 @@ Load before `/flow-plan` when a feature has open questions about prior art, comp
 3. Run context7 lookups for candidate libraries in parallel with the subagent.
 4. Merge results into the brief format below. Drop anything without a source.
 5. Save the brief to engram (`mem_save`, type `discovery`, topic `research/<feature>`). For another project use `engram save "<title>" "<content>" --type discovery --project <name>`.
-6. Plan lookup: `docs/plans/<feature>/plan.md` first, then legacy `openspec/changes/<change>/plan.md` (legacy plans stay read-write). If a plan file exists, append the brief to its `## Research` section; otherwise keep it for `/flow-plan` to insert.
+6. Plan lookup: `docs/plans/<feature>/plan.md`. If a plan file exists, append the brief to its `## Research` section; otherwise keep it for `/flow-plan` to insert.
 7. Recommend `/flow-plan` next.
 
 ## Output Contract
