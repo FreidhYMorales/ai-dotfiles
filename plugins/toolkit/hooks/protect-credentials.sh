@@ -8,6 +8,12 @@ command -v jq >/dev/null 2>&1 || exit 0
 input=$(cat)
 cmd=$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null) || exit 0
 
+# Match on a copy with // and /./ collapsed, so ~/.config//gh is .config/gh.
+while [[ $cmd == *'/./'* || $cmd == *'//'* ]]; do
+  cmd=${cmd//\/.\//\/}
+  cmd=${cmd//\/\//\/}
+done
+
 # A protected name starts after a non-word character (so process.env.X is not
 # a file) and, for the fixed names, ends before one (so .config/ghostty is not
 # .config/gh). ~, $HOME and absolute spellings all contain these names.
