@@ -18,9 +18,24 @@ assert() {
   fi
 }
 
+# no_openspec PATH: no file under PATH names openspec.
+no_openspec() { ! rg -q openspec "$1"; }
+
 echo "== openspec/ is gone =="
 assert 'openspec/ is not in the tree' test ! -e "$ROOT/openspec"
 assert 'git tracks nothing under openspec/' test -z "$(git -C "$ROOT" ls-files -- openspec)"
+
+echo "== flow lookups name only docs/plans =="
+SKILLS="$ROOT/plugins/flow/skills"
+GOLDEN="$ROOT/scripts/gen-agents/golden"
+for s in backlog story pair plan plan-review fill-gaps research foundation handoff; do
+  # Backticks are literal markdown.
+  # shellcheck disable=SC2016
+  assert "$s looks up docs/plans/<feature>/" rg -qF '`docs/plans/<feature>/' "$SKILLS/$s/SKILL.md"
+  assert "$s names no openspec" no_openspec "$SKILLS/$s/SKILL.md"
+done
+assert 'the goldens are present' test -d "$GOLDEN/opencode/skills" -a -d "$GOLDEN/antigravity/skills"
+assert 'no golden names openspec' no_openspec "$GOLDEN"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
