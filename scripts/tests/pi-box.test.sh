@@ -97,6 +97,16 @@ assert 'git hooks cannot be added' test ! -e "$project/.git/hooks/pre-commit"
 box "$project" 'mv .git .git-old && mkdir .git; true'
 assert 'the git dir cannot be swapped' test ! -e "$project/.git-old"
 
+# The worker flow still works: edits made in the box show up in host git.
+printf 'old\n' >"$project/tracked.txt"
+git -C "$project" add tracked.txt
+git -C "$project" -c user.name=t -c user.email=t@t commit -qm init
+box "$project" 'printf "new\n" >tracked.txt && printf "x\n" >added.txt'
+assert 'host git status shows box edits' \
+  test "$(git -C "$project" status --short -- tracked.txt added.txt)" == $' M tracked.txt\n?? added.txt'
+assert 'host git diff shows the box change' \
+  test "$(git -C "$project" diff -- tracked.txt | tail -2)" == $'-old\n+new'
+
 echo "== pi state =="
 
 box "$project" 'echo "$PI_CODING_AGENT_SESSION_DIR"; echo s >"$PI_CODING_AGENT_SESSION_DIR/s.jsonl"'
