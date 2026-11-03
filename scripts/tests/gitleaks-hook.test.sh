@@ -71,6 +71,33 @@ $LAST_OUTPUT"
     fail 'SKIP_GITLEAKS=1 lets the same secret through' "exit=$LAST_EXIT commits=$(commit_count "$repo")
 $LAST_OUTPUT"
   fi
+
+  echo "== chaining to the repo's own hook =="
+  repo=$(new_repo chain-ok)
+  printf '#!/usr/bin/env bash\ntouch "%s/local-hook-ran"\n' "$TMP_ROOT" >"$repo/.git/hooks/pre-commit"
+  chmod +x "$repo/.git/hooks/pre-commit"
+  printf 'more\n' >>"$repo/README"
+  git -C "$repo" add README
+  try_commit "$repo"
+  if [[ $LAST_EXIT -eq 0 && -e $TMP_ROOT/local-hook-ran && $(commit_count "$repo") == 2 ]]; then
+    pass "the repo's own pre-commit runs and the commit goes through"
+  else
+    fail "the repo's own pre-commit runs and the commit goes through" "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
+
+  repo=$(new_repo chain-fail)
+  printf '#!/usr/bin/env bash\necho "local hook says no" >&2\nexit 3\n' >"$repo/.git/hooks/pre-commit"
+  chmod +x "$repo/.git/hooks/pre-commit"
+  printf 'more\n' >>"$repo/README"
+  git -C "$repo" add README
+  try_commit "$repo"
+  if [[ $LAST_EXIT -ne 0 && $LAST_OUTPUT == *"local hook says no"* && $(commit_count "$repo") == 1 ]]; then
+    pass "a failing repo pre-commit refuses the commit"
+  else
+    fail "a failing repo pre-commit refuses the commit" "exit=$LAST_EXIT commits=$(commit_count "$repo")
+$LAST_OUTPUT"
+  fi
 else
   echo "SKIP  gitleaks not installed; block, bypass and chaining tests not run"
 fi
