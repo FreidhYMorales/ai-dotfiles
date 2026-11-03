@@ -85,6 +85,18 @@ assert '/tmp is private to the sandbox' test ! -e /tmp/box-tmp-probe
 box "$project" 'echo x >/usr/box-probe 2>&1; echo "exit=$?"'
 assert 'the system is read-only' says 'exit=1'
 
+echo "== git metadata cannot be planted =="
+
+# delegate-local runs git on the host inside the worker clone, so a config key
+# like core.fsmonitor or a hook written from the box would run unsandboxed.
+box "$project" 'git config core.fsmonitor "touch /tmp/pwned"; true'
+assert 'git config changes never reach the host' \
+  test -z "$(git -C "$project" config --get core.fsmonitor)"
+box "$project" 'printf "#!/bin/sh\necho pwned\n" >.git/hooks/pre-commit; true'
+assert 'git hooks cannot be added' test ! -e "$project/.git/hooks/pre-commit"
+box "$project" 'mv .git .git-old && mkdir .git; true'
+assert 'the git dir cannot be swapped' test ! -e "$project/.git-old"
+
 echo "== pi state =="
 
 box "$project" 'echo "$PI_CODING_AGENT_SESSION_DIR"; echo s >"$PI_CODING_AGENT_SESSION_DIR/s.jsonl"'
