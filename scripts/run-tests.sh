@@ -12,6 +12,23 @@ while IFS= read -r f; do
   [[ -f $ROOT/$f ]] && files+=("$f")
 done < <(repo_files)
 
+# TEST_SHARD=K/N (CI) keeps every Nth file starting at the Kth, so N jobs
+# split the files with no overlap.
+if [[ -n ${TEST_SHARD:-} ]]; then
+  if [[ ! $TEST_SHARD =~ ^([1-9][0-9]*)/([1-9][0-9]*)$ ]] || ((BASH_REMATCH[1] > BASH_REMATCH[2])); then
+    err "TEST_SHARD must be K/N with 1 <= K <= N, got '$TEST_SHARD'"
+    finish tests
+  fi
+  k=${BASH_REMATCH[1]} n=${BASH_REMATCH[2]}
+  # Tests that run run-tests.sh themselves must see every file.
+  export -n TEST_SHARD
+  shard=()
+  for i in "${!files[@]}"; do
+    ((i % n == k - 1)) && shard+=("${files[i]}")
+  done
+  files=("${shard[@]}")
+fi
+
 if [[ ${#files[@]} -eq 0 ]]; then
   ok "no test files found"
   finish tests
