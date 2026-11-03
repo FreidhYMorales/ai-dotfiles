@@ -31,6 +31,10 @@ required=(
   'Read(~/.config/gcloud/**)'
   'Read(~/.docker/config.json)'
   'Read(~/.claude.json)'
+  'Read(~/.config/restic/**)'
+  'Read(~/.config/gh/**)'
+  'Read(~/.git-credentials)'
+  'Read(//**/.env.*)'
 )
 
 settings="$ROOT/claude/settings.json"
