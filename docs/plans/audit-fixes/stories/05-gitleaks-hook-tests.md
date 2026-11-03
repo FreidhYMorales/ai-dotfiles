@@ -38,3 +38,8 @@ Risk: none
 
 - L1 request: /flow:story 05
 - L2 decision (user, 2026-11-03): missing gitleaks keeps warning, not blocking.
+- L3 evidence (pair, mode B, 2026-11-03): tests-only story, no production change, so each red was shown against a sabotaged copy of the dispatcher (exit 1 removed; SKIP ignored; chaining exec removed; missing gitleaks blocking or silent), then green on the real one.
+  - Commits: fc2c989 test(git-hooks): a staged secret blocks the commit; 46efb85 test(git-hooks): SKIP_GITLEAKS lets a flagged commit through; 399002b test(git-hooks): the dispatcher chains to the repo's own pre-commit; 9f5141a test(git-hooks): a missing gitleaks warns and lets the commit through.
+  - `bash scripts/tests/gitleaks-hook.test.sh`: 5 PASS, "all passed"; `make check`: "All checks passed (7 steps)".
+  - Mutation: `scripts/mutate.sh git-hooks/pre-commit ...` 6/6 killed (100%). `mutate.sh git-hooks/_dispatch` reports 0/6 because its `cp --parents` copy dereferences the hook symlinks, so the mutated `_dispatch` is never the hook git runs (harness limitation, not fixed here).
+  - Risk: none
