@@ -44,6 +44,24 @@ assert 'no timer is enabled after a failed reload' test -z "$(rg -F 'enable' "$h
 assert 'git hooks are installed after a failed reload' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
 
+echo "== both wordings of a missing bus keep the session hint =="
+
+wording=0
+for message in 'Failed to connect to user scope bus via local transport: No such file or directory' \
+  'Failed to connect to bus: No medium found'; do
+  wording=$((wording + 1))
+  home=$(sandbox "bus-wording-$wording")
+  cat >"$home/bin/systemctl" <<EOF
+#!/usr/bin/env bash
+echo '$message' >&2
+exit 1
+EOF
+  install "$home"
+  assert "wording $wording: it says there is no user session" rg -qF 'no systemd user session' <<<"$LAST_OUTPUT"
+  assert "wording $wording: it gives no reload warning" test -z "$(rg -F 'daemon-reload failed' <<<"$LAST_OUTPUT")"
+  assert "wording $wording: install reaches the end" rg -q '^done\. Active targets:' <<<"$LAST_OUTPUT"
+done
+
 echo "== dry run before any build =="
 
 home=$(sandbox dry-fresh)
