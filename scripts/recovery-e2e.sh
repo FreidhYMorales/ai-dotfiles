@@ -20,10 +20,23 @@ fail() {
   exit 1
 }
 
-# Stubs: `claude` (no real CLI in the container) and `systemctl` (the real one
-# talks to the caller's session manager, not to the fake HOME).
+# Every command the rebuilt setup uses, from the packages docs/recovery.md
+# step 1 lists: a package dropped from the doc fails here, before any step.
+missing=0
+for tool in git gh jq rg restic sqlite3 openssl pgrep gitleaks make shellcheck zellij bwrap socat; do
+  command -v "$tool" >/dev/null || {
+    echo "missing tool: $tool (add its package to docs/recovery.md step 1)" >&2
+    missing=1
+  }
+done
+((missing == 0)) || fail "the packages in docs/recovery.md do not cover the setup"
+
+# Stub: `claude` (no real CLI in the container). systemctl is the real one,
+# run with no user bus, as on a fresh machine over ssh or in a container; that
+# also keeps it away from the caller's own timers.
 mkdir -p "$WORK/stub"
-for tool in claude systemctl; do
+# shellcheck disable=SC2043 # one stub today; any new one joins this list.
+for tool in claude; do
   printf '#!/usr/bin/env bash\nexit 0\n' >"$WORK/stub/$tool"
   chmod +x "$WORK/stub/$tool"
 done
@@ -34,13 +47,14 @@ machine() {
   mkdir -p "$home"
   # Copy the working tree (not a clone) so the drill tests what is on disk.
   cp -a "$SRC" "$home/dotfiles"
-  (cd "$home/dotfiles" && HOME="$home" GIT_CONFIG_GLOBAL="$home/.gitconfig" PATH="$WORK/stub:$PATH" \
+  (cd "$home/dotfiles" && env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$home" GIT_CONFIG_GLOBAL="$home/.gitconfig" PATH="$WORK/stub:$PATH" \
     ./install.sh >"$home/install.log" 2>&1) ||
     {
       cat "$home/install.log" >&2
       fail "install.sh failed on $1"
     }
   [[ -L $home/.claude/CLAUDE.md ]] || fail "CLAUDE.md not linked on $1"
+  rg -q 'timers not enabled' "$home/install.log" || fail "install.sh did not explain the missing user bus on $1"
   [[ -x $home/.local/bin/engram-backup ]] || fail "engram-backup not linked on $1"
   printf '%s\n' "$home"
 }

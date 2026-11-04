@@ -222,10 +222,22 @@ link_skills() {
 # build_agents: generate the OpenCode and Antigravity files once per run into
 # a new dir, then point BUILD_DIR at it with one rename, so a reader never sees
 # half a build; the previous generation is removed after the swap.
+# A dry run generates into a throwaway dir instead (GEN_DIR), removed on
+# exit, so it can list the real links without leaving anything behind.
 BUILT=0
+GEN_DIR=$BUILD_DIR
 build_agents() {
   ((BUILT)) && return 0
   BUILT=1
+  if ((DRY_RUN)); then
+    GEN_DIR=$(mktemp -d)
+    trap 'rm -rf "$GEN_DIR"' EXIT
+    bash "$REPO_DIR/scripts/gen-agents/gen.sh" "$GEN_DIR" >/dev/null || {
+      echo "error: scripts/gen-agents/gen.sh failed" >&2
+      exit 1
+    }
+    return 0
+  fi
   local new old
   new="$BUILD_DIR.$(date +%Y%m%d%H%M%S).$$"
   old=$(readlink "$BUILD_DIR" 2>/dev/null || true)
@@ -246,12 +258,12 @@ build_agents() {
 # link_generated TARGET KIND DIR: link each generated TARGET/KIND entry into
 # DIR through BUILD_DIR, so the links survive the next swap.
 link_generated() {
-  local src_dir="$BUILD_DIR/$1/$2" dir=$3 src
+  local dir=$3 src
   build_agents
   prune_links "$dir"
-  for src in "$src_dir"/*; do
+  for src in "$GEN_DIR/$1/$2"/*; do
     [[ -e $src ]] || continue
-    link_file "$src" "$dir/$(basename "$src")"
+    link_file "$BUILD_DIR/$1/$2/$(basename "$src")" "$dir/$(basename "$src")"
   done
 }
 
@@ -293,7 +305,12 @@ install_units() {
     link_file "$src" "$unit_dir/$(basename "$src")"
   done
   command -v systemctl >/dev/null || return 0
-  run systemctl --user daemon-reload
+  # No user bus (ssh, sudo, container): the units stay linked, the rest of
+  # the install goes on.
+  if ! run systemctl --user daemon-reload 2>/dev/null; then
+    echo "no systemd user session: timers not enabled; re-run ./install.sh from a login session to enable them"
+    return 0
+  fi
   run systemctl --user enable --now upstream-watch.timer
   if [[ -f "$backup_env" ]]; then
     run systemctl --user enable --now engram-backup.timer
@@ -512,6 +529,11 @@ main() {
 
   require jq
   require rg
+  # Other parts of the setup use these; the install itself does not.
+  local tool
+  for tool in make shellcheck zellij bwrap socat; do
+    command -v "$tool" >/dev/null || echo "warning: $tool not found; install the packages in docs/recovery.md step 1"
+  done
 
   link_bin
   install_units

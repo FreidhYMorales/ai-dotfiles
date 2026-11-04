@@ -23,7 +23,7 @@ engram-backup --init   # on an empty clone: restic init, .gitignore, commit and 
 ## 1. Packages
 
 ```bash
-sudo pacman -S --needed git github-cli jq ripgrep restic sqlite openssl procps-ng gitleaks
+sudo pacman -S --needed git github-cli jq ripgrep restic sqlite openssl procps-ng gitleaks make shellcheck zellij bubblewrap socat otf-atkinsonhyperlegiblemono-nerd
 ```
 
 Install Claude Code (native installer) and sign in, then `gh auth login` (the dotfiles repo is private).
