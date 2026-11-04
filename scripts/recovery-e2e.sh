@@ -31,6 +31,21 @@ for tool in git gh jq rg restic sqlite3 openssl pgrep gitleaks make shellcheck z
 done
 ((missing == 0)) || fail "the packages in docs/recovery.md do not cover the setup"
 
+# The real engram the drill saves and searches memories with: one pinned
+# release, run only after its archive matches the release's checksums.txt
+# (as ai-update checks an upgrade). ENGRAM_RELEASE_URL points the tests at a
+# local release.
+ENGRAM_VERSION=3.6.1
+release=${ENGRAM_RELEASE_URL:-https://github.com/Gentleman-Programming/engram/releases/download/v$ENGRAM_VERSION}
+asset="engram_${ENGRAM_VERSION}_linux_amd64.tar.gz"
+mkdir -p "$WORK/engram"
+{ curl -fsSL --max-time 120 -o "$WORK/engram/$asset" "$release/$asset" &&
+  curl -fsSL --max-time 30 -o "$WORK/engram/checksums.txt" "$release/checksums.txt"; } ||
+  fail "could not download engram $ENGRAM_VERSION from $release"
+(cd "$WORK/engram" && rg -F "  $asset" checksums.txt | sha256sum -c --status) ||
+  fail "checksum mismatch for $asset; engram not run"
+tar -xzf "$WORK/engram/$asset" -C "$WORK/engram" engram
+
 # Stub: `claude` (no real CLI in the container). systemctl is the real one,
 # run with no user bus, as on a fresh machine over ssh or in a container; that
 # also keeps it away from the caller's own timers.
