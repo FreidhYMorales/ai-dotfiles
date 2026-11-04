@@ -63,6 +63,18 @@ if command -v engram >/dev/null 2>&1; then
   fi
 fi
 
+# look pin: the installed look plugin is tested against one Claude Code
+# version; any other installed version may break its band silently.
+if [[ -f $installed ]]; then
+  look_path=$(jq -r 'first(.plugins // {} | to_entries[] | select(.key | startswith("look@"))
+    | .value[0].installPath // empty)' "$installed" 2>/dev/null)
+  pin=$(cat "$look_path/tests/claude-code.version" 2>/dev/null)
+  claude_version=$(claude --version 2>/dev/null | awk '{print $1}')
+  if [[ -n $pin && -n $claude_version && $pin != "$claude_version" ]]; then
+    notes+=("look pin $pin != Claude Code $claude_version (bump it: docs/look.md, \"Bump the pin\")")
+  fi
+fi
+
 # Upstream news: only read what the daily upstream-watch timer recorded, so
 # session start never waits on GitHub.
 UPSTREAM_STATE=${UPSTREAM_WATCH_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/upstream-watch/state.json}
