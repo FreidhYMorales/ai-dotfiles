@@ -328,7 +328,7 @@ install_git_hooks() {
   for hook in "${GIT_HOOKS[@]}"; do
     [[ -L "$dir/$hook" ]] || run ln -sf _dispatch "$dir/$hook"
   done
-  current="$(git config --global --get core.hooksPath || true)"
+  current="$(git config --global --path --get core.hooksPath || true)"
   if [[ "$current" == "$dir" ]]; then
     echo "ok: core.hooksPath"
   elif [[ "$current" == /* && ! -d "$current" ]]; then
