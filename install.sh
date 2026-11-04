@@ -529,6 +529,11 @@ main() {
 
   require jq
   require rg
+  # Other parts of the setup use these; the install itself does not.
+  local tool
+  for tool in make shellcheck zellij bwrap socat; do
+    command -v "$tool" >/dev/null || echo "warning: $tool not found; install the packages in docs/recovery.md step 1"
+  done
 
   link_bin
   install_units

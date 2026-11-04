@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Install tools
         run: |
-          pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint \
+          pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint zellij bubblewrap \
             sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks \
             nodejs npm
           shfmt --version
