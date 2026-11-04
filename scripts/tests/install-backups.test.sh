@@ -81,4 +81,22 @@ assert 'the newer directory backups keep their content' \
 assert 'output names the removed directory copy' \
   rg -qxF "pruned old backup: $home/.claude/CLAUDE.md.bak-20200101-000001" <<<"$LAST_OUTPUT"
 
+echo "== dry-run names the copies it would remove =="
+
+home=$(sandbox prune-dry)
+mkdir -p "$home/.claude"
+printf '# my own notes\n' >"$home/.claude/CLAUDE.md"
+seed_backups "$home/.claude/CLAUDE.md" 20200101-000001 20200101-000002 20200101-000003 20200101-000004
+install "$home" --dry-run
+dry_backups=("$home"/.claude/CLAUDE.md.bak-*)
+assert 'dry-run keeps all four backups' same "${#dry_backups[@]}" 4
+assert 'dry-run keeps the oldest backup' test -f "$home/.claude/CLAUDE.md.bak-20200101-000001"
+assert 'dry-run names the oldest copy' \
+  rg -qF "$home/.claude/CLAUDE.md.bak-20200101-000001" <<<"$LAST_OUTPUT"
+assert 'dry-run names the second oldest copy' \
+  rg -qF "$home/.claude/CLAUDE.md.bak-20200101-000002" <<<"$LAST_OUTPUT"
+assert 'dry-run names no kept copy' \
+  not_in_output "$home/.claude/CLAUDE.md.bak-20200101-000003" "$home/.claude/CLAUDE.md.bak-20200101-000004"
+assert 'dry-run does not claim a copy was pruned' not_in_output 'pruned old backup:'
+
 finish_cases
