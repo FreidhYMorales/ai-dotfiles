@@ -175,7 +175,10 @@ upgrade_engram() {
     return 1
   fi
   echo "installed: engram $latest"
-  "$ENGRAM_BIN" doctor 2>&1 | tail -n 5 || echo "warning: engram doctor reported problems" >&2
+  if ! "$ENGRAM_BIN" doctor 2>&1 | tail -n 5; then
+    echo "error: engram doctor failed" >&2
+    return 1
+  fi
   rm -f "$UPDATE_CHECK_CACHE"
   prune_copies
   restart_server
