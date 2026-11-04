@@ -40,3 +40,7 @@ Risk: item 5 (CI job downloads and runs a pinned external binary)
 
 - L1 request: /flow:story 07
 - L2 approved; host engram upgraded 3.6.0 -> 3.6.1 first, so the pin is 3.6.1.
+- L3 built with `/flow:pair 07`. User approved the `ENGRAM_RELEASE_URL` override (default: GitHub v3.6.1) so the tests use a local `file://` release. Confirmed first: `engram save`/`search` need no `serve`, `ENGRAM_DATA_DIR` alone works; a miss echoes the query, so the drill matches the result line `) — <title>`.
+- L4 evidence: b2e8292 test + f4f3d2b feat (checksum mismatch stops the drill before engram runs); ccc8670 test + ed2e079 feat (a memory engram cannot find fails the drill, named). `make check`: "All checks passed (7 steps)". Real e2e `bash scripts/recovery-e2e.sh`: "recovery drill passed: engram 3.6.1 finds 3/3 memories restored from the drive and from the off-site clone" (29 s). CI `recovery` job: pending push.
+- L5 verifier: PASS (C1-C3 pass, TDD order and tamper check pass). Non-blocking notes: checksums.txt comes from the same release as the archive (integrity, not provenance; same as `ai-update`); `curl`/`tar` rely on the Arch base image and are not in the drill's tool check.
+- Risk: item 5 (CI job downloads and runs a pinned external binary)
