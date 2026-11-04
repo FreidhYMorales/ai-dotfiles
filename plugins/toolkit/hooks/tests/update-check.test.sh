@@ -137,6 +137,33 @@ touch -d '2 days ago' "$dir/cache/engram-latest"
 run "$dir"
 assert 'stale cache queries GitHub again' test -e "$dir/curl-called"
 
+# with_look DIR PIN CLAUDE: install look@mkt in fixture DIR with PIN as its
+# pinned Claude Code version and stub `claude --version` to print CLAUDE.
+# CLAUDE "fail" makes `claude` exit 1.
+with_look() {
+  local dir=$1 pin=$2 claude=$3
+  mkdir -p "$dir/look/tests"
+  printf '%s\n' "$pin" >"$dir/look/tests/claude-code.version"
+  jq --arg p "$dir/look" '.plugins["look@mkt"] = [{version: "0.1.0", installPath: $p}]' \
+    "$dir/plugins/installed_plugins.json" >"$dir/installed.tmp" &&
+    mv "$dir/installed.tmp" "$dir/plugins/installed_plugins.json"
+  if [[ $claude == fail ]]; then
+    printf '#!/usr/bin/env bash\nexit 1\n' >"$dir/bin/claude"
+  else
+    printf '#!/usr/bin/env bash\necho "%s (Claude Code)"\n' "$claude" >"$dir/bin/claude"
+  fi
+  chmod +x "$dir/bin/claude"
+}
+
+echo "== look pin differs from the installed Claude Code =="
+
+dir=$(fixture look-newer 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.318
+run "$dir"
+assert 'a newer Claude Code than the look pin is reported' \
+  message_has 'look pin 2.1.305 != Claude Code 2.1.318'
+assert 'the look note points to the bump procedure' message_has 'docs/look.md'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
