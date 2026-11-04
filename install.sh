@@ -150,6 +150,7 @@ merge_settings() {
     echo "ok: $target"
     return
   fi
+  prune_backups "$target"
   run cp "$target" "$target.bak-$(date +%Y%m%d-%H%M%S)"
   if ((DRY_RUN)); then
     echo "[dry-run] would merge into $target:"
