@@ -89,4 +89,40 @@ install "$home" --uninstall --target antigravity
 assert 'hooks.json keeps only the herdr key' same "$(jq -c . "$hooks")" '{"herdr":{"Stop":[{"type":"command","command":"herdr stop"}]}}'
 assert 'output names the dropped key' rg -qxF "removed toolkit hooks: $hooks" <<<"$LAST_OUTPUT"
 
+echo "== leaves what the installer did not put there, points at settings.json =="
+
+# state_of PATH...: type, link target or content hash of each PATH, one per line.
+state_of() {
+  local path
+  for path in "$@"; do
+    if [[ -L $path ]]; then
+      printf 'link %s -> %s\n' "$path" "$(readlink "$path")"
+    elif [[ -f $path ]]; then
+      printf 'file %s %s\n' "$path" "$(sha256sum <"$path" | cut -d' ' -f1)"
+    elif [[ -d $path ]]; then
+      printf 'dir %s %s\n' "$path" "$(find "$path" -type f | sort | wc -l)"
+    else
+      printf 'missing %s\n' "$path"
+    fi
+  done
+}
+
+home=$(sandbox uninstall-leave-alone)
+install "$home" --target all
+ln -s /usr/bin/true "$home/.local/bin/my-tool"
+printf '# mine\n' >"$home/.claude/output-styles/mine.md"
+printf 'old copy\n' >"$home/.claude/CLAUDE.md.bak-20200101-000001"
+mkdir -p "$home/.config/opencode/skills/my-skill" "$home/.gemini/antigravity-cli/skills-backup/old-skill"
+printf 'x\n' >"$home/.config/opencode/skills/my-skill/SKILL.md"
+printf 'x\n' >"$home/.gemini/antigravity-cli/skills-backup/old-skill/SKILL.md"
+kept=("$home/.local/bin/my-tool" "$home/.claude/output-styles/mine.md"
+  "$home/.claude/CLAUDE.md.bak-20200101-000001" "$home/.config/opencode/skills/my-skill"
+  "$home/.gemini/antigravity-cli/skills-backup/old-skill" "$home/.claude/settings.json")
+before=$(state_of "${kept[@]}")
+assert 'every kept path exists (setup)' test -z "$(rg '^missing' <<<"$before")"
+install "$home" --uninstall --target all
+assert 'what the installer did not put there is untouched' same "$(state_of "${kept[@]}")" "$before"
+assert 'output says settings.json keeps the merged entries' \
+  rg -qF "$home/.claude/settings.json keeps the merged entries; clean it by hand" <<<"$LAST_OUTPUT"
+
 finish_cases
