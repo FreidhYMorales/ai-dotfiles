@@ -33,7 +33,7 @@ jobs:
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed git make jq ripgrep shellcheck shfmt actionlint zellij bubblewrap \
-            sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks \
+            sqlite restic socat python util-linux openssl procps-ng diffutils gitleaks github-cli \
             nodejs npm
           shfmt --version
           actionlint --version
