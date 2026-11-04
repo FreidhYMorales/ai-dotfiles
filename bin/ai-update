@@ -121,10 +121,13 @@ restart_server() {
   echo "restarted: engram serve"
 }
 
-# prune_copies: keep the two newest database copies and binary copies.
+# prune_copies: keep the two newest database copies and binary copies, matching
+# only the exact names upgrade_engram makes.
 prune_copies() {
-  compgen -G "$HOME/.engram-backup-*" | sort | head -n -2 | xargs -r -d '\n' rm -rf --
-  compgen -G "$ENGRAM_BIN-*.bak" | sort -V | head -n -2 | xargs -r -d '\n' rm -f --
+  compgen -G "$HOME/.engram-backup-*" | rg '/\.engram-backup-[0-9]{8}-[0-9]{6}$' |
+    sort | head -n -2 | xargs -r -d '\n' rm -rf --
+  compgen -G "$ENGRAM_BIN-*.bak" | rg -e '-[0-9]+\.[0-9]+\.[0-9]+[^/]*\.bak$' |
+    sort -V | head -n -2 | xargs -r -d '\n' rm -f --
 }
 
 # upgrade_engram CURRENT LATEST: verified, backed-up, atomic swap with rollback.
