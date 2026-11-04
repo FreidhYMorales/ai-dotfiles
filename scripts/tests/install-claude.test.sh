@@ -82,10 +82,12 @@ assert 'second run over merged config makes no new backup' same "$(backups "$hom
 echo "== existing core.hooksPath =="
 
 home=$(sandbox hookspath)
-git config --file "$home/.gitconfig" core.hooksPath /elsewhere
+# An existing directory: a missing one is dangling and gets replaced.
+mkdir -p "$home/elsewhere"
+git config --file "$home/.gitconfig" core.hooksPath "$home/elsewhere"
 install "$home"
 assert 'foreign hooksPath is left alone' \
-  same "$(git config --file "$home/.gitconfig" core.hooksPath)" /elsewhere
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$home/elsewhere"
 assert 'foreign hooksPath is reported' rg -q 'skip: global core.hooksPath' <<<"$LAST_OUTPUT"
 
 echo "== dangling core.hooksPath =="
