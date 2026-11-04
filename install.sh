@@ -29,7 +29,10 @@
 #     - Warns when engram is not registered or agy is not the pinned version.
 #   - Details: docs/multi-agent.md.
 #
-# Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
+#   - --uninstall removes the links, timers, git hooksPath, plugins and agy
+#     hooks key this installer put in place; everything else stays.
+#
+# Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,12 +60,17 @@ comment-writer delegate-local go-testing skill-creator skill-improver"
 BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"
 
 DRY_RUN=0
+UNINSTALL=0
 TARGET_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    --uninstall)
+      UNINSTALL=1
       shift
       ;;
     --target)
@@ -78,7 +86,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h | --help)
-      echo "Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]"
+      echo "Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]"
       exit 0
       ;;
     *)
@@ -544,10 +552,51 @@ resolve_targets() {
   fi
 }
 
+# remove_links DIR: remove the links in DIR that point into this repo or the
+# build dir; other links and files are the user's.
+remove_links() {
+  local dir="$1" dst target repo_real
+  [[ -d "$dir" ]] || return 0
+  repo_real=$(readlink -f "$REPO_DIR")
+  for dst in "$dir"/*; do
+    [[ -L "$dst" ]] || continue
+    target=$(readlink "$dst")
+    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* || $target == "$BUILD_DIR"/* ]] || continue
+    run rm "$dst"
+    echo "removed: $dst"
+  done
+}
+
+uninstall() {
+  remove_links "$BIN_DIR"
+  remove_links "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+  local target dir
+  for target in "${TARGETS[@]}"; do
+    case "$target" in
+      claude)
+        for dir in "$CLAUDE_DIR" "$CLAUDE_DIR/output-styles"; do remove_links "$dir"; done
+        ;;
+      opencode)
+        for dir in "$OPENCODE_DIR" "$OPENCODE_DIR"/{skills,agents,commands,plugins}; do remove_links "$dir"; done
+        ;;
+      antigravity)
+        for dir in "$ANTIGRAVITY_DIR" "$ANTIGRAVITY_DIR/skills" "$GEMINI_CONFIG_DIR" "$GEMINI_CONFIG_DIR/agents"; do
+          remove_links "$dir"
+        done
+        ;;
+    esac
+  done
+  echo "done. Uninstalled targets: ${TARGETS[*]}."
+}
+
 TARGETS=()
 
 main() {
   resolve_targets "$TARGET_ARG"
+  if ((UNINSTALL)); then
+    uninstall
+    return
+  fi
 
   require jq
   require rg
