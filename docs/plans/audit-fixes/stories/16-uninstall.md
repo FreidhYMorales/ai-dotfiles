@@ -42,3 +42,8 @@ Risk: item 1, 5 (removes links, config and plugins; install script)
 
 - L1 request: /flow:story 16
 - L2 approved (user, 2026-11-04) by running `/flow:pair 16`, with the assumptions as written (plugins and marketplace removed, settings.json reported only).
+- L3 test list approved (8 cases), mode C; tests live in a new `install-uninstall.test.sh`; the `claude` stub in `install-lib.sh` gained `marketplace remove`.
+- L4 commits: 16b90de → 298186e (links); 9304b62 → a13d8c1 (timers); 3ed19b7 → 38c7f32 (hooksPath); b73f8f4 → fe7a13c (plugins and marketplace); 29aecbf → adb95f7 (agy toolkit key); 8d6bbc9 → 0215d4f (leave-alone + settings.json note; "untouched" green on arrival, killed a mutant without the ours-check); 6835d30 → 28c798a (dry-run claims nothing; red commit made by the user during a classifier outage); e7991ab (`--target claude`, green on arrival, killed a mutant forcing all targets).
+- L5 evidence: `install-uninstall.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)". Tamper checks empty before each code commit.
+- L6 verifier: PASS (e7991ab), with three notes outside the criteria: uninstall skips `require jq`/`rg`, so a missing tool silently skips plugins or the hooks key; plugin and marketplace matching is substring-based (as in the install); `remove_links` repeats `prune_links`'s ours-test.
+- L7 Risk: item 1, 5 (removes links, config and plugins; install script).
