@@ -146,14 +146,16 @@ doctor_reports_errors() {
 # offer_restore CURRENT BACKUP: always ask, even with --yes, because memories
 # saved since BACKUP are overwritten; then put the binary and database back.
 offer_restore() {
-  local current=$1 backup=$2 dir tmp_db
+  local current=$1 backup=$2 tmp_bin tmp_db
   confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 0
-  dir=$(dirname "$ENGRAM_BIN")
+  tmp_bin=$(dirname "$ENGRAM_BIN")/.engram.new
   tmp_db=$ENGRAM_DATA_DIR/.engram.db.restore
-  if cp -p "$ENGRAM_BIN-$current.bak" "$dir/.engram.new" && mv -f "$dir/.engram.new" "$ENGRAM_BIN" &&
-    cp -p "$backup/engram.db" "$tmp_db" && mv -f "$tmp_db" "$ENGRAM_DATA_DIR/engram.db"; then
+  # Prepare both before replacing either: all or nothing.
+  if cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && cp -p "$backup/engram.db" "$tmp_db" &&
+    mv -f "$tmp_bin" "$ENGRAM_BIN" && mv -f "$tmp_db" "$ENGRAM_DATA_DIR/engram.db"; then
     echo "restored: engram $current and the database. Restart Claude Code: open sessions still hold the replaced database."
   else
+    rm -f "$tmp_bin" "$tmp_db"
     echo "error: restore failed; copies kept: $ENGRAM_BIN-$current.bak and $backup/engram.db" >&2
   fi
 }
