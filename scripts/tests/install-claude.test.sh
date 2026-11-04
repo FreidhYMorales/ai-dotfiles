@@ -82,11 +82,39 @@ assert 'second run over merged config makes no new backup' same "$(backups "$hom
 echo "== existing core.hooksPath =="
 
 home=$(sandbox hookspath)
-git config --file "$home/.gitconfig" core.hooksPath /elsewhere
+# An existing directory: a missing one is dangling and gets replaced.
+mkdir -p "$home/elsewhere"
+git config --file "$home/.gitconfig" core.hooksPath "$home/elsewhere"
 install "$home"
 assert 'foreign hooksPath is left alone' \
-  same "$(git config --file "$home/.gitconfig" core.hooksPath)" /elsewhere
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$home/elsewhere"
 assert 'foreign hooksPath is reported' rg -q 'skip: global core.hooksPath' <<<"$LAST_OUTPUT"
+
+echo "== dangling core.hooksPath =="
+
+home=$(sandbox dangling-hookspath)
+git config --file "$home/.gitconfig" core.hooksPath "$home/moved-repo/git-hooks"
+install "$home"
+assert 'dangling hooksPath is pointed at the repo' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+assert 'the replaced dangling value is reported' \
+  rg -qF "replaced dangling core.hooksPath $home/moved-repo/git-hooks" <<<"$LAST_OUTPUT"
+
+# A ~ value is dangling too: the startup warning expands it.
+home=$(sandbox dangling-hookspath-tilde)
+# shellcheck disable=SC2088 # the literal ~ is the value under test
+git config --file "$home/.gitconfig" core.hooksPath '~/moved-repo/git-hooks'
+install "$home"
+assert 'a dangling ~ hooksPath is pointed at the repo' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+
+home=$(sandbox dangling-hookspath-dry)
+git config --file "$home/.gitconfig" core.hooksPath "$home/moved-repo/git-hooks"
+install "$home" --dry-run
+assert 'dry-run leaves a dangling hooksPath as it is' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$home/moved-repo/git-hooks"
+assert 'dry-run reports the hooksPath it would set' \
+  rg -qF "[dry-run] git config --global core.hooksPath $ROOT/git-hooks" <<<"$LAST_OUTPUT"
 
 echo "== configured backup =="
 

@@ -18,8 +18,11 @@
 06. [x] 16e6c33 As the dotfiles owner, I want `docs/recovery.md` plus `install.sh` proven on a clean Arch container, with every dependency listed, no abort without a user bus and an honest dry-run, so that I can rebuild the setup when a disk dies. (idea 10)
 07. [x] ed2e079 As the dotfiles owner, I want the CI recovery drill to restore memories a real engram binary can find, so that I know my memory survives, not just a SQLite file. (idea 17)
 08. [x] 9064644 As the dotfiles owner, I want a startup note when my Claude Code differs from look's pinned version, so that I bump the pin before the band breaks silently. (idea 09)
-09. [ ] As the dotfiles owner, I want a basic `install.sh --uninstall`, a warning when the global hooksPath points nowhere and pruning of old `*.bak-*`, so that moving the repo never turns off gitleaks unnoticed. (idea 12)
+09. [-] split → #14, #15, #16
 10. [ ] As the dotfiles owner, I want `ai-update` to keep only the last two engram copies and roll back binary and database together on a failed doctor, so that an update can never strand my memory. (idea 15)
 11. [ ] As the dotfiles owner, I want offline startups without a network wait and timer runs that retry after boot, so that a bad connection costs nothing. (idea 14)
 12. [ ] As the dotfiles owner, I want the README, the mutation list, the bench validation, the repo ignores and the vendored licenses to match reality, so that the repo tells the truth about itself. (idea 16)
 13. [ ] As the dotfiles owner, I want `install.sh` to tell a missing user bus apart from a real `systemctl --user daemon-reload` failure and show the error, so that a broken unit is never reported as "no systemd user session". (story 06 verifier note)
+14. [x] 4ff0dba As the dotfiles owner, I want a startup warning when the global git hooksPath points to a missing directory, and `install.sh` to repair it, so that moving the repo never turns off gitleaks unnoticed. (idea 12, from #09)
+15. [ ] As the dotfiles owner, I want `install.sh` to prune its own old `*.bak-*` copies, keeping the newest ones, so that backups stop piling up. (idea 12, from #09)
+16. [ ] As the dotfiles owner, I want a basic `install.sh --uninstall` that removes only what the installer put in place, so that I can take the setup off a machine cleanly. (idea 12, from #09)
