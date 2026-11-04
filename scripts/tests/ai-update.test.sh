@@ -240,6 +240,7 @@ case \$1 in
   doctor)
     sqlite3 "\$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
     [[ -z \${FAKE_DOCTOR_LOSE_COPY:-} ]] || rm -f "\$HOME"/.engram-backup-*/engram.db
+    [[ -z \${FAKE_DOCTOR_LEAVE_WAL:-} ]] || echo stale | tee "\$ENGRAM_DATA_DIR/engram.db-wal" "\$ENGRAM_DATA_DIR/engram.db-shm" >/dev/null
     if [[ \${2:-} == --json ]]; then printf '%s\n' '$json'; else echo 'doctor: report'; fi
     exit $code
     ;;
@@ -325,6 +326,14 @@ assert 'an impossible restore is reported' says 'restore failed'
 assert 'an impossible restore does not claim success' no_restored_claim
 assert 'an impossible restore leaves the binary alone' engram_is "$home" 3.5.0
 assert 'an impossible restore leaves the database alone' has_row "$home" migrated
+
+# A leftover write-ahead log must not replay over the restored copy.
+home=$(sandbox restore-wal 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" $'y\n' --yes
+assert 'the restore reports success with a stale log around' says 'restored: engram 3.4.0 and the database'
+assert 'the stale write-ahead log is gone' test ! -e "$home/.engram/engram.db-wal"
+assert 'the stale shared-memory file is gone' test ! -e "$home/.engram/engram.db-shm"
 
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
