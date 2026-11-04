@@ -261,6 +261,21 @@ assert 'warnings and blocked checks keep the new binary' engram_is "$home" 3.5.0
 assert 'warnings and blocked checks keep the database' has_row "$home" migrated
 assert 'warnings and blocked checks still prune' test "$(database_copies "$home")" -eq 2
 
+home=$(sandbox failed-doctor-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" '' --yes
+assert 'a failed doctor fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed doctor removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'a failed doctor removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+
+home=$(sandbox wrong-version-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish "$home" 3.5.0 3.4.9
+update "$home" '' --yes
+assert 'a binary that does not start removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'a binary that does not start removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
