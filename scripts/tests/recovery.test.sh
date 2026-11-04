@@ -92,6 +92,31 @@ assert 'the failure names the checksum mismatch' rg -q 'checksum mismatch' <<<"$
 assert 'the mismatched engram never runs' test ! -e "$TMP_ROOT/bad-engram-ran"
 assert 'no drill step runs with an unverified engram' test -z "$(rg '^== ' <<<"$drill_out")"
 
+echo "== the drill fails when engram cannot find a restored memory =="
+
+# A verified engram whose store keeps every memory but cannot find the bugfix.
+lossy="$TMP_ROOT/release-lossy"
+fake_release "$lossy" "$(
+  cat <<'EOF'
+db="$ENGRAM_DATA_DIR/engram.db"
+case $1 in
+  save)
+    mkdir -p "$ENGRAM_DATA_DIR"
+    sqlite3 "$db" "CREATE TABLE IF NOT EXISTS observations(title TEXT); INSERT INTO observations VALUES ('$2');"
+    ;;
+  search)
+    [[ $2 == *bugfix* ]] && { echo "No memories found for: \"$2\""; exit 0; }
+    sqlite3 "$db" "SELECT '[1] #1 (manual) — ' || title FROM observations WHERE title = '$2';"
+    ;;
+esac
+EOF
+)"
+drill_out=$(ENGRAM_RELEASE_URL="file://$lossy" bash "$drill" "$ROOT" 2>&1)
+drill_exit=$?
+assert 'a memory engram cannot find fails the drill' test "$drill_exit" -ne 0
+assert 'the failure names the memory it could not find' rg -q 'cannot find "drill bugfix"' <<<"$drill_out"
+assert 'the memories engram finds are not reported missing' test -z "$(rg 'cannot find "drill (decision|pattern)"' <<<"$drill_out")"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
