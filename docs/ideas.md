@@ -220,3 +220,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high; complexity low (run the uninstall after the same `require` checks); effort 0.1 d; value medium (an uninstall that reports success while leaving plugins behind); risk item 5, contained; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: one more small story.
 - Decision: pending (raised 2026-11-04; user asked to record it).
+
+## 21. A 30 s budget for every look harness test
+
+- Idea: give every look case that runs in the harness the 30 s budget, and fail `make check` when one lacks it, instead of fixing each case after it trips the 5 s watchdog in CI.
+- Raised during: audit-fixes story 18 ship (2026-11-04), CI run 41917612081 on 1a5a0f2: `(fail) the 60 s agent.list poll finishes an agent whose notification never came [5033.65ms]`.
+- Findings: story 18 gave the budget to one case only, and the next run failed on its neighbour. 25 of the 39 cases in `plugins/look/tests/*.test.tsx` have no budget (agent 7, backup-poll 4, ci-poll 3, dismiss 3, idle 1, ingest 7); `claude plugin test --help` lists no timeout option, so there is no single place to change it. Story 01 (L3) already saw that "the failing case varies".
+- Score: feasibility high; complexity low; effort 0.1 d; value high (main is red from this flake); risk low (a hung case takes up to 30 s to fail instead of 5; the assertions still fail fast, as story 18's mutant showed in 245 ms); no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: a slower failure for a case that really hangs.
+- Decision: GO (user, 2026-11-04) → audit-fixes backlog #19.

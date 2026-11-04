@@ -41,3 +41,4 @@ Risk: none
 - L5 evidence: `look-budgets.test.sh` "All cases passed"; look suite "74 pass, 0 fail"; `make check` "All checks passed (7 steps)"; tamper check empty.
 - L6 criterion 2: mutant `missed < 2` → `missed < 3` in the look ingest poll made the case fail on its assertions in 245 ms ("73 pass, 1 fail"); reverted, tree clean.
 - L7 Risk: none (no verifier).
+- L8 after close: CI run 41917612081 (1a5a0f2) failed on the neighbouring case "the 60 s agent.list poll finishes an agent whose notification never came" [5033.65ms]; the one-case scope was too narrow. Follow-up: story 19 (idea 21).
