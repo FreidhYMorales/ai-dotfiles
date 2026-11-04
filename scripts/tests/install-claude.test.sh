@@ -100,6 +100,13 @@ assert 'dangling hooksPath is pointed at the repo' \
 assert 'the replaced dangling value is reported' \
   rg -qF "replaced dangling core.hooksPath $home/moved-repo/git-hooks" <<<"$LAST_OUTPUT"
 
+# A ~ value is dangling too: the startup warning expands it.
+home=$(sandbox dangling-hookspath-tilde)
+git config --file "$home/.gitconfig" core.hooksPath '~/moved-repo/git-hooks'
+install "$home"
+assert 'a dangling ~ hooksPath is pointed at the repo' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+
 home=$(sandbox dangling-hookspath-dry)
 git config --file "$home/.gitconfig" core.hooksPath "$home/moved-repo/git-hooks"
 install "$home" --dry-run
