@@ -38,3 +38,8 @@ Risk: item 5 (install script and CI recovery job)
 ## Log
 
 - L1 request: /flow:story 06
+- L2 decision (user, 2026-11-03): add `zellij bubblewrap` to the CI `check` job so "with every tool present nothing is reported missing" holds in CI (option A).
+- L3 evidence: test → code pairs 4dc1b00→347d3fa, b86fade→7756479 (+ refactor d721e0e), 1a6fe71→303e194, 49bc927→0844fe3, 552ba01→7193108, a35b415→6f1351b, 326af28→16e6c33; fb99139 (dry run leaves nothing) had no red commit, since 6f1351b already delivered it; proven non-trivial by removing the EXIT trap (2 assertions failed), then restoring it.
+- L4 tests: `recovery.test.sh` and `install-fresh.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)"; full drill `scripts/recovery-e2e.sh` passed locally with the real systemctl and no user bus, host timers untouched.
+- L5 verifier: PASS. Residual: any `daemon-reload` failure is reported as "no systemd user session" with stderr hidden; triangulation covers zellij and bwrap only; CI changes (check job packages, recovery job installing from the doc) not yet run in CI; pi-box tests may start running in CI behind the bwrap probe.
+- Risk: item 5 (install script and CI recovery job)
