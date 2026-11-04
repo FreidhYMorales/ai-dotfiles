@@ -563,7 +563,7 @@ remove_links() {
     target=$(readlink "$dst")
     [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* || $target == "$BUILD_DIR"/* ]] || continue
     run rm "$dst"
-    echo "removed: $dst"
+    ((DRY_RUN)) || echo "removed: $dst"
   done
 }
 
@@ -575,11 +575,11 @@ uninstall_plugins() {
   for plugin in "${PLUGINS[@]}" "${RETIRED_PLUGINS[@]}"; do
     rg -qF "$plugin@$MARKETPLACE" <<<"$installed" || continue
     run claude plugin uninstall "$plugin@$MARKETPLACE"
-    echo "uninstalled plugin: $plugin@$MARKETPLACE"
+    ((DRY_RUN)) || echo "uninstalled plugin: $plugin@$MARKETPLACE"
   done
   if claude plugin marketplace list 2>/dev/null | rg -q "$MARKETPLACE"; then
     run claude plugin marketplace remove "$MARKETPLACE"
-    echo "removed marketplace: $MARKETPLACE"
+    ((DRY_RUN)) || echo "removed marketplace: $MARKETPLACE"
   fi
 }
 
@@ -609,7 +609,7 @@ uninstall() {
     for src in "$REPO_DIR"/systemd/*.timer; do
       [[ -e "$src" ]] || continue
       if run systemctl --user disable --now "$(basename "$src")" 2>/dev/null; then
-        echo "disabled: $(basename "$src")"
+        ((DRY_RUN)) || echo "disabled: $(basename "$src")"
       else
         echo "skip: could not disable $(basename "$src") (no systemd user session?)"
       fi
@@ -622,7 +622,7 @@ uninstall() {
   # Only our own hooksPath; one the user set elsewhere stays.
   if [[ "$(git config --global --path --get core.hooksPath || true)" == "$REPO_DIR/git-hooks" ]]; then
     run git config --global --unset core.hooksPath
-    echo "unset: core.hooksPath $REPO_DIR/git-hooks"
+    ((DRY_RUN)) || echo "unset: core.hooksPath $REPO_DIR/git-hooks"
   fi
   local target dir
   for target in "${TARGETS[@]}"; do
