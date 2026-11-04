@@ -62,6 +62,12 @@ home=$(machine unset)
 run "$home"
 assert 'an unset hooksPath stays silent' silent
 
+home=$(machine healthy)
+mkdir -p "$home/dotfiles/git-hooks"
+hooks_path "$home" "$home/dotfiles/git-hooks"
+run "$home"
+assert 'a hooksPath to an existing directory stays silent' silent
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
