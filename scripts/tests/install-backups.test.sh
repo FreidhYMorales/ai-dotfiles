@@ -62,4 +62,23 @@ assert 'output names no kept settings copy' \
   not_in_output "pruned old backup: $home/.claude/settings.json.bak-20200101-000002" \
   "pruned old backup: $home/.claude/settings.json.bak-20200101-000003"
 
+echo "== a directory backup is removed whole =="
+
+# The link step renames a clashing directory, so a backup can be a directory.
+home=$(sandbox prune-dir-backup)
+mkdir -p "$home/.claude"
+printf '# my own notes\n' >"$home/.claude/CLAUDE.md"
+for stamp in 20200101-000001 20200101-000002 20200101-000003; do
+  mkdir -p "$home/.claude/CLAUDE.md.bak-$stamp/nested"
+  printf 'old dir copy\n' >"$home/.claude/CLAUDE.md.bak-$stamp/nested/notes.md"
+done
+install "$home"
+assert 'the oldest directory backup is gone with its content' \
+  test ! -e "$home/.claude/CLAUDE.md.bak-20200101-000001"
+assert 'the newer directory backups keep their content' \
+  test -f "$home/.claude/CLAUDE.md.bak-20200101-000002/nested/notes.md" \
+  -a -f "$home/.claude/CLAUDE.md.bak-20200101-000003/nested/notes.md"
+assert 'output names the removed directory copy' \
+  rg -qxF "pruned old backup: $home/.claude/CLAUDE.md.bak-20200101-000001" <<<"$LAST_OUTPUT"
+
 finish_cases
