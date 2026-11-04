@@ -10,7 +10,7 @@
 
 ## Backlog
 
-01. [~] As the dotfiles owner, I want the CI `check` job to fail only when something is really broken, with margin under its timeout, so that a red run means something again. (idea 08)
+01. [x] 282c0d0 As the dotfiles owner, I want the CI `check` job to fail only when something is really broken, with margin under its timeout, so that a red run means something again. (idea 08)
 02. [x] 6abf651 As the dotfiles owner, I want Claude denied from reading my restic password, gh token, git credentials and every `.env.*`, also through Bash, so that an agent cannot leak my push token or backup key. (idea 05)
 03. [x] daad54d As the dotfiles owner, I want the require-check gate to warn when I stop with a red check, to ignore a stale red marker and to run only in trusted repos, so that the gate cannot be skipped or abused. (idea 06)
 04. [x] 2a1c0ea As the dotfiles owner, I want a sandboxed pi worker unable to plant git config that runs on my host, so that pi-box keeps its isolation promise. (idea 07)
