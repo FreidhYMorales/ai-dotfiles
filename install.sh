@@ -99,6 +99,20 @@ require() {
   }
 }
 
+# prune_backups DST: before a new DST.bak-<stamp> is made, remove all but the 2
+# newest existing ones, so 3 remain. Only the exact name the installer writes
+# matches; the stamp sorts as text, so the glob lists them oldest first.
+prune_backups() {
+  local old=() f i
+  for f in "$1".bak-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]; do
+    [[ -e $f || -L $f ]] && old+=("$f")
+  done
+  for ((i = 0; i < ${#old[@]} - 2; i++)); do
+    run rm -rf "${old[i]}"
+    echo "pruned old backup: ${old[i]}"
+  done
+}
+
 link_file() {
   local src="$1" dst="$2"
   if [[ -L "$dst" && "$(readlink -f "$dst")" == "$(readlink -f "$src")" ]]; then
@@ -106,6 +120,7 @@ link_file() {
     return
   fi
   if [[ -e "$dst" || -L "$dst" ]]; then
+    prune_backups "$dst"
     run mv "$dst" "$dst.bak-$(date +%Y%m%d-%H%M%S)"
   fi
   run mkdir -p "$(dirname "$dst")"
