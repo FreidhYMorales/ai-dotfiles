@@ -130,6 +130,19 @@ prune_copies() {
     sort -V | head -n -2 | xargs -r -d '\n' rm -f --
 }
 
+# doctor_reports_errors: true when the report counts errors. Doctor exits 0 even
+# when blocked, and warnings or blocked checks can predate the update, so they
+# pass; an unreadable report is no evidence of a failure, only a warning.
+doctor_reports_errors() {
+  local errors
+  errors=$("$ENGRAM_BIN" doctor --json </dev/null 2>/dev/null | jq -r '.summary.errors' 2>/dev/null || true)
+  if [[ ! $errors =~ ^[0-9]+$ ]]; then
+    echo "warning: could not read the engram doctor report" >&2
+    return 1
+  fi
+  ((errors > 0))
+}
+
 # offer_restore CURRENT BACKUP: always ask, even with --yes, because memories
 # saved since BACKUP are overwritten; then put the binary and database back.
 offer_restore() {
@@ -190,7 +203,7 @@ upgrade_engram() {
     return 1
   fi
   echo "installed: engram $latest"
-  if ! "$ENGRAM_BIN" doctor </dev/null 2>&1 | tail -n 5; then
+  if ! "$ENGRAM_BIN" doctor </dev/null 2>&1 | tail -n 5 || doctor_reports_errors; then
     echo "error: engram doctor failed" >&2
     offer_restore "$current" "$backup"
     return 1
