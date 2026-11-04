@@ -199,6 +199,18 @@ run "$dir"
 assert 'an unreadable Claude Code version is silent' is_empty
 assert 'an unreadable Claude Code version exits 0' test "$LAST_EXIT" -eq 0
 
+echo "== look pin note at most once a day =="
+
+dir=$(fixture look-daily 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.318
+run "$dir"
+assert 'first startup shows the look note' message_has 'look pin 2.1.305 != Claude Code 2.1.318'
+run "$dir"
+assert 'second startup the same day hides the look note' is_empty
+for f in "$dir"/cache/*; do touch -d '2 days ago' "$f"; done
+run "$dir"
+assert 'a day later the look note shows again' message_has 'look pin 2.1.305 != Claude Code 2.1.318'
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
