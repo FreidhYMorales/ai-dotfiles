@@ -211,6 +211,20 @@ assert 'the newest older database copy is one of them' test -d "$home/.engram-ba
 assert 'the older database copies are gone' test ! -e "$home/.engram-backup-20260201-000000"
 assert 'the two newest binaries remain, by version' test "$(binary_copies "$home")" == '3.10.0 3.12.0'
 
+# Names ai-update never made, sorting both before and after its own copies.
+home=$(sandbox prune-lookalikes 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+mkdir -p "$home/.engram-backup-0-mine" "$home/.engram-backup-notes"
+touch "$home/local/bin/engram-backup" "$home/local/bin/engram-0-mine.bak" "$home/local/bin/engram-notes.bak"
+update "$home" '' --yes
+assert 'engram-backup survives pruning' test -e "$home/local/bin/engram-backup"
+assert 'a look-alike database dir sorting first survives' test -d "$home/.engram-backup-0-mine"
+assert 'a look-alike database dir sorting last survives' test -d "$home/.engram-backup-notes"
+assert 'a look-alike binary sorting first survives' test -e "$home/local/bin/engram-0-mine.bak"
+assert 'a look-alike binary sorting last survives' test -e "$home/local/bin/engram-notes.bak"
+assert 'look-alikes do not displace a database copy' test -d "$home/.engram-backup-20260301-000000"
+assert 'look-alikes do not displace a binary copy' test -e "$home/local/bin/engram-3.10.0.bak"
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
