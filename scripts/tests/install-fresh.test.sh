@@ -24,6 +24,26 @@ assert 'the Claude step runs' same "$(readlink "$home/.claude/CLAUDE.md")" "$ROO
 assert 'it says the timers were not enabled' rg -q 'timers not enabled' <<<"$LAST_OUTPUT"
 assert 'it says how to enable them later' rg -q 're-run \./install\.sh from a login session' <<<"$LAST_OUTPUT"
 
+echo "== a real daemon-reload failure =="
+
+# The bus is there, but the reload itself fails.
+home=$(sandbox reload-fails)
+cat >"$home/bin/systemctl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$FAKE_CLAUDE_STATE/systemctl"
+echo 'Failed to reload daemon: Access denied' >&2
+exit 1
+EOF
+install "$home"
+assert 'install succeeds after a failed reload' test "$LAST_EXIT" -eq 0
+assert 'install reaches the end after a failed reload' rg -q '^done\. Active targets:' <<<"$LAST_OUTPUT"
+assert 'it shows the error from systemd' rg -qF 'Failed to reload daemon: Access denied' <<<"$LAST_OUTPUT"
+assert 'it says the timers were not enabled after a failed reload' rg -q 'timers not enabled' <<<"$LAST_OUTPUT"
+assert 'it does not blame the user session' test -z "$(rg -F 'no systemd user session' <<<"$LAST_OUTPUT")"
+assert 'no timer is enabled after a failed reload' test -z "$(rg -F 'enable' "$home/state/systemctl")"
+assert 'git hooks are installed after a failed reload' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+
 echo "== dry run before any build =="
 
 home=$(sandbox dry-fresh)
