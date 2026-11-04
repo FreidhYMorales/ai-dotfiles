@@ -583,6 +583,24 @@ uninstall_plugins() {
   fi
 }
 
+# unmerge_agy_hooks: drop only the "toolkit" key merge_agy_hooks wrote; the
+# other hook sets stay. A hooks.json jq cannot parse stops the uninstall.
+unmerge_agy_hooks() {
+  local target="$GEMINI_CONFIG_DIR/hooks.json" merged tmp
+  [[ -f "$target" ]] || return 0
+  jq -e 'has("toolkit")' "$target" >/dev/null || return 0
+  merged=$(jq 'del(.toolkit)' "$target")
+  if ((DRY_RUN)); then
+    echo "[dry-run] would remove the toolkit key from $target"
+    return
+  fi
+  tmp=$(mktemp "$target.tmp.XXXXXX")
+  printf '%s\n' "$merged" >"$tmp"
+  chmod --reference="$target" "$tmp"
+  mv "$tmp" "$target"
+  echo "removed toolkit hooks: $target"
+}
+
 uninstall() {
   remove_links "$BIN_DIR"
   local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
@@ -620,6 +638,7 @@ uninstall() {
         for dir in "$ANTIGRAVITY_DIR" "$ANTIGRAVITY_DIR/skills" "$GEMINI_CONFIG_DIR" "$GEMINI_CONFIG_DIR/agents"; do
           remove_links "$dir"
         done
+        unmerge_agy_hooks
         ;;
     esac
   done
