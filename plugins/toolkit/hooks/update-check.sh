@@ -64,14 +64,19 @@ if command -v engram >/dev/null 2>&1; then
 fi
 
 # look pin: the installed look plugin is tested against one Claude Code
-# version; any other installed version may break its band silently.
-if [[ -f $installed ]]; then
+# version; any other installed version may break its band silently. Shown at
+# most once a day.
+LOOK_PIN_SHOWN=$(dirname "$CACHE")/look-pin-shown
+if [[ -f $LOOK_PIN_SHOWN ]] && (($(date +%s) - $(stat -c %Y "$LOOK_PIN_SHOWN") < CACHE_TTL_SECS)); then
+  :
+elif [[ -f $installed ]]; then
   look_path=$(jq -r 'first(.plugins // {} | to_entries[] | select(.key | startswith("look@"))
     | .value[0].installPath // empty)' "$installed" 2>/dev/null)
   pin=$(cat "$look_path/tests/claude-code.version" 2>/dev/null)
   claude_version=$(claude --version 2>/dev/null | awk '{print $1}')
   if [[ -n $pin && -n $claude_version && $pin != "$claude_version" ]]; then
     notes+=("look pin $pin != Claude Code $claude_version (bump it: docs/look.md, \"Bump the pin\")")
+    mkdir -p "$(dirname "$LOOK_PIN_SHOWN")" && touch "$LOOK_PIN_SHOWN"
   fi
 fi
 
