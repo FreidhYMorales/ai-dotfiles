@@ -121,4 +121,24 @@ notes_backups=("$home"/.claude/notes.md.bak-*)
 assert 'backups of an unmanaged file are all kept' same "${#notes_backups[@]}" 5
 assert 'output names no pruned copy' not_in_output 'pruned old backup:'
 
+echo "== agy skill backups are moved, never pruned =="
+
+# agy's skills dir promises "moved, never deleted": stamped skill backups left
+# there go to skills-backup/ whole, however many there are.
+home=$(sandbox prune-agy-skills)
+skills=$home/.gemini/antigravity-cli/skills
+kept=$home/.gemini/antigravity-cli/skills-backup
+mkdir -p "$home/.gemini/config" "$skills/toolkit-ship"
+printf 'gentle original\n' >"$skills/toolkit-ship/SKILL.md"
+for stamp in 20200101-000001 20200101-000002 20200101-000003; do
+  mkdir -p "$skills/toolkit-ship.bak-$stamp"
+  printf 'old skill copy\n' >"$skills/toolkit-ship.bak-$stamp/SKILL.md"
+done
+install "$home" --target antigravity
+assert 'the oldest skill backup reaches skills-backup' \
+  same "$(cat "$kept/toolkit-ship.bak-20200101-000001/SKILL.md" 2>/dev/null)" 'old skill copy'
+moved_skill_backups=("$kept"/toolkit-ship.bak-*)
+assert 'all four skill backups reach skills-backup' same "${#moved_skill_backups[@]}" 4
+assert 'output names no pruned skill copy' not_in_output 'pruned old backup:'
+
 finish_cases
