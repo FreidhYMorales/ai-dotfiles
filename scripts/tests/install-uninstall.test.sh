@@ -125,4 +125,41 @@ assert 'what the installer did not put there is untouched' same "$(state_of "${k
 assert 'output says settings.json keeps the merged entries' \
   rg -qF "$home/.claude/settings.json keeps the merged entries; clean it by hand" <<<"$LAST_OUTPUT"
 
+echo "== --dry-run names each removal and changes nothing =="
+
+# everything HOME: type, link target or content hash of every path under HOME
+# but the stubs' state and the build dir.
+everything() {
+  local home=$1 paths
+  mapfile -t paths < <(find "$home" \( -path "$home/state" -o -path "$home/build" \) -prune -o -print | sort)
+  state_of "${paths[@]}"
+}
+
+home=$(sandbox uninstall-dry-run)
+mkdir -p "$home/.gemini/config"
+jq -n '{herdr: {}}' >"$home/.gemini/config/hooks.json"
+install "$home" --target all
+links=$(our_links "$home")
+before=$(everything "$home")
+install "$home" --uninstall --dry-run --target all
+assert 'dry-run exits 0' same "$LAST_EXIT" 0
+assert 'dry-run changes nothing' same "$(everything "$home")" "$before"
+named=0
+while IFS= read -r path; do
+  rg -qxF "[dry-run] rm $path" <<<"$LAST_OUTPUT" && named=$((named + 1))
+done <<<"$links"
+assert 'dry-run names each link it would remove' same "$named" "$(wc -l <<<"$links")"
+assert 'dry-run names the timer it would disable' \
+  rg -qxF "[dry-run] systemctl --user disable --now upstream-watch.timer" <<<"$LAST_OUTPUT"
+assert 'dry-run names the hooksPath it would unset' \
+  rg -qxF "[dry-run] git config --global --unset core.hooksPath" <<<"$LAST_OUTPUT"
+assert 'dry-run names the plugin it would uninstall' \
+  rg -qxF "[dry-run] claude plugin uninstall flow@ai-dotfiles" <<<"$LAST_OUTPUT"
+assert 'dry-run names the marketplace it would remove' \
+  rg -qxF "[dry-run] claude plugin marketplace remove ai-dotfiles" <<<"$LAST_OUTPUT"
+assert 'dry-run names the hooks key it would remove' \
+  rg -qxF "[dry-run] would remove the toolkit key from $home/.gemini/config/hooks.json" <<<"$LAST_OUTPUT"
+assert 'dry-run claims no change it did not make' \
+  test -z "$(rg '^(removed|disabled|unset|uninstalled plugin|removed marketplace|removed toolkit hooks): ' <<<"$LAST_OUTPUT")"
+
 finish_cases
