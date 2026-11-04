@@ -45,6 +45,24 @@ mkdir -p "$WORK/engram"
 (cd "$WORK/engram" && rg -F "  $asset" checksums.txt | sha256sum -c --status) ||
   fail "checksum mismatch for $asset; engram not run"
 tar -xzf "$WORK/engram/$asset" -C "$WORK/engram" engram
+ENGRAM="$WORK/engram/engram"
+memories=("drill decision" "drill bugfix" "drill pattern")
+
+# engram_on HOME ARGS...: run the pinned engram on that machine's memory.
+engram_on() {
+  local home=$1
+  shift
+  HOME="$home" ENGRAM_DATA_DIR="$home/.engram" "$ENGRAM" "$@"
+}
+
+# found_all HOME: engram finds every memory the old machine saved.
+found_all() {
+  local title out
+  for title in "${memories[@]}"; do
+    out=$(engram_on "$1" search "$title" --project drill) || fail "engram search failed on $1"
+    rg -qF ") — $title" <<<"$out" || fail "engram cannot find \"$title\" restored on $1"
+  done
+}
 
 # Stub: `claude` (no real CLI in the container). systemctl is the real one,
 # run with no user bus, as on a fresh machine over ssh or in a container; that
@@ -81,9 +99,11 @@ git init -q --bare "$github"
 
 step "old machine: install the dotfiles and back up a memory"
 old=$(machine old)
-mkdir -p "$old/.engram" "$old/.config/restic"
-sqlite3 "$old/.engram/engram.db" \
-  "CREATE TABLE observations(title TEXT); INSERT INTO observations VALUES ('decision'), ('bugfix'), ('pattern');"
+mkdir -p "$old/.config/restic"
+for title in "${memories[@]}"; do
+  engram_on "$old" save "$title" "kept by the recovery drill" --project drill >/dev/null ||
+    fail "engram could not save \"$title\" on the old machine"
+done
 offsite="$old/Files/backups/restic-engram-git"
 git clone -q "$github" "$offsite" 2>/dev/null
 printf 'ENGRAM_BACKUP_REPOS="%s %s"\n' "$backups" "$offsite" >"$old/.config/restic/engram.env"
@@ -102,8 +122,7 @@ printf 'ENGRAM_BACKUP_REPOS="%s"\n' "$backups" >"$new/.config/restic/engram.env"
 install -m 600 "$WORK/password-manager.txt" "$new/.config/restic/engram.pass"
 HOME="$new" ENGRAM_BACKUP_ALLOW_RUNNING=1 "$new/.local/bin/engram-backup" --restore
 
-count=$(sqlite3 "$new/.engram/engram.db" 'SELECT count(*) FROM observations;')
-[[ $count == 3 ]] || fail "expected 3 observations after restore, got $count"
+found_all "$new"
 [[ $(sqlite3 "$new/.engram/engram.db" 'PRAGMA integrity_check;') == ok ]] || fail "restored database is corrupt"
 HOME="$new" "$new/.local/bin/engram-backup" --verify >/dev/null || fail "verify failed on the new machine"
 
@@ -116,8 +135,7 @@ printf 'ENGRAM_BACKUP_REPOS="%s"\n' "$other/Files/backups/restic-engram-git" >"$
 install -m 600 "$WORK/password-manager.txt" "$other/.config/restic/engram.pass"
 HOME="$other" ENGRAM_BACKUP_ALLOW_RUNNING=1 "$other/.local/bin/engram-backup" --restore
 
-count=$(sqlite3 "$other/.engram/engram.db" 'SELECT count(*) FROM observations;')
-[[ $count == 3 ]] || fail "expected 3 observations after restoring from the clone, got $count"
+found_all "$other"
 HOME="$other" "$other/.local/bin/engram-backup" --verify >/dev/null || fail "verify of the clone failed"
 
-step "recovery drill passed: 3/3 observations restored and verified, from the drive and from the off-site clone"
+step "recovery drill passed: engram $ENGRAM_VERSION finds ${#memories[@]}/${#memories[@]} memories restored from the drive and from the off-site clone"
