@@ -46,3 +46,5 @@ Risk: item 1, 5 (deletes backup files; install script)
 - L7 verifier: PASS (fb1b775), with two notes outside the criteria: `GEMINI.md.bak-*` is not pruned (the Suggestions assumed it would be), and 3+ stamped `<skill>.bak-*` dirs left in agy's skills dir at run start are now pruned before the "moved, never deleted" step.
 - L8 verifier note 2, user chose to keep the promise: 6e30fe4 test (agy skill backups are moved, never pruned; red: 3 FAIL) → 48019f1 fix. `make check` "All checks passed (7 steps)"; tamper check empty.
 - L9 verifier note 1, user chose no change: `GEMINI.md.bak-*` stays unpruned (the installer never recreates `GEMINI.md`, and that block promises "the backup is never deleted").
+- L10 verifier recheck: PASS (fa42c0b).
+- L11 Risk: item 1, 5 (deletes backup files; install script).
