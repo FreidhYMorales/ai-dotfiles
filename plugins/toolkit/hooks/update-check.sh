@@ -4,6 +4,8 @@
 #   (e.g. a committed version bump that was never `claude plugin update`d).
 # - The engram binary older than its latest GitHub release, looked up at most
 #   once a day and never for longer than 3 seconds.
+# - Claude Code differing from the version the installed look plugin is
+#   pinned to, at most once a day.
 # Any failure stays silent. Opt out with SKIP_UPDATE_CHECK=1.
 set -u
 # shellcheck source=plugins/toolkit/hooks/lib.sh
