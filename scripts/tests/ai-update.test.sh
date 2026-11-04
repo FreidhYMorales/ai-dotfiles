@@ -240,6 +240,7 @@ case \$1 in
   version) echo "engram $tag" ;;
   doctor)
     sqlite3 "\$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
+    [[ -z \${FAKE_DOCTOR_LOSE_COPY:-} ]] || rm -f "\$HOME"/.engram-backup-*/engram.db
     if [[ \${2:-} == --json ]]; then printf '%s\n' '$json'; else echo 'doctor: report'; fi
     exit $code
     ;;
@@ -288,6 +289,17 @@ assert 'what the new version wrote is gone' lacks_row "$home" migrated
 assert 'the question warns newer memories are lost' says 'are lost'
 assert 'the restore is reported' says 'restored: engram 3.4.0 and the database'
 assert 'open sessions are told to restart' says 'Restart Claude Code'
+
+# The database copy is gone by the time of the restore: all or nothing.
+home=$(sandbox restore-impossible 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LOSE_COPY=1 update "$home" $'y\n' --yes
+no_restored_claim() { ! says 'restored:'; }
+assert 'an impossible restore fails the update' test "$LAST_EXIT" -ne 0
+assert 'an impossible restore is reported' says 'restore failed'
+assert 'an impossible restore does not claim success' no_restored_claim
+assert 'an impossible restore leaves the binary alone' engram_is "$home" 3.5.0
+assert 'an impossible restore leaves the database alone' has_row "$home" migrated
 
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
