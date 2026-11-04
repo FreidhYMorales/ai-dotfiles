@@ -37,3 +37,8 @@ Risk: item 5 (install script)
 
 - L1 request: /flow:story 13
 - L2 approved (user, 2026-11-04) as written: a real failure warns and carries on with exit 0; the `--uninstall` blur stays out of scope.
+- L3 test list approved (3 cases in `install-fresh.test.sh`), mode C; case 3 is a guard no criterion asks for: capturing the reload's stderr must not lose the dry-run line.
+- L4 commits: 6b449bf test (red: "FAIL it shows the error from systemd", "FAIL it does not blame the user session") → b61d153 fix; 17f18fb test (both bus wordings: green on arrival, killed two mutants: every failure treated as real, only `user scope bus` recognised); 7d03b19 test (dry-run line: green on arrival, killed a mutant capturing stdout too).
+- L5 evidence: `install-fresh.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)"; tamper check empty.
+- L6 verifier: PASS (7d03b19), with one note outside the criteria: the `bus` half of the pattern is not pinned (no test uses a non-bus "Failed to connect" message; a mutant dropping it would likely survive; reasoned, not run).
+- L7 Risk: item 5 (install script).
