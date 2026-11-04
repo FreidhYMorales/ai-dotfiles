@@ -39,3 +39,8 @@ Risk: item 2, 5 (gitleaks barrier; install script changes the global git config)
 - L1 request: /flow:story 09
 - L2 split: #09 needed more than 3 criteria → #14 (this story), #15, #16.
 - L3 approved (user, 2026-11-03).
+- L4 test list approved (7 cases), mode C; user approved changing the existing `/elsewhere` case to an existing dir (case 7).
+- L5 commits: 6aa1112 refine; ff8645b test (dangling warns, red: 4 FAIL) → 2855504 feat; b4b622c, c2b7bc3 test (unset, existing dir: green on arrival, each killed by a mutant dropping its guard); 4536df5 test (relative path, red) → f312159 fix; fc89f30 test (installer repoints, red: 2 FAIL) → 871f074 test (case 7) → aeed71c fix; ba4a77a test (dry-run: green on arrival, killed by a mutant skipping `run`); 78a3886 test (`~` value, red; from the verifier note, user approved) → 4ff0dba fix; fd3eaad test (shellcheck SC2088 directive, comment only, user approved).
+- L6 evidence: `hooks-path.test.sh` and `install-claude.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)". Tamper checks empty before each code commit. 4ff0dba was committed while `make check` was red on shellcheck only (behaviour tests green); fixed in fd3eaad.
+- L7 verifier: PASS (ba4a77a); recheck PASS (fd3eaad).
+- L8 Risk: item 2, 5 (gitleaks barrier; install script changes the global git config).
