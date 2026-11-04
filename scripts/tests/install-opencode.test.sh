@@ -202,4 +202,16 @@ assert 'a dangling link into the external build dir is removed' test ! -e "$skil
 assert 'the removal is reported' rg -qF "pruned broken link: $skills/flow-gone" <<<"$LAST_OUTPUT"
 assert 'a dangling link outside the repo and the build dir stays' same "$(readlink "$skills/foreign-gone")" "$home/gone"
 
+echo "== --dry-run names a broken link it would prune and claims nothing =="
+
+home=$(sandbox dry-run-prune)
+skills=$home/.config/opencode/skills
+mkdir -p "$skills"
+ln -s "$home/build/agents/opencode/skills/flow-gone" "$skills/flow-gone"
+install "$home" --dry-run --target opencode
+assert 'dry-run prune run succeeds' test "$LAST_EXIT" -eq 0
+assert 'the broken link is still there' same "$(readlink "$skills/flow-gone")" "$home/build/agents/opencode/skills/flow-gone"
+assert 'dry-run names the link it would remove' rg -qxF "[dry-run] rm $skills/flow-gone" <<<"$LAST_OUTPUT"
+assert 'dry-run claims no pruned link' test -z "$(rg -F "pruned broken link: $skills/flow-gone" <<<"$LAST_OUTPUT")"
+
 finish_cases
