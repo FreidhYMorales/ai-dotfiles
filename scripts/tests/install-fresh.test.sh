@@ -67,6 +67,8 @@ echo "== dry run before any build =="
 home=$(sandbox dry-fresh)
 install "$home" --dry-run --target all
 assert 'dry run succeeds' test "$LAST_EXIT" -eq 0
+assert 'it names the daemon-reload it would run' \
+  rg -qxF '[dry-run] systemctl --user daemon-reload' <<<"$LAST_OUTPUT"
 # would_link DST: the dry run prints the link it would make at DST.
 would_link() { rg -q "^\[dry-run\] ln -s .+ $1\$" <<<"$LAST_OUTPUT"; }
 assert 'it lists the generated OpenCode agent links' would_link "$home/\.config/opencode/agents/flow-verifier\.md"
