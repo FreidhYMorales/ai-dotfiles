@@ -32,4 +32,16 @@ while IFS= read -r path; do
 done <<<"$before"
 assert 'output names each removed link' same "$named" "$before_count"
 
+echo "== disables the installer's timers =="
+
+home=$(sandbox uninstall-timers)
+install "$home" --target claude
+: >"$home/state/systemctl"
+install "$home" --uninstall --target claude
+for timer in upstream-watch.timer engram-backup.timer engram-backup-verify.timer; do
+  assert "systemctl disables $timer" rg -qxF -- "--user disable --now $timer" "$home/state/systemctl"
+  assert "output names $timer" rg -qxF "disabled: $timer" <<<"$LAST_OUTPUT"
+done
+assert 'systemctl reloads the user units last' same "$(tail -n1 "$home/state/systemctl")" "--user daemon-reload"
+
 finish_cases
