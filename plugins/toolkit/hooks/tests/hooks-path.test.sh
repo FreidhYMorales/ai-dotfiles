@@ -68,6 +68,12 @@ hooks_path "$home" "$home/dotfiles/git-hooks"
 run "$home"
 assert 'a hooksPath to an existing directory stays silent' silent
 
+# A relative hooksPath is resolved inside each repo, so it cannot dangle globally.
+home=$(machine relative)
+hooks_path "$home" .githooks
+run "$home"
+assert 'a relative hooksPath stays silent' silent
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
