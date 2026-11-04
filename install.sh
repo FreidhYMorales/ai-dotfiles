@@ -567,6 +567,22 @@ remove_links() {
   done
 }
 
+# uninstall_plugins: remove this marketplace's plugins (current and retired)
+# and the marketplace; plugins from other marketplaces stay.
+uninstall_plugins() {
+  local installed plugin
+  installed="$(claude plugin list 2>/dev/null || true)"
+  for plugin in "${PLUGINS[@]}" "${RETIRED_PLUGINS[@]}"; do
+    rg -qF "$plugin@$MARKETPLACE" <<<"$installed" || continue
+    run claude plugin uninstall "$plugin@$MARKETPLACE"
+    echo "uninstalled plugin: $plugin@$MARKETPLACE"
+  done
+  if claude plugin marketplace list 2>/dev/null | rg -q "$MARKETPLACE"; then
+    run claude plugin marketplace remove "$MARKETPLACE"
+    echo "removed marketplace: $MARKETPLACE"
+  fi
+}
+
 uninstall() {
   remove_links "$BIN_DIR"
   local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
@@ -595,6 +611,7 @@ uninstall() {
     case "$target" in
       claude)
         for dir in "$CLAUDE_DIR" "$CLAUDE_DIR/output-styles"; do remove_links "$dir"; done
+        uninstall_plugins
         ;;
       opencode)
         for dir in "$OPENCODE_DIR" "$OPENCODE_DIR"/{skills,agents,commands,plugins}; do remove_links "$dir"; done
