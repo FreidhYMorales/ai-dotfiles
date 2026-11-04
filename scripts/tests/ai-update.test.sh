@@ -178,6 +178,39 @@ home=$(sandbox accept 3.4.0 3.5.0)
 update "$home" $'y\n'
 assert 'accepting the prompt upgrades' engram_is "$home" 3.5.0
 
+echo "== keeps the last two copies =="
+
+# old_copies HOME VERSION...: three dated database copies and one binary per VERSION.
+old_copies() {
+  local home=$1 stamp version
+  shift
+  for stamp in 20260101-000000 20260201-000000 20260301-000000; do
+    mkdir -p "$home/.engram-backup-$stamp"
+    echo old >"$home/.engram-backup-$stamp/engram.db"
+  done
+  for version in "$@"; do echo old >"$home/local/bin/engram-$version.bak"; done
+}
+# binary_copies HOME: the versions of the binary copies, oldest first.
+binary_copies() {
+  local f names=()
+  for f in "$1"/local/bin/engram-*.bak; do
+    [[ -e $f ]] || continue
+    f=${f##*/engram-}
+    names+=("${f%.bak}")
+  done
+  ((${#names[@]})) && printf '%s\n' "${names[@]}" | sort -V | xargs
+}
+database_copies() { compgen -G "$1/.engram-backup-*" | wc -l; }
+
+home=$(sandbox prune 3.12.0 3.13.0)
+old_copies "$home" 3.2.0 3.9.0 3.10.0
+update "$home" '' --yes
+assert 'a healthy update exits 0' test "$LAST_EXIT" -eq 0
+assert 'two database copies remain' test "$(database_copies "$home")" -eq 2
+assert 'the newest older database copy is one of them' test -d "$home/.engram-backup-20260301-000000"
+assert 'the older database copies are gone' test ! -e "$home/.engram-backup-20260201-000000"
+assert 'the two newest binaries remain, by version' test "$(binary_copies "$home")" == '3.10.0 3.12.0'
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
