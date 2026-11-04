@@ -33,3 +33,8 @@ Risk: item 5 (install script)
 
 - L1 request: /flow:story 17
 - L2 approved (user, 2026-11-04), scope: the prune_links line only.
+- L3 test list approved: one new dry-run case in `install-opencode.test.sh`; criterion 2 covered by the existing real-run assertions in `install-opencode.test.sh` and `install-agy.test.sh`, unchanged. Mode C.
+- L4 commits: 8e48f46 test (red: "FAIL dry-run claims no pruned link") → 51f15c9 fix.
+- L5 evidence: `install-opencode.test.sh` and `install-agy.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)"; tamper check empty.
+- L6 verifier: PASS (51f15c9), red replayed at 8e48f46, with two notes outside the criteria: the new case uses a build-dir link only (a repo link shares the same condition and print line; the verifier ran one once by hand, correct); `[dry-run] rm <path>` prints twice for a link in `skills/` under `--target opencode`, because `link_skills` and `link_generated` both prune that dir (predates this story, output still accurate).
+- L7 Risk: item 5 (install script).

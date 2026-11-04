@@ -190,7 +190,7 @@ prune_links() {
     target=$(readlink "$dst")
     [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* || $target == "$BUILD_DIR"/* ]] || continue
     run rm "$dst"
-    echo "pruned broken link: $dst"
+    ((DRY_RUN)) || echo "pruned broken link: $dst"
   done
 }
 
