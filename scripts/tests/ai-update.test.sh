@@ -289,6 +289,22 @@ assert 'the question warns newer memories are lost' says 'are lost'
 assert 'the restore is reported' says 'restored: engram 3.4.0 and the database'
 assert 'open sessions are told to restart' says 'Restart Claude Code'
 
+# The doctor exits 0 and only its report says it failed.
+home=$(sandbox restore-doctor-errors 3.4.0 none)
+publish_doctor "$home" 3.5.0 0 '{"status":"error","summary":{"total":10,"ok":9,"errors":1}}'
+update "$home" $'y\n' --yes
+assert 'a report with errors fails the update' test "$LAST_EXIT" -ne 0
+assert 'a report with errors brings the previous binary back' engram_is "$home" 3.4.0
+assert 'a report with errors drops what the new version wrote' lacks_row "$home" migrated
+
+# An unreadable report is no evidence of a failure: warn, never overwrite.
+home=$(sandbox doctor-unreadable 3.4.0 none)
+publish_doctor "$home" 3.5.0 0 'not json'
+update "$home" '' --yes
+assert 'an unreadable report keeps the update' test "$LAST_EXIT" -eq 0
+assert 'an unreadable report keeps the database' has_row "$home" migrated
+assert 'an unreadable report warns' says 'could not read the engram doctor report'
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
