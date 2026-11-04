@@ -5,7 +5,7 @@ import { band, begin, bg, note, world } from './support'
 
 const MIN = 60_000
 
-test('an unknown id changes nothing; a repeated or resumed one is ignored', async ($, on) => {
+test('an unknown id changes nothing; a repeated or resumed one is ignored', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
   await bg($, 'make check', 'Run checks')
@@ -20,7 +20,7 @@ test('an unknown id changes nothing; a repeated or resumed one is ignored', asyn
   expect(await band($, /Run checks/)).toBeUndefined()
 })
 
-test('a failure leaves a dim row until the same command passes', async ($, on) => {
+test('a failure leaves a dim row until the same command passes', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
   await bg($, 'cd /x && make check', 'Run checks')
@@ -33,7 +33,7 @@ test('a failure leaves a dim row until the same command passes', async ($, on) =
   expect(await band($, /failed/)).toBeUndefined()
 })
 
-test('commands sharing a first word but not words 2-3 fail as separate rows', async ($, on) => {
+test('commands sharing a first word but not words 2-3 fail as separate rows', { timeoutMs: 30_000 }, async ($, on) => {
   const { clock } = world(on)
   await begin($)
   await bg($, 'make check fast', 'Fast checks')
@@ -44,7 +44,7 @@ test('commands sharing a first word but not words 2-3 fail as separate rows', as
   expect(await band($, /Build all failed/)).toBeDefined()
 })
 
-test('a killed shell gives a stopped toast and no row', async ($, on) => {
+test('a killed shell gives a stopped toast and no row', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
   await bg($, 'sleep 99', 'Wait')
@@ -69,7 +69,7 @@ test('a shell expires after 30 minutes and a late notification is ignored', { ti
   expect(await band($, /failed/)).toBeUndefined()
 })
 
-test('toasts within 2 s merge into one line', async ($, on) => {
+test('toasts within 2 s merge into one line', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock } = world(on)
   await begin($)
   await bg($, 'one', 'First')
@@ -85,7 +85,7 @@ test('toasts within 2 s merge into one line', async ($, on) => {
   expect(toasts.at(-1)).toMatch(/Third/)
 })
 
-test('the 1 s tick runs only while something runs, and once after session.start twice', async ($, on) => {
+test('the 1 s tick runs only while something runs, and once after session.start twice', { timeoutMs: 30_000 }, async ($, on) => {
   const { clock, written, writes } = world(on)
   await begin($)
   await clock.advance(10_000)

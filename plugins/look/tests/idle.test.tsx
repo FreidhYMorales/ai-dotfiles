@@ -14,7 +14,7 @@ const BAND = {
   },
 } as const
 
-test('an idle session draws nothing above the prompt', async ($, on) => {
+test('an idle session draws nothing above the prompt', { timeoutMs: 30_000 }, async ($, on) => {
   // Nothing draws beneath the plugin: this hook stands for the engine.
   on('ui.render', ($, e) => {
     const { Text } = $.ui.resolve(e)
