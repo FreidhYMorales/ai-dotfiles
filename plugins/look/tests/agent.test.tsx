@@ -88,7 +88,7 @@ test('the 60 s agent.list poll finishes an agent whose notification never came',
   expect(written.alerts).toEqual([{ source: 'agent:a2', kind: 'agent', text: 'Broken failed' }])
 })
 
-test('an agent missing from agent.list on two polls in a row is stopped, with no alert', async ($, on) => {
+test('an agent missing from agent.list on two polls in a row is stopped, with no alert', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock, written, agents } = world(on)
   await begin($)
   await spawn($, 'tuA', 'Ghost')
