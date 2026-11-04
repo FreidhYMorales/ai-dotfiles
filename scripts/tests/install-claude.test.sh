@@ -88,6 +88,16 @@ assert 'foreign hooksPath is left alone' \
   same "$(git config --file "$home/.gitconfig" core.hooksPath)" /elsewhere
 assert 'foreign hooksPath is reported' rg -q 'skip: global core.hooksPath' <<<"$LAST_OUTPUT"
 
+echo "== dangling core.hooksPath =="
+
+home=$(sandbox dangling-hookspath)
+git config --file "$home/.gitconfig" core.hooksPath "$home/moved-repo/git-hooks"
+install "$home"
+assert 'dangling hooksPath is pointed at the repo' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$ROOT/git-hooks"
+assert 'the replaced dangling value is reported' \
+  rg -qF "replaced dangling core.hooksPath $home/moved-repo/git-hooks" <<<"$LAST_OUTPUT"
+
 echo "== configured backup =="
 
 home=$(sandbox backup-ready)
