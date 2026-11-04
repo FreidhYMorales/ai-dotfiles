@@ -102,8 +102,10 @@ require() {
 # prune_backups DST: before a new DST.bak-<stamp> is made, remove all but the 2
 # newest existing ones, so 3 remain. Only the exact name the installer writes
 # matches; the stamp sorts as text, so the glob lists them oldest first.
+# agy's skills dir is skipped: its skill backups are moved, never deleted.
 prune_backups() {
   local old=() f i
+  [[ $(dirname "$1") == "$ANTIGRAVITY_DIR/skills" ]] && return 0
   for f in "$1".bak-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]; do
     [[ -e $f || -L $f ]] && old+=("$f")
   done
