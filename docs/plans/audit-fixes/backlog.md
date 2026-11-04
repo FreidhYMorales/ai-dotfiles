@@ -25,6 +25,6 @@
 13. [ ] As the dotfiles owner, I want `install.sh` to tell a missing user bus apart from a real `systemctl --user daemon-reload` failure and show the error, so that a broken unit is never reported as "no systemd user session". (story 06 verifier note)
 14. [x] 4ff0dba As the dotfiles owner, I want a startup warning when the global git hooksPath points to a missing directory, and `install.sh` to repair it, so that moving the repo never turns off gitleaks unnoticed. (idea 12, from #09)
 15. [x] 48019f1 As the dotfiles owner, I want `install.sh` to prune its own old `*.bak-*` copies, keeping the newest ones, so that backups stop piling up. (idea 12, from #09)
-16. [ ] As the dotfiles owner, I want a basic `install.sh --uninstall` that removes only what the installer put in place, so that I can take the setup off a machine cleanly. (idea 12, from #09)
+16. [~] As the dotfiles owner, I want a basic `install.sh --uninstall` that removes only what the installer put in place, so that I can take the setup off a machine cleanly. (idea 12, from #09)
 17. [ ] As the dotfiles owner, I want `install.sh --dry-run` to stop saying it pruned a broken link it only reported, so that a dry-run never claims a change it did not make. (idea 18, from #15)
 18. [ ] As the dotfiles owner, I want the look test "an agent missing from agent.list on two polls in a row is stopped" to stop failing CI at the 5 s watchdog, so that a red run means something again. (idea 19, from #15)
