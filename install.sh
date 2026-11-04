@@ -331,6 +331,10 @@ install_git_hooks() {
   current="$(git config --global --get core.hooksPath || true)"
   if [[ "$current" == "$dir" ]]; then
     echo "ok: core.hooksPath"
+  elif [[ "$current" == /* && ! -d "$current" ]]; then
+    # Points nowhere (e.g. the repo was moved): git runs no global hooks.
+    run git config --global core.hooksPath "$dir"
+    echo "set: replaced dangling core.hooksPath $current -> $dir"
   elif [[ -n "$current" ]]; then
     echo "skip: global core.hooksPath already set to $current" >&2
   else
