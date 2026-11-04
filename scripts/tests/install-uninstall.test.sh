@@ -63,4 +63,18 @@ install "$home" --uninstall --target claude
 assert 'a foreign core.hooksPath is kept' same "$(hooks_path "$home")" "$home/my-hooks"
 assert 'output names no unset hooksPath' test -z "$(rg -F 'unset: core.hooksPath' <<<"$LAST_OUTPUT")"
 
+echo "== removes our plugins and the marketplace =="
+
+home=$(sandbox uninstall-plugins)
+printf 'other@elsewhere\n' >"$home/state/plugins"
+install "$home" --target claude
+assert 'the install added our plugins (setup)' same "$(rg -c '@ai-dotfiles$' "$home/state/plugins")" 3
+install "$home" --uninstall --target claude
+assert 'no ai-dotfiles plugin remains' same "$(cat "$home/state/plugins")" "other@elsewhere"
+assert 'the ai-dotfiles marketplace is removed' test ! -e "$home/state/marketplace"
+for plugin in flow toolkit look; do
+  assert "output names $plugin" rg -qxF "uninstalled plugin: $plugin@ai-dotfiles" <<<"$LAST_OUTPUT"
+done
+assert 'output names the marketplace' rg -qxF "removed marketplace: ai-dotfiles" <<<"$LAST_OUTPUT"
+
 finish_cases
