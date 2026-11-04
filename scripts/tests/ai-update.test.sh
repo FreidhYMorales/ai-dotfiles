@@ -13,9 +13,18 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 
 # fake_engram FILE VERSION: an engram stub that reports VERSION.
 fake_engram() {
-  # shellcheck disable=SC2016 # $1 belongs to the generated stub.
-  printf '#!/usr/bin/env bash\ncase $1 in version) echo "engram %s" ;; doctor) echo "doctor: ok" ;; esac\n' \
-    "$2" >"$1"
+  cat >"$1" <<EOF
+#!/usr/bin/env bash
+case \$1 in
+  version) echo "engram $2" ;;
+  doctor) echo "doctor: ok" ;;
+  serve)
+    # Starting while the old server is still dying would lose its port.
+    [[ \$(ps -o stat= -p "\$(cat "\$FAKE_STATE/serve-pid" 2>/dev/null)" 2>/dev/null) != [^Z]* ]] || echo overlap >>"\$FAKE_STATE/serve-calls"
+    echo "$2" >>"\$FAKE_STATE/serve-calls"
+    ;;
+esac
+EOF
   chmod +x "$1"
 }
 
@@ -66,7 +75,16 @@ if [[ "$*" == "plugin marketplace update mkt" && -n ${FAKE_MKT_BUMP:-} ]]; then
     mv "$FAKE_STATE/mkt.tmp" "$FAKE_STATE/../mkt/.claude-plugin/marketplace.json"
 fi
 EOF
-  chmod +x "$home/bin/curl" "$home/bin/claude"
+  # Never the real pgrep: a match here is killed, and it must not be the host's
+  # engram serve. It answers for one fake process, by the command line under test.
+  cat >"$home/bin/pgrep" <<'EOF'
+#!/usr/bin/env bash
+pid=$(cat "$FAKE_STATE/serve-pid" 2>/dev/null)
+[[ -n ${FAKE_SERVE_CMDLINE:-} && -n $pid && $(ps -o stat= -p "$pid" 2>/dev/null) == [^Z]* ]] || exit 1
+printf '%s\n' "$FAKE_SERVE_CMDLINE" | rg -qx -- "${!#}" || exit 1
+echo "$pid"
+EOF
+  chmod +x "$home/bin/curl" "$home/bin/claude" "$home/bin/pgrep"
   # A stand-in repo: its install.sh records the call and copies `source` into
   # the build, so a changed source means a changed build.
   mkdir -p "$home/repo"
@@ -97,7 +115,7 @@ update() {
     FAKE_REMOTE="$home/remote" FAKE_STATE="$home/state" \
     ENGRAM_BIN="$home/local/bin/engram" ENGRAM_DATA_DIR="$home/.engram" \
     CLAUDE_PLUGINS_DIR="$home/plugins" AI_UPDATE_PLATFORM=linux_amd64 \
-    AI_UPDATE_RESTART_SERVER=0 bash "$SCRIPT" "$@" 2>&1)
+    AI_UPDATE_RESTART_SERVER="${FAKE_RESTART_SERVER:-0}" bash "$SCRIPT" "$@" 2>&1)
   LAST_EXIT=$?
 }
 
@@ -334,6 +352,45 @@ FAKE_DOCTOR_LEAVE_WAL=1 update "$home" $'y\n' --yes
 assert 'the restore reports success with a stale log around' says 'restored: engram 3.4.0 and the database'
 assert 'the stale write-ahead log is gone' test ! -e "$home/.engram/engram.db-wal"
 assert 'the stale shared-memory file is gone' test ! -e "$home/.engram/engram.db-shm"
+
+# fake_server HOME: a server that takes half a second to die, as a real one may.
+fake_server() {
+  (
+    bash -c 'trap "sleep 0.5; exit 0" TERM; for _ in {1..300}; do sleep 0.1; done' >/dev/null 2>&1 &
+    echo $! >"$1/state/serve-pid"
+  )
+}
+server_gone() { [[ $(ps -o stat= -p "$(cat "$1/state/serve-pid")" 2>/dev/null) != [^Z]* ]]; }
+# server_started_as HOME VERSION: VERSION started once, with the old server gone.
+server_started_as() {
+  local _
+  for _ in {1..50}; do
+    [[ -s $1/state/serve-calls ]] && break
+    sleep 0.1
+  done
+  [[ $(cat "$1/state/serve-calls" 2>/dev/null) == "$2" ]]
+}
+stop_fake_server() { kill "$(cat "$1/state/serve-pid")" 2>/dev/null || true; }
+
+home=$(sandbox restore-server 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" update "$home" $'y\n' --yes
+assert 'a restore stops a server running under an absolute path' server_gone "$home"
+assert 'a restore starts the previous binary once the old server is gone' server_started_as "$home" 3.4.0
+stop_fake_server "$home"
+
+home=$(sandbox update-server 3.4.0 3.5.0)
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve' update "$home" '' --yes
+assert 'an update stops a server started by bare name' server_gone "$home"
+assert 'an update starts the new binary once the old server is gone' server_started_as "$home" 3.5.0
+stop_fake_server "$home"
+
+home=$(sandbox restore-no-server 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_RESTART_SERVER=1 update "$home" $'y\n' --yes
+assert 'a restore starts no server when none was running' test ! -e "$home/state/serve-calls"
 
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
