@@ -569,7 +569,22 @@ remove_links() {
 
 uninstall() {
   remove_links "$BIN_DIR"
-  remove_links "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+  local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
+  # Disable before the unit links go, while systemd can still find the units.
+  if command -v systemctl >/dev/null; then
+    for src in "$REPO_DIR"/systemd/*.timer; do
+      [[ -e "$src" ]] || continue
+      if run systemctl --user disable --now "$(basename "$src")" 2>/dev/null; then
+        echo "disabled: $(basename "$src")"
+      else
+        echo "skip: could not disable $(basename "$src") (no systemd user session?)"
+      fi
+    done
+  fi
+  remove_links "$unit_dir"
+  if command -v systemctl >/dev/null; then
+    run systemctl --user daemon-reload 2>/dev/null || true
+  fi
   local target dir
   for target in "${TARGETS[@]}"; do
     case "$target" in
