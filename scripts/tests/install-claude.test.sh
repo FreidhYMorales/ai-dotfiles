@@ -102,6 +102,7 @@ assert 'the replaced dangling value is reported' \
 
 # A ~ value is dangling too: the startup warning expands it.
 home=$(sandbox dangling-hookspath-tilde)
+# shellcheck disable=SC2088 # the literal ~ is the value under test
 git config --file "$home/.gitconfig" core.hooksPath '~/moved-repo/git-hooks'
 install "$home"
 assert 'a dangling ~ hooksPath is pointed at the repo' \
