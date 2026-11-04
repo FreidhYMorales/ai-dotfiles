@@ -164,6 +164,41 @@ assert 'a newer Claude Code than the look pin is reported' \
   message_has 'look pin 2.1.305 != Claude Code 2.1.318'
 assert 'the look note points to the bump procedure' message_has 'docs/look.md'
 
+dir=$(fixture look-older 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.300
+run "$dir"
+assert 'an older Claude Code than the look pin is reported' \
+  message_has 'look pin 2.1.305 != Claude Code 2.1.300'
+
+dir=$(fixture look-match 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.305
+run "$dir"
+assert 'Claude Code matching the look pin is silent' is_empty
+
+dir=$(fixture no-look 0.3.1 0.3.1 3.4.0 3.4.0)
+printf '#!/usr/bin/env bash\necho "2.1.318 (Claude Code)"\n' >"$dir/bin/claude"
+chmod +x "$dir/bin/claude"
+run "$dir"
+assert 'look not installed is silent' is_empty
+
+dir=$(fixture look-skip 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.318
+run "$dir" startup SKIP_UPDATE_CHECK=1
+assert 'SKIP_UPDATE_CHECK=1 hides the look note' is_empty
+
+dir=$(fixture look-no-pin 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 2.1.318
+rm "$dir/look/tests/claude-code.version"
+run "$dir"
+assert 'a missing look pin is silent' is_empty
+assert 'a missing look pin exits 0' test "$LAST_EXIT" -eq 0
+
+dir=$(fixture look-claude-fails 0.3.1 0.3.1 3.4.0 3.4.0)
+with_look "$dir" 2.1.305 fail
+run "$dir"
+assert 'an unreadable Claude Code version is silent' is_empty
+assert 'an unreadable Claude Code version exits 0' test "$LAST_EXIT" -eq 0
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
