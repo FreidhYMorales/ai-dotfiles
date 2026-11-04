@@ -69,6 +69,54 @@ assert 'the drill stubs claude only' rg -qx 'for tool in claude; do' "$drill"
 assert 'the drill installs with no user bus' rg -q 'env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR' "$drill"
 assert 'the drill checks the install explained the timers' rg -qF "rg -q 'timers not enabled'" "$drill"
 
+echo "== the drill runs only a verified engram release =="
+
+# fake_release DIR BODY: a release dir (as ENGRAM_RELEASE_URL serves it) whose
+# archive holds an `engram` script running BODY, with a matching checksums.txt.
+fake_release() {
+  local dir=$1 body=$2 asset=engram_3.6.1_linux_amd64.tar.gz
+  mkdir -p "$dir/pkg"
+  printf '#!/usr/bin/env bash\n%s\n' "$body" >"$dir/pkg/engram"
+  chmod +x "$dir/pkg/engram"
+  tar -czf "$dir/$asset" -C "$dir/pkg" engram
+  (cd "$dir" && sha256sum "$asset" >checksums.txt)
+}
+
+bad="$TMP_ROOT/release-bad"
+fake_release "$bad" "touch '$TMP_ROOT/bad-engram-ran'"
+printf '%064d  engram_3.6.1_linux_amd64.tar.gz\n' 0 >"$bad/checksums.txt"
+drill_out=$(ENGRAM_RELEASE_URL="file://$bad" bash "$drill" "$ROOT" 2>&1)
+drill_exit=$?
+assert 'an archive not matching checksums.txt fails the drill' test "$drill_exit" -ne 0
+assert 'the failure names the checksum mismatch' rg -q 'checksum mismatch' <<<"$drill_out"
+assert 'the mismatched engram never runs' test ! -e "$TMP_ROOT/bad-engram-ran"
+assert 'no drill step runs with an unverified engram' test -z "$(rg '^== ' <<<"$drill_out")"
+
+echo "== the drill fails when engram cannot find a restored memory =="
+
+# A verified engram whose store keeps every memory but cannot find the bugfix.
+lossy="$TMP_ROOT/release-lossy"
+fake_release "$lossy" "$(
+  cat <<'EOF'
+db="$ENGRAM_DATA_DIR/engram.db"
+case $1 in
+  save)
+    mkdir -p "$ENGRAM_DATA_DIR"
+    sqlite3 "$db" "CREATE TABLE IF NOT EXISTS observations(title TEXT); INSERT INTO observations VALUES ('$2');"
+    ;;
+  search)
+    [[ $2 == *bugfix* ]] && { echo "No memories found for: \"$2\""; exit 0; }
+    sqlite3 "$db" "SELECT '[1] #1 (manual) — ' || title FROM observations WHERE title = '$2';"
+    ;;
+esac
+EOF
+)"
+drill_out=$(ENGRAM_RELEASE_URL="file://$lossy" bash "$drill" "$ROOT" 2>&1)
+drill_exit=$?
+assert 'a memory engram cannot find fails the drill' test "$drill_exit" -ne 0
+assert 'the failure names the memory it could not find' rg -q 'cannot find "drill bugfix"' <<<"$drill_out"
+assert 'the memories engram finds are not reported missing' test -z "$(rg 'cannot find "drill (decision|pattern)"' <<<"$drill_out")"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
