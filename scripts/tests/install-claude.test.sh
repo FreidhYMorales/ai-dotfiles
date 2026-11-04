@@ -100,6 +100,14 @@ assert 'dangling hooksPath is pointed at the repo' \
 assert 'the replaced dangling value is reported' \
   rg -qF "replaced dangling core.hooksPath $home/moved-repo/git-hooks" <<<"$LAST_OUTPUT"
 
+home=$(sandbox dangling-hookspath-dry)
+git config --file "$home/.gitconfig" core.hooksPath "$home/moved-repo/git-hooks"
+install "$home" --dry-run
+assert 'dry-run leaves a dangling hooksPath as it is' \
+  same "$(git config --file "$home/.gitconfig" core.hooksPath)" "$home/moved-repo/git-hooks"
+assert 'dry-run reports the hooksPath it would set' \
+  rg -qF "[dry-run] git config --global core.hooksPath $ROOT/git-hooks" <<<"$LAST_OUTPUT"
+
 echo "== configured backup =="
 
 home=$(sandbox backup-ready)
