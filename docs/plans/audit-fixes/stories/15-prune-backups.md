@@ -27,7 +27,7 @@
 ## Suggestions (your call)
 
 - Assumption: a backup can be a directory (the link step renames a clashing dir), so a pruned directory copy is removed whole.
-- Assumption: the moved-aside `GEMINI.md.bak-*` counts as an installer backup (same name format, same managed path) and is pruned the same way.
+- Assumption (dropped, see L9): the moved-aside `GEMINI.md.bak-*` counts as an installer backup and is pruned the same way.
 - Assumption: pruning only when a new backup is made means an existing pile shrinks on the next run that backs that target up, not on every run. If you want the pile cleaned on every run, the scope becomes "every target the installer manages" instead.
 
 ## Size
@@ -44,3 +44,5 @@ Risk: item 1, 5 (deletes backup files; install script)
 - L5 commits: 2548141 test (link_file keeps 3, red: 5 FAIL) → 6bb51f4 feat; 3decd99 test (settings.json merge, red: 3 FAIL) → e861b6e feat; b68452d test (directory backup: green on arrival, killed by an `rm -f` mutant); f894774 test (dry-run, red: 1 FAIL) → 5d53cc6 fix; fb1b775 test (leave-alone: green on arrival, killed by three mutants: any `.bak-*` name, keep 2, prune the whole dir).
 - L6 evidence: `install-backups.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)". Tamper checks empty before each code commit.
 - L7 verifier: PASS (fb1b775), with two notes outside the criteria: `GEMINI.md.bak-*` is not pruned (the Suggestions assumed it would be), and 3+ stamped `<skill>.bak-*` dirs left in agy's skills dir at run start are now pruned before the "moved, never deleted" step.
+- L8 verifier note 2, user chose to keep the promise: 6e30fe4 test (agy skill backups are moved, never pruned; red: 3 FAIL) → 48019f1 fix. `make check` "All checks passed (7 steps)"; tamper check empty.
+- L9 verifier note 1, user chose no change: `GEMINI.md.bak-*` stays unpruned (the installer never recreates `GEMINI.md`, and that block promises "the backup is never deleted").
