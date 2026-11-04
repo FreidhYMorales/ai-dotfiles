@@ -225,6 +225,42 @@ assert 'a look-alike binary sorting last survives' test -e "$home/local/bin/engr
 assert 'look-alikes do not displace a database copy' test -d "$home/.engram-backup-20260301-000000"
 assert 'look-alikes do not displace a binary copy' test -e "$home/local/bin/engram-3.10.0.bak"
 
+echo "== judges the doctor =="
+
+# publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
+# migration would), prints JSON with --json and exits EXIT.
+publish_doctor() {
+  local home=$1 tag=$2 code=$3 json=$4 rel build
+  publish "$home" "$tag"
+  rel="$home/remote/github.com/$REPO/releases/download/v$tag"
+  build="$home/build-$tag"
+  cat >"$build/engram" <<EOF
+#!/usr/bin/env bash
+case \$1 in
+  version) echo "engram $tag" ;;
+  doctor)
+    sqlite3 "\$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
+    if [[ \${2:-} == --json ]]; then printf '%s\n' '$json'; else echo 'doctor: report'; fi
+    exit $code
+    ;;
+esac
+EOF
+  chmod +x "$build/engram"
+  tar -czf "$rel/engram_${tag}_linux_amd64.tar.gz" -C "$build" engram
+  (cd "$rel" && sha256sum "engram_${tag}_linux_amd64.tar.gz" >checksums.txt)
+}
+has_row() { [[ $(sqlite3 "$1/.engram/engram.db" "SELECT count(*) FROM obs WHERE t = '$2'") -ge 1 ]]; }
+lacks_row() { ! has_row "$1" "$2"; }
+
+home=$(sandbox doctor-blocked 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 0 '{"status":"blocked","summary":{"total":10,"ok":8,"warnings":1,"blocked":1,"errors":0}}'
+update "$home" '' --yes
+assert 'warnings and blocked checks exit 0' test "$LAST_EXIT" -eq 0
+assert 'warnings and blocked checks keep the new binary' engram_is "$home" 3.5.0
+assert 'warnings and blocked checks keep the database' has_row "$home" migrated
+assert 'warnings and blocked checks still prune' test "$(database_copies "$home")" -eq 2
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
