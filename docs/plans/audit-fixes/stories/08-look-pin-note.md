@@ -39,3 +39,7 @@ Risk: none
 ## Log
 
 - L1 request: /flow:story 08
+- L2 approved (user, 2026-11-03); test list approved, mode B.
+- L3 commits: a8ae413 refine; 3a69882 test (newer Claude Code reported, red: 2 FAIL) → 3fb3977 feat; 9ff53bf test (older Claude Code, match, no look, SKIP, missing pin, failing `claude`: green on arrival, proven non-trivial by a mutant that drops the guards → 3 FAIL); ded2ef0 test (once a day, red: second startup still showed the note) → 9064644 feat; e88d178 refactor (header comment).
+- L4 evidence: `update-check.test.sh` "All cases passed"; `make check` "All checks passed (7 steps)"; real host run prints `look pin 2.1.305 != Claude Code 2.1.318 (bump it: docs/look.md, "Bump the pin")`. Tamper checks empty before both feat commits.
+- L5 Risk: none (no verifier).
