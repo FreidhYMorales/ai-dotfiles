@@ -332,9 +332,15 @@ install_units() {
   done
   command -v systemctl >/dev/null || return 0
   # No user bus (ssh, sudo, container): the units stay linked, the rest of
-  # the install goes on.
-  if ! run systemctl --user daemon-reload 2>/dev/null; then
-    echo "no systemd user session: timers not enabled; re-run ./install.sh from a login session to enable them"
+  # the install goes on. Any other reload failure does too, with systemd's own
+  # error. Only stderr is captured: a dry run's line still reaches stdout (fd 3).
+  local reload_err
+  if ! { reload_err=$(run systemctl --user daemon-reload 2>&1 >&3); } 3>&1; then
+    if [[ $reload_err == *"Failed to connect to"*bus* ]]; then
+      echo "no systemd user session: timers not enabled; re-run ./install.sh from a login session to enable them"
+    else
+      echo "warning: systemctl --user daemon-reload failed, timers not enabled: $reload_err"
+    fi
     return 0
   fi
   run systemctl --user enable --now upstream-watch.timer
