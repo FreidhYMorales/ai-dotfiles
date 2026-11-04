@@ -630,6 +630,9 @@ uninstall() {
       claude)
         for dir in "$CLAUDE_DIR" "$CLAUDE_DIR/output-styles"; do remove_links "$dir"; done
         uninstall_plugins
+        # The merge unioned arrays with local entries: ours cannot be told apart.
+        [[ -f "$CLAUDE_DIR/settings.json" ]] &&
+          echo "note: $CLAUDE_DIR/settings.json keeps the merged entries; clean it by hand (fragment: $REPO_DIR/claude/settings.json)"
         ;;
       opencode)
         for dir in "$OPENCODE_DIR" "$OPENCODE_DIR"/{skills,agents,commands,plugins}; do remove_links "$dir"; done
