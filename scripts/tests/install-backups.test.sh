@@ -15,6 +15,15 @@ seed_backups() {
   done
 }
 
+# not_in_output LINE...: no LINE appears in the last install output.
+not_in_output() {
+  local line
+  for line in "$@"; do
+    rg -qF -- "$line" <<<"$LAST_OUTPUT" && return 1
+  done
+  return 0
+}
+
 echo "== keeps the 3 newest backups of a linked file =="
 
 home=$(sandbox prune-keep-three)
@@ -34,5 +43,23 @@ assert 'output names the oldest removed copy' \
   rg -qxF "pruned old backup: $home/.claude/CLAUDE.md.bak-20200101-000001" <<<"$LAST_OUTPUT"
 assert 'output names the second removed copy' \
   rg -qxF "pruned old backup: $home/.claude/CLAUDE.md.bak-20200101-000002" <<<"$LAST_OUTPUT"
+
+echo "== keeps the 3 newest backups of a merged settings.json =="
+
+home=$(sandbox prune-settings)
+mkdir -p "$home/.claude"
+jq -n '{model: "opus"}' >"$home/.claude/settings.json"
+seed_backups "$home/.claude/settings.json" 20200101-000001 20200101-000002 20200101-000003
+install "$home"
+settings_backups=("$home"/.claude/settings.json.bak-*)
+assert 'three settings.json backups remain' same "${#settings_backups[@]}" 3
+assert 'the oldest settings backup is removed' test ! -e "$home/.claude/settings.json.bak-20200101-000001"
+assert 'the two newest old settings backups are kept' \
+  test -f "$home/.claude/settings.json.bak-20200101-000002" -a -f "$home/.claude/settings.json.bak-20200101-000003"
+assert 'output names the removed settings copy' \
+  rg -qxF "pruned old backup: $home/.claude/settings.json.bak-20200101-000001" <<<"$LAST_OUTPUT"
+assert 'output names no kept settings copy' \
+  not_in_output "pruned old backup: $home/.claude/settings.json.bak-20200101-000002" \
+  "pruned old backup: $home/.claude/settings.json.bak-20200101-000003"
 
 finish_cases
