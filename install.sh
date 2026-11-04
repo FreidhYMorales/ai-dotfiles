@@ -109,7 +109,7 @@ prune_backups() {
   done
   for ((i = 0; i < ${#old[@]} - 2; i++)); do
     run rm -rf "${old[i]}"
-    echo "pruned old backup: ${old[i]}"
+    ((DRY_RUN)) || echo "pruned old backup: ${old[i]}"
   done
 }
 
