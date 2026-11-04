@@ -162,4 +162,16 @@ assert 'dry-run names the hooks key it would remove' \
 assert 'dry-run claims no change it did not make' \
   test -z "$(rg '^(removed|disabled|unset|uninstalled plugin|removed marketplace|removed toolkit hooks): ' <<<"$LAST_OUTPUT")"
 
+echo "== --target claude keeps the OpenCode and agy links =="
+
+home=$(sandbox uninstall-target)
+install "$home" --target all
+other=$(our_links "$home" | rg -e "^$home/.config/opencode/" -e "^$home/.gemini/")
+assert 'the install linked OpenCode and agy (setup)' test "$(wc -l <<<"$other")" -gt 5
+install "$home" --uninstall --target claude
+assert 'the OpenCode and agy links stay' \
+  same "$(our_links "$home" | rg -e "^$home/.config/opencode/" -e "^$home/.gemini/")" "$other"
+assert 'the common and Claude links are gone' \
+  same "$(our_links "$home" | rg -e "^$home/.local/bin/" -e "^$home/.config/systemd/" -e "^$home/.claude/")" ""
+
 finish_cases
