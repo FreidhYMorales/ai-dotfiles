@@ -36,3 +36,8 @@ Risk: none
 
 - L1 request: /flow:story 18
 - L2 approved (user, 2026-11-04), scope: that one case only.
+- L3 test list approved (2): a structural check in a new `look-budgets.test.sh`, and a one-off mutant for criterion 2. Mode C.
+- L4 commits: e327f84 test (red: "FAIL agent.list two-polls case has the 30 s budget") → 2be9666 fix.
+- L5 evidence: `look-budgets.test.sh` "All cases passed"; look suite "74 pass, 0 fail"; `make check` "All checks passed (7 steps)"; tamper check empty.
+- L6 criterion 2: mutant `missed < 2` → `missed < 3` in the look ingest poll made the case fail on its assertions in 245 ms ("73 pass, 1 fail"); reverted, tree clean.
+- L7 Risk: none (no verifier).
