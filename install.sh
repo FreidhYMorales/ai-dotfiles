@@ -585,6 +585,11 @@ uninstall() {
   if command -v systemctl >/dev/null; then
     run systemctl --user daemon-reload 2>/dev/null || true
   fi
+  # Only our own hooksPath; one the user set elsewhere stays.
+  if [[ "$(git config --global --path --get core.hooksPath || true)" == "$REPO_DIR/git-hooks" ]]; then
+    run git config --global --unset core.hooksPath
+    echo "unset: core.hooksPath $REPO_DIR/git-hooks"
+  fi
   local target dir
   for target in "${TARGETS[@]}"; do
     case "$target" in
