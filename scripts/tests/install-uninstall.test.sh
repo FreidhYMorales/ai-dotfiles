@@ -77,4 +77,16 @@ for plugin in flow toolkit look; do
 done
 assert 'output names the marketplace' rg -qxF "removed marketplace: ai-dotfiles" <<<"$LAST_OUTPUT"
 
+echo "== drops the toolkit key from agy's hooks.json, keeps the others =="
+
+home=$(sandbox uninstall-agy-hooks)
+mkdir -p "$home/.gemini/config"
+hooks="$home/.gemini/config/hooks.json"
+jq -n '{herdr: {Stop: [{type: "command", command: "herdr stop"}]}}' >"$hooks"
+install "$home" --target antigravity
+assert 'the install set the toolkit key (setup)' json_true "$hooks" '.toolkit != null'
+install "$home" --uninstall --target antigravity
+assert 'hooks.json keeps only the herdr key' same "$(jq -c . "$hooks")" '{"herdr":{"Stop":[{"type":"command","command":"herdr stop"}]}}'
+assert 'output names the dropped key' rg -qxF "removed toolkit hooks: $hooks" <<<"$LAST_OUTPUT"
+
 finish_cases
