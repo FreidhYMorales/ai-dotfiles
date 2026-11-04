@@ -29,7 +29,10 @@
 #     - Warns when engram is not registered or agy is not the pinned version.
 #   - Details: docs/multi-agent.md.
 #
-# Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]
+#   - --uninstall removes the links, timers, git hooksPath, plugins and agy
+#     hooks key this installer put in place; everything else stays.
+#
+# Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,12 +60,17 @@ comment-writer delegate-local go-testing skill-creator skill-improver"
 BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"
 
 DRY_RUN=0
+UNINSTALL=0
 TARGET_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    --uninstall)
+      UNINSTALL=1
       shift
       ;;
     --target)
@@ -78,7 +86,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h | --help)
-      echo "Usage: ./install.sh [--dry-run] [--target claude|opencode|antigravity|all]"
+      echo "Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]"
       exit 0
       ;;
     *)
@@ -544,10 +552,110 @@ resolve_targets() {
   fi
 }
 
+# remove_links DIR: remove the links in DIR that point into this repo or the
+# build dir; other links and files are the user's.
+remove_links() {
+  local dir="$1" dst target repo_real
+  [[ -d "$dir" ]] || return 0
+  repo_real=$(readlink -f "$REPO_DIR")
+  for dst in "$dir"/*; do
+    [[ -L "$dst" ]] || continue
+    target=$(readlink "$dst")
+    [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* || $target == "$BUILD_DIR"/* ]] || continue
+    run rm "$dst"
+    ((DRY_RUN)) || echo "removed: $dst"
+  done
+}
+
+# uninstall_plugins: remove this marketplace's plugins (current and retired)
+# and the marketplace; plugins from other marketplaces stay.
+uninstall_plugins() {
+  local installed plugin
+  installed="$(claude plugin list 2>/dev/null || true)"
+  for plugin in "${PLUGINS[@]}" "${RETIRED_PLUGINS[@]}"; do
+    rg -qF "$plugin@$MARKETPLACE" <<<"$installed" || continue
+    run claude plugin uninstall "$plugin@$MARKETPLACE"
+    ((DRY_RUN)) || echo "uninstalled plugin: $plugin@$MARKETPLACE"
+  done
+  if claude plugin marketplace list 2>/dev/null | rg -q "$MARKETPLACE"; then
+    run claude plugin marketplace remove "$MARKETPLACE"
+    ((DRY_RUN)) || echo "removed marketplace: $MARKETPLACE"
+  fi
+}
+
+# unmerge_agy_hooks: drop only the "toolkit" key merge_agy_hooks wrote; the
+# other hook sets stay. A hooks.json jq cannot parse stops the uninstall.
+unmerge_agy_hooks() {
+  local target="$GEMINI_CONFIG_DIR/hooks.json" merged tmp
+  [[ -f "$target" ]] || return 0
+  jq -e 'has("toolkit")' "$target" >/dev/null || return 0
+  merged=$(jq 'del(.toolkit)' "$target")
+  if ((DRY_RUN)); then
+    echo "[dry-run] would remove the toolkit key from $target"
+    return
+  fi
+  tmp=$(mktemp "$target.tmp.XXXXXX")
+  printf '%s\n' "$merged" >"$tmp"
+  chmod --reference="$target" "$tmp"
+  mv "$tmp" "$target"
+  echo "removed toolkit hooks: $target"
+}
+
+uninstall() {
+  remove_links "$BIN_DIR"
+  local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
+  # Disable before the unit links go, while systemd can still find the units.
+  if command -v systemctl >/dev/null; then
+    for src in "$REPO_DIR"/systemd/*.timer; do
+      [[ -e "$src" ]] || continue
+      if run systemctl --user disable --now "$(basename "$src")" 2>/dev/null; then
+        ((DRY_RUN)) || echo "disabled: $(basename "$src")"
+      else
+        echo "skip: could not disable $(basename "$src") (no systemd user session?)"
+      fi
+    done
+  fi
+  remove_links "$unit_dir"
+  if command -v systemctl >/dev/null; then
+    run systemctl --user daemon-reload 2>/dev/null || true
+  fi
+  # Only our own hooksPath; one the user set elsewhere stays.
+  if [[ "$(git config --global --path --get core.hooksPath || true)" == "$REPO_DIR/git-hooks" ]]; then
+    run git config --global --unset core.hooksPath
+    ((DRY_RUN)) || echo "unset: core.hooksPath $REPO_DIR/git-hooks"
+  fi
+  local target dir
+  for target in "${TARGETS[@]}"; do
+    case "$target" in
+      claude)
+        for dir in "$CLAUDE_DIR" "$CLAUDE_DIR/output-styles"; do remove_links "$dir"; done
+        uninstall_plugins
+        # The merge unioned arrays with local entries: ours cannot be told apart.
+        [[ -f "$CLAUDE_DIR/settings.json" ]] &&
+          echo "note: $CLAUDE_DIR/settings.json keeps the merged entries; clean it by hand (fragment: $REPO_DIR/claude/settings.json)"
+        ;;
+      opencode)
+        for dir in "$OPENCODE_DIR" "$OPENCODE_DIR"/{skills,agents,commands,plugins}; do remove_links "$dir"; done
+        ;;
+      antigravity)
+        for dir in "$ANTIGRAVITY_DIR" "$ANTIGRAVITY_DIR/skills" "$GEMINI_CONFIG_DIR" "$GEMINI_CONFIG_DIR/agents"; do
+          remove_links "$dir"
+        done
+        unmerge_agy_hooks
+        ;;
+    esac
+  done
+  echo "done. Uninstalled targets: ${TARGETS[*]}."
+}
+
 TARGETS=()
 
 main() {
   resolve_targets "$TARGET_ARG"
+  if ((UNINSTALL)); then
+    uninstall
+    return
+  fi
 
   require jq
   require rg

@@ -20,6 +20,7 @@ printf '%s\n' "$*" >>"$state/calls"
 case "$1 $2 ${3:-}" in
 "plugin marketplace list") [[ -f $state/marketplace ]] && echo "  ❯ ai-dotfiles" ;;
 "plugin marketplace add") touch "$state/marketplace" ;;
+"plugin marketplace remove") rm -f "$state/marketplace" ;;
 "plugin list "*) cat "$state/plugins" 2>/dev/null ;;
 "plugin install "*) printf '%s\n' "$3" >>"$state/plugins" ;;
 "plugin uninstall "*) rg -vxF "$3" "$state/plugins" >"$state/plugins.new"; mv "$state/plugins.new" "$state/plugins" ;;
