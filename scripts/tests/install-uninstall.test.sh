@@ -44,4 +44,23 @@ for timer in upstream-watch.timer engram-backup.timer engram-backup-verify.timer
 done
 assert 'systemctl reloads the user units last' same "$(tail -n1 "$home/state/systemctl")" "--user daemon-reload"
 
+echo "== unsets our core.hooksPath, keeps a foreign one =="
+
+# hooks_path HOME: the sandbox's global core.hooksPath, empty when unset.
+hooks_path() { GIT_CONFIG_GLOBAL="$1/.gitconfig" GIT_CONFIG_NOSYSTEM=1 git config --global --get core.hooksPath || true; }
+
+home=$(sandbox uninstall-hookspath)
+install "$home" --target claude
+assert 'the install set core.hooksPath (setup)' same "$(hooks_path "$home")" "$ROOT/git-hooks"
+install "$home" --uninstall --target claude
+assert 'our core.hooksPath is unset' same "$(hooks_path "$home")" ""
+assert 'output names the unset hooksPath' rg -qxF "unset: core.hooksPath $ROOT/git-hooks" <<<"$LAST_OUTPUT"
+
+home=$(sandbox uninstall-foreign-hookspath)
+mkdir -p "$home/my-hooks"
+GIT_CONFIG_GLOBAL="$home/.gitconfig" git config --global core.hooksPath "$home/my-hooks"
+install "$home" --uninstall --target claude
+assert 'a foreign core.hooksPath is kept' same "$(hooks_path "$home")" "$home/my-hooks"
+assert 'output names no unset hooksPath' test -z "$(rg -F 'unset: core.hooksPath' <<<"$LAST_OUTPUT")"
+
 finish_cases
