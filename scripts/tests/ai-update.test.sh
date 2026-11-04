@@ -230,9 +230,8 @@ echo "== judges the doctor =="
 # publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
 # migration would), prints JSON with --json and exits EXIT.
 publish_doctor() {
-  local home=$1 tag=$2 code=$3 json=$4 rel build
+  local home=$1 tag=$2 code=$3 json=$4 build
   publish "$home" "$tag"
-  rel="$home/remote/github.com/$REPO/releases/download/v$tag"
   build="$home/build-$tag"
   cat >"$build/engram" <<EOF
 #!/usr/bin/env bash
@@ -246,8 +245,25 @@ case \$1 in
     ;;
 esac
 EOF
-  chmod +x "$build/engram"
-  tar -czf "$rel/engram_${tag}_linux_amd64.tar.gz" -C "$build" engram
+  repack "$home" "$tag"
+}
+# publish_no_start HOME TAG: release TAG that writes a row, then dies on start.
+publish_no_start() {
+  local home=$1 tag=$2
+  publish "$home" "$tag"
+  cat >"$home/build-$tag/engram" <<'EOF'
+#!/usr/bin/env bash
+sqlite3 "$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
+exit 1
+EOF
+  repack "$home" "$tag"
+}
+# repack HOME TAG: republish the edited build of release TAG.
+repack() {
+  local home=$1 tag=$2 rel
+  rel="$home/remote/github.com/$REPO/releases/download/v$tag"
+  chmod +x "$home/build-$tag/engram"
+  tar -czf "$rel/engram_${tag}_linux_amd64.tar.gz" -C "$home/build-$tag" engram
   (cd "$rel" && sha256sum "engram_${tag}_linux_amd64.tar.gz" >checksums.txt)
 }
 has_row() { [[ $(sqlite3 "$1/.engram/engram.db" "SELECT count(*) FROM obs WHERE t = '$2'") -ge 1 ]]; }
@@ -289,6 +305,15 @@ assert 'what the new version wrote is gone' lacks_row "$home" migrated
 assert 'the question warns newer memories are lost' says 'are lost'
 assert 'the restore is reported' says 'restored: engram 3.4.0 and the database'
 assert 'open sessions are told to restart' says 'Restart Claude Code'
+
+home=$(sandbox restore-no-start 3.4.0 none)
+publish_no_start "$home" 3.5.0
+update "$home" $'y\n' --yes
+assert 'a restore after a dead binary fails the update' test "$LAST_EXIT" -ne 0
+assert 'a restore after a dead binary brings the previous binary back' engram_is "$home" 3.4.0
+assert 'a restore after a dead binary brings the old memories back' has_row "$home" kept
+assert 'a restore after a dead binary drops what it wrote' lacks_row "$home" migrated
+assert 'a restore after a dead binary is reported' says 'restored: engram 3.4.0 and the database'
 
 # The database copy is gone by the time of the restore: all or nothing.
 home=$(sandbox restore-impossible 3.4.0 none)
