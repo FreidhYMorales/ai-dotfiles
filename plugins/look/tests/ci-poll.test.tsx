@@ -54,7 +54,7 @@ async function setup($: Engine, on: On, init: Init = {}, entries: Record<string,
   return { ...w, ...r, store }
 }
 
-test('a failing check on the open PR raises a keyed alert; argv and cwd are passed without a shell', async ($, on) => {
+test('a failing check on the open PR raises a keyed alert; argv and cwd are passed without a shell', { timeoutMs: 30_000 }, async ($, on) => {
   const { calls, store, written } = await setup($, on)
   expect(calls[0]).toEqual({ argv: ['git', 'rev-parse', '--show-toplevel'], cwd: '/w/My Repo/sub' })
   expect(calls[1]).toEqual({ argv: ['git', '-C', '/w/My Repo', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd: '/w/My Repo' })
@@ -85,7 +85,7 @@ test('recovery removes the alert once the cache is stale', { timeoutMs: 30_000 }
 
 const entry = (age: number, state: string) => ({ at: NOW - age, pr: 17, headSha: 's1', checks: [{ name: 'lint', state }] })
 for (const [age, state, calls] of [[MIN - 1, 'pending', 0], [MIN + 1, 'pending', 1], [MIN + 1, 'failed', 0], [5 * MIN + 1, 'failed', 1]] as const) {
-  test(`a ${state} shared cache ${age}ms old ${calls ? 'is polled again' : 'is read without calling gh'}`, async ($, on) => {
+  test(`a ${state} shared cache ${age}ms old ${calls ? 'is polled again' : 'is read without calling gh'}`, { timeoutMs: 30_000 }, async ($, on) => {
     const { gh } = await setup($, on, {}, { [KEY]: entry(age, state) })
     expect(gh()).toBe(calls)
   })
@@ -111,7 +111,7 @@ test('a branch switch, detached HEAD or a closed PR drops the alert', { timeoutM
   expect(await band($, /lint failed/)).toBeUndefined()
 })
 
-test('outside a repository there is no CI and gh is never called; a cwd change finds the repo', async ($, on) => {
+test('outside a repository there is no CI and gh is never called; a cwd change finds the repo', { timeoutMs: 30_000 }, async ($, on) => {
   const { env, gh, clock } = await setup($, on)
   env.root = null
   await clock.advance(5 * MIN)
@@ -133,7 +133,7 @@ test('gh missing, failing or timing out keeps the last alert and logs at most on
   expect(logs.length <= 1).toBe(true)
 })
 
-test('gh missing on a repo with no earlier alert adds nothing', async ($, on) => {
+test('gh missing on a repo with no earlier alert adds nothing', { timeoutMs: 30_000 }, async ($, on) => {
   await setup($, on, { gh: 'deny' })
   expect(await band($, /CI/)).toBeUndefined()
 })

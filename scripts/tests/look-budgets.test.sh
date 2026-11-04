@@ -26,6 +26,39 @@ declares() {
 assert 'agent.list two-polls case has the 30 s budget' declares agent.test.tsx \
   'an agent missing from agent.list on two polls in a row is stopped, with no alert'
 
+# missing_budget DIR: the harness cases (their callback takes `$`) in DIR's
+# *.test.tsx that lack the budget, one FILE:LINE:DECLARATION per line.
+missing_budget() {
+  rg -n --no-heading --glob '*.test.tsx' '^\s*test\(.*\(\$' "$1" | rg -vF 'timeoutMs: 30_000' | sort -t: -k2n
+}
+
+# none_missing DIR: DIR has no harness case without the budget; names any it finds.
+none_missing() {
+  local missing
+  missing=$(missing_budget "$1")
+  [[ -z $missing ]] && return 0
+  printf '%s\n' "$missing"
+  return 1
+}
+
+fixture=$(mktemp -d)
+trap 'rm -rf "$fixture"' EXIT
+cat >"$fixture/a.test.tsx" <<'EOF'
+test('no budget', async ($, on) => {})
+test('has budget', { timeoutMs: 30_000 }, async ($, on) => {})
+for (const s of ['a']) {
+  test(`looped ${s}`, async ($, on) => {})
+}
+test('no harness async', async () => {})
+test('no harness sync', () => {})
+EOF
+expected="$fixture/a.test.tsx:1:test('no budget', async (\$, on) => {})
+$fixture/a.test.tsx:4:  test(\`looped \${s}\`, async (\$, on) => {})"
+
+same() { [[ $1 == "$2" ]]; }
+assert 'the check names only the harness cases without the budget' same "$(missing_budget "$fixture")" "$expected"
+assert 'every look harness case has the 30 s budget' none_missing "$ROOT/plugins/look/tests"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"

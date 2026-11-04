@@ -8,7 +8,7 @@ const MIN = 60_000
 const spawn = ($: Engine, toolUseId: string, description = 'Review diff') =>
   $.agent.spawn({ prompt: 'p', description, background: true, tool_use_id: toolUseId } as never)
 
-test('a background spawn adds a running item by its tool_use_id; a foreground one does not', async ($, on) => {
+test('a background spawn adds a running item by its tool_use_id; a foreground one does not', { timeoutMs: 30_000 }, async ($, on) => {
   world(on)
   await begin($)
   await $.agent.spawn({ prompt: 'p', description: 'Quick look', background: false, tool_use_id: 'tuF' } as never)
@@ -18,14 +18,14 @@ test('a background spawn adds a running item by its tool_use_id; a foreground on
   expect(await band($, /Review diff/)).toMatch(/Review diff 0s/)
 })
 
-test('a denied spawn leaves no item', async ($, on) => {
+test('a denied spawn leaves no item', { timeoutMs: 30_000 }, async ($, on) => {
   world(on).spawnReply.deny = 'no'
   await begin($)
   await spawn($, 'tuA')
   expect(await band($, /Review diff/)).toBeUndefined()
 })
 
-test('the band yields to a survey, even with a failing alert', async ($, on) => {
+test('the band yields to a survey, even with a failing alert', { timeoutMs: 30_000 }, async ($, on) => {
   const { clock } = world(on)
   await begin($)
   await spawn($, 'tuA')
@@ -35,7 +35,7 @@ test('the band yields to a survey, even with a failing alert', async ($, on) => 
   expect(await band($, /engine/, true)).toBe('engine')
 })
 
-test('a failed agent raises a pinned alert that outlives the item', async ($, on) => {
+test('a failed agent raises a pinned alert that outlives the item', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock, written } = world(on)
   await begin($)
   await spawn($, 'tuA')
@@ -49,7 +49,7 @@ test('a failed agent raises a pinned alert that outlives the item', async ($, on
   expect(written.alerts).toHaveLength(1)
 })
 
-test('completed and killed agents toast without an alert', async ($, on) => {
+test('completed and killed agents toast without an alert', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock, written } = world(on)
   await begin($)
   await spawn($, 'tuA', 'First')
@@ -62,7 +62,7 @@ test('completed and killed agents toast without an alert', async ($, on) => {
   expect(written.alerts ?? []).toEqual([])
 })
 
-test('an old notification after a resume creates no alert', async ($, on) => {
+test('an old notification after a resume creates no alert', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock, written } = world(on)
   await begin($)
   await note($, clock, 'a9', 'failed', 'tuOld')
@@ -70,7 +70,7 @@ test('an old notification after a resume creates no alert', async ($, on) => {
   expect(written.alerts ?? []).toEqual([])
 })
 
-test('the 60 s agent.list poll finishes an agent whose notification never came', async ($, on) => {
+test('the 60 s agent.list poll finishes an agent whose notification never came', { timeoutMs: 30_000 }, async ($, on) => {
   const { toasts, clock, written, agents } = world(on)
   await begin($)
   await spawn($, 'tuA', 'Slow')

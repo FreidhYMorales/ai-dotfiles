@@ -38,3 +38,10 @@ Risk: none
 
 - L1 request: /flow:story 19
 - L2 approved (user, 2026-11-04) as written: harness means a callback taking `$`; the 6-file mechanical edit is accepted as one step.
+- L3 test list approved (2, one commit): a fixture proving the check names only harness cases without the budget, and the real look tests having none missing. Mode C.
+- L4 commits: 1a4e867 test (red: "FAIL every look harness case has the 30 s budget", naming all 24 declarations; the fixture assertion passed) → 8e9cf81 fix (24 lines in 6 files, each only gaining the budget).
+- L5 evidence: `look-budgets.test.sh` "All cases passed"; look suite "74 pass, 0 fail"; `make check` "All checks passed (7 steps)"; tamper check empty.
+- L6 criterion 2 end to end: with the budget removed from "a denied spawn leaves no item", `make check` printed "FAILED: tests" and named `agent.test.tsx:21`; reverted, tree clean.
+- L7 limit: the check reads one line per declaration, so a `test(` wrapped over several lines would escape it; none is wrapped today (38 declarations found = 39 top-level cases - 2 without the harness + 1 in a loop).
+- L8 not proven here: the flake itself cannot be reproduced locally; the proof is the next CI runs on `main`.
+- L9 Risk: none (no verifier).

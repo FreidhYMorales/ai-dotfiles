@@ -63,23 +63,23 @@ test('a failed backup shows in the band and is polled again every 5 minutes, not
   expect(await band($, /Backup failed/)).toBeUndefined()
 })
 
-test('not configured raises nothing and reads no state', async ($, on) => {
+test('not configured raises nothing and reads no state', { timeoutMs: 30_000 }, async ($, on) => {
   const { written, reads } = await setup(on, $, { [`${STATE}/backup.json`]: bad() })
   expect(written.alerts ?? []).toEqual([])
   expect(reads).toEqual([])
 })
 
-test('configured with nothing recorded raises the no-backup alert', async ($, on) => {
+test('configured with nothing recorded raises the no-backup alert', { timeoutMs: 30_000 }, async ($, on) => {
   const { written } = await setup(on, $, { [CONFIG]: '' })
   expect(written.alerts).toEqual([{ source: 'backup:backup-none:never', kind: 'backup', text: 'No backup recorded yet' }])
 })
 
-test('XDG variables move both the config and the state paths', async ($, on) => {
+test('XDG variables move both the config and the state paths', { timeoutMs: 30_000 }, async ($, on) => {
   const { written } = await setup(on, $, { '/c/restic/engram.env': '', '/s/engram-backup/backup.json': bad() }, { HOME: '/home/u', XDG_CONFIG_HOME: '/c', XDG_STATE_HOME: '/s' })
   expect((written.alerts as unknown[]).length).toBe(1)
 })
 
-test('a blocked or failed secret scan raises an alert', async ($, on) => {
+test('a blocked or failed secret scan raises an alert', { timeoutMs: 30_000 }, async ($, on) => {
   const scan = JSON.stringify({ mode: 'scan', time: T0, ok: false, findings: 2 })
   const { written } = await setup(on, $, { [CONFIG]: '', [`${STATE}/backup.json`]: ok(), [`${STATE}/verify.json`]: ok(), [`${STATE}/scan.json`]: scan })
   expect(written.alerts).toEqual([{ source: `backup:scan-failed:${T0}`, kind: 'backup', text: 'Secret scan found 2 secrets' }])

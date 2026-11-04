@@ -25,7 +25,7 @@ test('prune splits live sources from keys older than 30 days', () => {
   expect(splitDismissals(keys, NOW)).toEqual({ live: ['agent:a1'], stale: [dismissKey('ci:x'), dismissKey('backup:r:1')] })
 })
 
-test('a digit hotkey press dismisses that alert and writes its store key', async ($, on) => {
+test('a digit hotkey press dismisses that alert and writes its store key', { timeoutMs: 30_000 }, async ($, on) => {
   const { clock } = world(on)
   const store = memStore(on)
   await begin($)
@@ -77,7 +77,7 @@ test('the tick deletes dismissal keys older than 30 days and keeps the rest', { 
   expect([...store.keys()].sort()).toEqual(['look:ci:/r:main', dismissKey('agent:new')].sort())
 })
 
-test('/band clear dismisses every alert and clears running items and shell failures', async ($, on) => {
+test('/band clear dismisses every alert and clears running items and shell failures', { timeoutMs: 30_000 }, async ($, on) => {
   const { clock } = world(on)
   const store = memStore(on)
   await begin($)
