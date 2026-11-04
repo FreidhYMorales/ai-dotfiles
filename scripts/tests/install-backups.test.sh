@@ -99,4 +99,26 @@ assert 'dry-run names no kept copy' \
   not_in_output "$home/.claude/CLAUDE.md.bak-20200101-000003" "$home/.claude/CLAUDE.md.bak-20200101-000004"
 assert 'dry-run does not claim a copy was pruned' not_in_output 'pruned old backup:'
 
+echo "== leaves alone what is not an extra installer backup =="
+
+home=$(sandbox prune-leave-alone)
+mkdir -p "$home/.claude"
+printf '# my own notes\n' >"$home/.claude/CLAUDE.md"
+# Two old copies plus the new one make 3: nothing to prune.
+seed_backups "$home/.claude/CLAUDE.md" 20200101-000001 20200101-000002
+# Other names next to a managed file are not the installer's.
+seed_backups "$home/.claude/CLAUDE.md" free 2020
+# A file the installer does not manage keeps all its copies.
+printf 'my notes\n' >"$home/.claude/notes.md"
+seed_backups "$home/.claude/notes.md" 20200101-000001 20200101-000002 20200101-000003 \
+  20200101-000004 20200101-000005
+install "$home"
+assert 'with 3 backups in all none is removed' \
+  test -f "$home/.claude/CLAUDE.md.bak-20200101-000001" -a -f "$home/.claude/CLAUDE.md.bak-20200101-000002"
+assert 'a backup in another name format is kept' \
+  test -f "$home/.claude/CLAUDE.md.bak-free" -a -f "$home/.claude/CLAUDE.md.bak-2020"
+notes_backups=("$home"/.claude/notes.md.bak-*)
+assert 'backups of an unmanaged file are all kept' same "${#notes_backups[@]}" 5
+assert 'output names no pruned copy' not_in_output 'pruned old backup:'
+
 finish_cases
