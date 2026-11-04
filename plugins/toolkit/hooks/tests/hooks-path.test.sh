@@ -44,6 +44,7 @@ assert() {
 }
 
 says() { [[ $LAST_MESSAGE == *"$1"* ]]; }
+silent() { [[ -z $LAST_MESSAGE && $LAST_EXIT -eq 0 ]]; }
 
 echo "== dangling hooksPath =="
 
@@ -54,6 +55,12 @@ assert 'a dangling hooksPath names the path' says "$TMP_ROOT/moved-repo/git-hook
 assert 'it says gitleaks is not running' says 'gitleaks'
 assert 'it points to the fix' says './install.sh'
 assert 'warning exits 0' test "$LAST_EXIT" -eq 0
+
+echo "== healthy or unset hooksPath =="
+
+home=$(machine unset)
+run "$home"
+assert 'an unset hooksPath stays silent' silent
 
 echo
 if [[ $failures -gt 0 ]]; then
