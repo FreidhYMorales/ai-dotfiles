@@ -31,4 +31,4 @@
 19. [x] 8e9cf81 As the dotfiles owner, I want every look harness test to have the 30 s budget, and `make check` to fail when one lacks it, so that a slow CI runner stops turning `main` red one case at a time. (idea 21, from #18)
 20. [x] 54ca7b2 As the dotfiles owner, I want the README's toolkit row, the `make mutate` hook list and the repo's `.gitignore` to match what is really there, so that the repo tells the truth about itself. (idea 16, from #12)
 21. [x] da501f8 As the dotfiles owner, I want `ai-pack add web` to copy taste-skill with its MIT `LICENSE`, so that projects receive the notice the license requires. (idea 16, from #12)
-22. [ ] As the dotfiles owner, I want a change under `bench/` proven by `bench/worker/validate.sh` during verification, so that a broken benchmark task cannot stay unnoticed. (idea 16, from #12)
+22. [~] As the dotfiles owner, I want a change under `bench/` proven by `bench/worker/validate.sh` during verification, so that a broken benchmark task cannot stay unnoticed. (idea 16, from #12)
