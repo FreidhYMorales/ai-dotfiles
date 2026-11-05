@@ -79,6 +79,10 @@ EOF
   # engram serve. It answers for one fake process, by the command line under test.
   cat >"$home/bin/pgrep" <<'EOF'
 #!/usr/bin/env bash
+if [[ -n ${FAKE_MCP_CMDLINE:-} ]] && printf '%s\n' "$FAKE_MCP_CMDLINE" | rg -qx -- "${!#}"; then
+  echo 1
+  exit 0
+fi
 pid=$(cat "$FAKE_STATE/serve-pid" 2>/dev/null)
 [[ -n ${FAKE_SERVE_CMDLINE:-} && -n $pid && $(ps -o stat= -p "$pid" 2>/dev/null) == [^Z]* ]] || exit 1
 printf '%s\n' "$FAKE_SERVE_CMDLINE" | rg -qx -- "${!#}" || exit 1
@@ -525,6 +529,33 @@ FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve' update "$home" '' --yes
 kill_stuck_server "$home"
 assert 'a healthy update with a stuck server warns' says 'engram serve did not stop'
 assert 'a healthy update with a stuck server starts no second one' no_server_started "$home"
+
+# A live engram mcp would keep writing to the replaced file: no question, no change.
+home=$(sandbox restore-mcp 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_DOCTOR_LEAVE_WAL=1 FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" \
+  FAKE_MCP_CMDLINE="$home/local/bin/engram mcp --tools=agent" update "$home" $'y\n' --yes
+no_question() { ! says 'are lost'; }
+server_alive() { ! server_gone "$1"; }
+assert 'a live engram mcp fails the restore' test "$LAST_EXIT" -ne 0
+assert 'a live engram mcp is reported' says 'engram mcp is running'
+assert 'a live engram mcp asks nothing' no_question
+assert 'a live engram mcp does not claim a restore' no_restored_claim
+assert 'a live engram mcp leaves the server running' server_alive "$home"
+assert 'a live engram mcp starts no server' no_server_started "$home"
+assert 'a live engram mcp keeps the write-ahead log' test -e "$home/.engram/engram.db-wal"
+assert 'a live engram mcp keeps the database' has_row "$home" migrated
+assert 'a live engram mcp keeps the binary' engram_is "$home" 3.5.0
+assert 'a live engram mcp still gets the restore commands' says 'To restore by hand'
+stop_fake_server "$home"
+
+# The same engram mcp started by bare name, with no arguments.
+home=$(sandbox restore-mcp-bare 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_MCP_CMDLINE='engram mcp' update "$home" $'y\n' --yes
+assert 'a bare engram mcp is reported' says 'engram mcp is running'
+assert 'a bare engram mcp keeps the database' has_row "$home" migrated
 
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
