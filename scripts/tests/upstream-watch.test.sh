@@ -139,6 +139,33 @@ watch "$d" --refresh
 assert 'an unreachable repo reviewed past its news does not bring it back' json_ok "$d/state/state.json" \
   '.changed | map(.repo) == ["acme/skills"]'
 
+echo "== a corrupt state counts as empty =="
+
+d=$(fixture corrupt-online)
+printf 'not json' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a corrupt state is regenerated from a reachable repo' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/tool", "acme/skills"]'
+
+d=$(fixture corrupt-offline)
+rm "$d"/gh/*
+printf 'not json' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a corrupt state offline becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+assert 'a corrupt state offline still reports the missed repos' test "$LAST_EXIT" -eq 1
+
+d=$(fixture corrupt-shape)
+rm "$d"/gh/*
+printf '{"changed":"oops"}' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a state whose changed is not a list becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+
+d=$(fixture corrupt-entry)
+rm "$d"/gh/*
+printf '{"changed":["oops"]}' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a state with a broken entry becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+
 echo "== --mark =="
 
 d=$(fixture mark)
