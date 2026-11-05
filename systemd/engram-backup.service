@@ -1,9 +1,16 @@
 [Unit]
 Description=Back up engram memory with restic
 Documentation=file://%h/.local/bin/engram-backup
+# 4 runs at most: the first plus 3 retries. The window outlasts them all and
+# ends before the next day's timer run.
+StartLimitIntervalSec=2h
+StartLimitBurst=4
 
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/engram-backup
 Nice=10
 IOSchedulingClass=idle
+# A run at boot can beat the network or the keyring.
+Restart=on-failure
+RestartSec=10min
