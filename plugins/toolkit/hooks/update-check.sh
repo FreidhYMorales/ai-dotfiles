@@ -3,7 +3,8 @@
 # - Installed Claude Code plugins older than their marketplace manifest
 #   (e.g. a committed version bump that was never `claude plugin update`d).
 # - The engram binary older than its latest GitHub release, looked up at most
-#   once a day and never for longer than 3 seconds.
+#   once a day and never for longer than 3 seconds. A failed lookup waits an
+#   hour, and the last version it knew is still noted.
 # - Claude Code differing from the version the installed look plugin is
 #   pinned to, at most once a day.
 # Any failure stays silent. Opt out with SKIP_UPDATE_CHECK=1.
@@ -19,6 +20,8 @@ input=$(cat)
 PLUGINS_DIR=${CLAUDE_PLUGINS_DIR:-$HOME/.claude/plugins}
 CACHE=${UPDATE_CHECK_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/ai-dotfiles/engram-latest}
 CACHE_TTL_SECS=86400
+LOOKUP_FAILED=$(dirname "$CACHE")/engram-lookup-failed
+LOOKUP_FAILED_TTL_SECS=3600
 ENGRAM_RELEASE_API=https://api.github.com/repos/Gentleman-Programming/engram/releases/latest
 
 # newer A B: true when version A is strictly newer than B.
@@ -53,13 +56,18 @@ if command -v engram >/dev/null 2>&1; then
   latest=""
   if [[ -f $CACHE ]] && (($(date +%s) - $(stat -c %Y "$CACHE") < CACHE_TTL_SECS)); then
     latest=$(<"$CACHE")
-  else
+  elif [[ ! -f $LOOKUP_FAILED ]] || (($(date +%s) - $(stat -c %Y "$LOOKUP_FAILED") >= LOOKUP_FAILED_TTL_SECS)); then
     latest=$(curl -fsS --max-time 3 "$ENGRAM_RELEASE_API" 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null)
     latest=${latest#v}
+    mkdir -p "$(dirname "$CACHE")"
     if [[ -n $latest ]]; then
-      mkdir -p "$(dirname "$CACHE")" && printf '%s\n' "$latest" >"$CACHE"
+      printf '%s\n' "$latest" >"$CACHE"
+    else
+      touch "$LOOKUP_FAILED"
     fi
   fi
+  # A failed or waiting lookup falls back to the last version it knew.
+  [[ -z $latest && -f $CACHE ]] && latest=$(<"$CACHE")
   if newer "$latest" "$current"; then
     notes+=("engram $current -> $latest (https://github.com/Gentleman-Programming/engram/releases)")
   fi

@@ -90,6 +90,94 @@ assert 'an unreachable repo is a warning' says 'acme/tool: could not check'
 assert 'other repos are still checked' says 'acme/skills: 7 new commit(s)'
 assert 'an unreachable repo is not reported as changed' json_ok "$d/state/state.json" '.changed | map(.repo) == ["acme/skills"]'
 
+echo "== a refresh that misses a repo reports it =="
+
+d=$(fixture exit-codes)
+watch "$d" --refresh
+assert 'a refresh that reaches every repo exits 0' test "$LAST_EXIT" -eq 0
+rm "$d/gh/repos_acme_tool_releases_latest"
+watch "$d" --refresh
+assert 'a refresh that misses a repo exits 1' test "$LAST_EXIT" -eq 1
+watch "$d"
+assert 'a report that misses a repo exits 0' test "$LAST_EXIT" -eq 0
+
+d=$(fixture exit-no-news)
+rm "$d"/gh/*
+watch "$d"
+assert 'a report that reaches no repo and has no news still says so' says 'acme/tool: could not check'
+assert 'a report that reaches no repo and has no news exits 0' test "$LAST_EXIT" -eq 0
+
+echo "== an unreachable repo keeps its recorded news =="
+
+d=$(fixture keep-all)
+watch "$d" --refresh
+assert 'the first refresh records news for both repos' json_ok "$d/state/state.json" '.changed | map(.repo) == ["acme/tool", "acme/skills"]'
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'a refresh that reaches no repo keeps the recorded news' json_ok "$d/state/state.json" \
+  '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "bbb222"]]'
+
+d=$(fixture keep-one)
+watch "$d" --refresh
+rm "$d/gh/repos_acme_tool_releases_latest"
+printf '[{"sha":"ccc333"}]' >"$d/gh/repos_acme_skills_commits_per_page=1"
+printf '{"total_commits":9,"html_url":"https://github.com/acme/skills/compare/aaa111...ccc333"}' \
+  >"$d/gh/repos_acme_skills_compare_aaa111...ccc333"
+watch "$d" --refresh
+assert 'the unreachable repo keeps its news and the reachable one is updated' json_ok "$d/state/state.json" \
+  '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "ccc333"]]'
+
+d=$(fixture keep-reviewed)
+watch "$d" --refresh
+watch "$d" --mark acme/tool
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'an unreachable repo reviewed at its news does not bring it back' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/skills"]'
+
+d=$(fixture keep-reviewed-newer)
+watch "$d" --refresh
+printf '{"tag_name":"v1.3.0","html_url":"https://github.com/acme/tool/releases/tag/v1.3.0"}' \
+  >"$d/gh/repos_acme_tool_releases_latest"
+watch "$d" --mark acme/tool
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'an unreachable repo reviewed past its news does not bring it back' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/skills"]'
+
+echo "== a corrupt state counts as empty =="
+
+d=$(fixture corrupt-online)
+printf 'not json' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a corrupt state is regenerated from a reachable repo' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/tool", "acme/skills"]'
+
+d=$(fixture corrupt-offline)
+rm "$d"/gh/*
+printf 'not json' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a corrupt state offline becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+assert 'a corrupt state offline still reports the missed repos' test "$LAST_EXIT" -eq 1
+
+d=$(fixture corrupt-shape)
+rm "$d"/gh/*
+printf '{"changed":"oops"}' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a state whose changed is not a list becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+
+d=$(fixture corrupt-entry)
+rm "$d"/gh/*
+printf '{"changed":["oops"]}' >"$d/state/state.json"
+watch "$d" --refresh
+assert 'a state with a broken entry becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
+
+d=$(fixture corrupt-empty)
+rm "$d"/gh/*
+: >"$d/state/state.json"
+watch "$d" --refresh
+assert 'an empty state file becomes an empty state' json_ok "$d/state/state.json" '.changed == []'
+
 echo "== --mark =="
 
 d=$(fixture mark)

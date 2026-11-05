@@ -1,8 +1,17 @@
 [Unit]
 Description=Check the upstream repos these dotfiles learn from
 Documentation=file://%h/.local/bin/upstream-watch
+# 4 runs at most: the first plus 3 retries. The window outlasts them all and
+# normally ends before the next day's timer run; time suspended may not count
+# towards it, so that run may be refused after a long suspend. Accepted: one
+# lost day, with the recorded news kept.
+StartLimitIntervalSec=2h
+StartLimitBurst=4
 
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/upstream-watch --refresh
 Nice=10
+# A run at boot can beat the network.
+Restart=on-failure
+RestartSec=10min

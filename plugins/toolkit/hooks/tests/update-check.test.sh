@@ -137,6 +137,42 @@ touch -d '2 days ago' "$dir/cache/engram-latest"
 run "$dir"
 assert 'stale cache queries GitHub again' test -e "$dir/curl-called"
 
+echo "== remembers a failed lookup =="
+
+dir=$(fixture offline 0.3.1 0.3.1 3.4.0 fail)
+run "$dir"
+assert 'a failed lookup was attempted' test -e "$dir/curl-called"
+rm -f "$dir/curl-called"
+run "$dir"
+assert 'a failed lookup is not repeated within the hour' test ! -e "$dir/curl-called"
+touch -d '50 minutes ago' "$dir/cache/"*
+run "$dir"
+assert 'a lookup that failed 50 minutes ago is not repeated' test ! -e "$dir/curl-called"
+touch -d '70 minutes ago' "$dir/cache/"*
+run "$dir"
+assert 'a lookup that failed over an hour ago is tried again' test -e "$dir/curl-called"
+
+dir=$(fixture known 0.3.1 0.3.1 3.4.0 3.4.1)
+run "$dir"
+touch -d '2 days ago' "$dir/cache/engram-latest"
+printf '#!/usr/bin/env bash\ntouch "%s/curl-called"\nexit 22\n' "$dir" >"$dir/bin/curl"
+run "$dir"
+assert 'a failed lookup with a stale cache still notes the known version' message_has 'engram 3.4.0 -> 3.4.1'
+rm -f "$dir/curl-called"
+run "$dir"
+assert 'the lookup is not repeated with a stale cache' test ! -e "$dir/curl-called"
+assert 'the known version is still noted while the lookup waits' message_has 'engram 3.4.0 -> 3.4.1'
+
+touch -d '70 minutes ago' "$dir/cache/engram-lookup-failed"
+printf '#!/usr/bin/env bash\ntouch "%s/curl-called"\necho %s\n' \
+  "$dir" "'{\"tag_name\": \"v3.4.2\"}'" >"$dir/bin/curl"
+run "$dir"
+assert 'a later successful lookup notes the new version' message_has 'engram 3.4.0 -> 3.4.2'
+rm -f "$dir/curl-called"
+run "$dir"
+assert 'a later successful lookup is cached again' test ! -e "$dir/curl-called"
+assert 'the new version is still noted from the cache' message_has 'engram 3.4.0 -> 3.4.2'
+
 # with_look DIR PIN CLAUDE: install look@mkt in fixture DIR with PIN as its
 # pinned Claude Code version and stub `claude --version` to print CLAUDE.
 # CLAUDE "fail" makes `claude` exit 1.
