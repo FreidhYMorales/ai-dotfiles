@@ -158,6 +158,8 @@ doctor_reports_errors() {
   ((errors > 0))
 }
 
+copy_is_sound() { [[ $(sqlite3 "$1" 'PRAGMA integrity_check' 2>/dev/null) == ok ]]; }
+
 # print_restore_commands CURRENT BACKUP: the restore, for when it was declined.
 print_restore_commands() {
   local db=$ENGRAM_DATA_DIR/engram.db
@@ -217,7 +219,8 @@ upgrade_engram() {
   if [[ -f $ENGRAM_DATA_DIR/engram.db ]]; then
     # VACUUM INTO, like engram-backup: a consistent copy without the deleted
     # rows that engram's sqlite leaves in free pages.
-    if ! sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'"; then
+    if ! sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'" ||
+      ! copy_is_sound "$backup/engram.db"; then
       rm -rf "$backup"
       echo "error: could not back up the database; engram unchanged" >&2
       return 1
