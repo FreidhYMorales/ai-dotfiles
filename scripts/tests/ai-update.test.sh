@@ -472,6 +472,19 @@ assert 'a corrupt copy does not claim success' no_restored_claim
 assert 'a corrupt copy leaves the binary alone' engram_is "$home" 3.5.0
 assert 'a corrupt copy leaves the database alone' has_row "$home" migrated
 
+# No database when the update ran, so no copy: only the binary can go back.
+home=$(sandbox restore-no-database 3.4.0 none)
+rm -f "$home/.engram/engram.db"
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" $'y\n' --yes
+no_lost_memories_warning() { ! says 'are lost'; }
+no_failed_restore() { ! says 'restore failed'; }
+assert 'a restore with no database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a restore with no database copy brings the binary back' engram_is "$home" 3.4.0
+assert 'a restore with no database copy does not report a failure' no_failed_restore
+assert 'a restore with no database copy says so' says 'restored: engram 3.4.0; there was no database copy'
+assert 'a restore with no database copy warns of no lost memories' no_lost_memories_warning
+
 # A leftover write-ahead log must not replay over the restored copy.
 home=$(sandbox restore-wal 3.4.0 none)
 publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
@@ -637,6 +650,19 @@ assert 'the printed commands drop the stale log' test ! -e "$home/.engram/engram
 assert 'the printed commands bring the previous binary back' engram_is "$home" 3.4.0
 assert 'the printed commands bring the old memories back' has_row "$home" kept
 assert 'the printed commands drop what the new version wrote' lacks_row "$home" migrated
+
+# No copy to name: the commands bring the binary back and leave the database alone.
+home=$(sandbox decline-no-database 3.4.0 none)
+rm -f "$home/.engram/engram.db"
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" '' --yes
+commands=$(printed_commands)
+names_no_copy() { [[ $commands != *.engram-backup-* ]]; }
+assert 'no database copy still prints commands' test -n "$commands"
+assert 'no database copy names no missing copy' names_no_copy
+bash -euc "$commands"
+assert 'no database copy: the commands bring the binary back' engram_is "$home" 3.4.0
+assert 'no database copy: the commands keep the write-ahead log' test -e "$home/.engram/engram.db-wal"
 
 home=$(sandbox decline-explicit 3.4.0 none)
 publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
