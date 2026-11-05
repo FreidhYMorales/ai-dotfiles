@@ -90,6 +90,17 @@ assert 'an unreachable repo is a warning' says 'acme/tool: could not check'
 assert 'other repos are still checked' says 'acme/skills: 7 new commit(s)'
 assert 'an unreachable repo is not reported as changed' json_ok "$d/state/state.json" '.changed | map(.repo) == ["acme/skills"]'
 
+echo "== a refresh that misses a repo reports it =="
+
+d=$(fixture exit-codes)
+watch "$d" --refresh
+assert 'a refresh that reaches every repo exits 0' test "$LAST_EXIT" -eq 0
+rm "$d/gh/repos_acme_tool_releases_latest"
+watch "$d" --refresh
+assert 'a refresh that misses a repo exits 1' test "$LAST_EXIT" -eq 1
+watch "$d"
+assert 'a report that misses a repo exits 0' test "$LAST_EXIT" -eq 0
+
 echo "== an unreachable repo keeps its recorded news =="
 
 d=$(fixture keep-all)
