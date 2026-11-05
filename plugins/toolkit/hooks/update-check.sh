@@ -19,6 +19,7 @@ input=$(cat)
 PLUGINS_DIR=${CLAUDE_PLUGINS_DIR:-$HOME/.claude/plugins}
 CACHE=${UPDATE_CHECK_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/ai-dotfiles/engram-latest}
 CACHE_TTL_SECS=86400
+LOOKUP_FAILED=$(dirname "$CACHE")/engram-lookup-failed
 ENGRAM_RELEASE_API=https://api.github.com/repos/Gentleman-Programming/engram/releases/latest
 
 # newer A B: true when version A is strictly newer than B.
@@ -53,11 +54,14 @@ if command -v engram >/dev/null 2>&1; then
   latest=""
   if [[ -f $CACHE ]] && (($(date +%s) - $(stat -c %Y "$CACHE") < CACHE_TTL_SECS)); then
     latest=$(<"$CACHE")
-  else
+  elif [[ ! -f $LOOKUP_FAILED ]]; then
     latest=$(curl -fsS --max-time 3 "$ENGRAM_RELEASE_API" 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null)
     latest=${latest#v}
+    mkdir -p "$(dirname "$CACHE")"
     if [[ -n $latest ]]; then
-      mkdir -p "$(dirname "$CACHE")" && printf '%s\n' "$latest" >"$CACHE"
+      printf '%s\n' "$latest" >"$CACHE"
+    else
+      touch "$LOOKUP_FAILED"
     fi
   fi
   if newer "$latest" "$current"; then
