@@ -71,10 +71,12 @@ echo "== pair: the repo's refs are compared around the verifier =="
 OPENCODE_PAIR="$ROOT/scripts/gen-agents/golden/opencode/skills/flow-pair/SKILL.md"
 for skill in "$PAIR" "$OPENCODE_PAIR"; do
   name=${skill#"$ROOT"/}
+  # The whole rule, on the check step itself and ahead of what happens next.
+  check_step=$(grep '^6\. \*\*Check\.\*\*' "$skill")
   # shellcheck disable=SC2016 # literal markdown backticks
-  assert "$name: saves the refs and HEAD around every verifier run" has "$skill" 'Around every verifier run, save `git for-each-ref` and `git rev-parse HEAD`'
-  assert "$name: a difference outranks the verdict" has "$skill" 'any difference is NEEDS DECISION whatever the verdict says'
-  assert "$name: names the moved refs and repairs nothing" has "$skill" 'name the refs that moved and repair nothing'
+  assert "$name: the check step compares refs and HEAD around the verifier" grep -qF 'Before every verifier run, save `git for-each-ref` and `git rev-parse HEAD`, and compare them after it: any difference is NEEDS DECISION whatever the verdict says; name the refs that moved and repair nothing.' <<<"$check_step"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$name: the rule comes before the FAIL handling" grep -qE 'Before every verifier run.*On `FAIL`' <<<"$check_step"
 done
 
 echo "== pair: verifier only for high risk =="
