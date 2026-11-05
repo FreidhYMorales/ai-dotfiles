@@ -101,6 +101,12 @@ assert 'a refresh that misses a repo exits 1' test "$LAST_EXIT" -eq 1
 watch "$d"
 assert 'a report that misses a repo exits 0' test "$LAST_EXIT" -eq 0
 
+d=$(fixture exit-no-news)
+rm "$d"/gh/*
+watch "$d"
+assert 'a report that reaches no repo and has no news still says so' says 'acme/tool: could not check'
+assert 'a report that reaches no repo and has no news exits 0' test "$LAST_EXIT" -eq 0
+
 echo "== an unreachable repo keeps its recorded news =="
 
 d=$(fixture keep-all)
