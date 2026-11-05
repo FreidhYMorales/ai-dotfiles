@@ -90,6 +90,16 @@ assert 'an unreachable repo is a warning' says 'acme/tool: could not check'
 assert 'other repos are still checked' says 'acme/skills: 7 new commit(s)'
 assert 'an unreachable repo is not reported as changed' json_ok "$d/state/state.json" '.changed | map(.repo) == ["acme/skills"]'
 
+echo "== an unreachable repo keeps its recorded news =="
+
+d=$(fixture keep-all)
+watch "$d" --refresh
+assert 'the first refresh records news for both repos' json_ok "$d/state/state.json" '.changed | map(.repo) == ["acme/tool", "acme/skills"]'
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'a refresh that reaches no repo keeps the recorded news' json_ok "$d/state/state.json" \
+  '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "bbb222"]]'
+
 echo "== --mark =="
 
 d=$(fixture mark)
