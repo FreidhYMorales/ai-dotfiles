@@ -181,7 +181,8 @@ offer_restore() {
   tmp_bin=$(dirname "$ENGRAM_BIN")/.engram.new
   tmp_db=$ENGRAM_DATA_DIR/.engram.db.restore
   # Prepare both before replacing either: all or nothing.
-  if cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && cp -p "$backup/engram.db" "$tmp_db" &&
+  if copy_is_sound "$backup/engram.db" &&
+    cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && cp -p "$backup/engram.db" "$tmp_db" &&
     mv -f "$tmp_bin" "$ENGRAM_BIN" && mv -f "$tmp_db" "$ENGRAM_DATA_DIR/engram.db" &&
     rm -f "$ENGRAM_DATA_DIR/engram.db-wal" "$ENGRAM_DATA_DIR/engram.db-shm"; then
     echo "restored: engram $current and the database. Restart Claude Code: open sessions still hold the replaced database."
