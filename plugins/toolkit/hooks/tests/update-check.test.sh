@@ -163,6 +163,16 @@ run "$dir"
 assert 'the lookup is not repeated with a stale cache' test ! -e "$dir/curl-called"
 assert 'the known version is still noted while the lookup waits' message_has 'engram 3.4.0 -> 3.4.1'
 
+touch -d '70 minutes ago' "$dir/cache/engram-lookup-failed"
+printf '#!/usr/bin/env bash\ntouch "%s/curl-called"\necho %s\n' \
+  "$dir" "'{\"tag_name\": \"v3.4.2\"}'" >"$dir/bin/curl"
+run "$dir"
+assert 'a later successful lookup notes the new version' message_has 'engram 3.4.0 -> 3.4.2'
+rm -f "$dir/curl-called"
+run "$dir"
+assert 'a later successful lookup is cached again' test ! -e "$dir/curl-called"
+assert 'the new version is still noted from the cache' message_has 'engram 3.4.0 -> 3.4.2'
+
 # with_look DIR PIN CLAUDE: install look@mkt in fixture DIR with PIN as its
 # pinned Claude Code version and stub `claude --version` to print CLAUDE.
 # CLAUDE "fail" makes `claude` exit 1.
