@@ -158,11 +158,23 @@ doctor_reports_errors() {
   ((errors > 0))
 }
 
+# print_restore_commands CURRENT BACKUP: the restore, for when it was declined.
+print_restore_commands() {
+  local db=$ENGRAM_DATA_DIR/engram.db
+  echo
+  echo "To restore by hand:"
+  echo "Stop engram serve and close Claude Code, then run:"
+  printf '  cp -p %q %q\n' "$ENGRAM_BIN-$1.bak" "$ENGRAM_BIN"
+  printf '  cp -p %q %q\n' "$2/engram.db" "$db"
+  printf '  rm -f %q %q\n' "$db-wal" "$db-shm"
+}
+
 # offer_restore CURRENT BACKUP: always ask, even with --yes, because memories
 # saved since BACKUP are overwritten; then put the binary and database back.
+# False when declined.
 offer_restore() {
   local current=$1 backup=$2 tmp_bin tmp_db server_was_running=0
-  confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 0
+  confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 1
   if stop_server; then server_was_running=1; fi
   tmp_bin=$(dirname "$ENGRAM_BIN")/.engram.new
   tmp_db=$ENGRAM_DATA_DIR/.engram.db.restore
@@ -226,7 +238,7 @@ upgrade_engram() {
   echo "installed: engram $latest"
   if ! "$ENGRAM_BIN" doctor </dev/null 2>&1 | tail -n 5 || doctor_reports_errors; then
     echo "error: engram doctor failed" >&2
-    offer_restore "$current" "$backup"
+    offer_restore "$current" "$backup" || print_restore_commands "$current" "$backup"
     return 1
   fi
   rm -f "$UPDATE_CHECK_CACHE"
