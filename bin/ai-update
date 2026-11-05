@@ -183,6 +183,13 @@ print_restore_commands() {
 # False when declined.
 offer_restore() {
   local current=$1 backup=$2 tmp_bin tmp_db stop_code=0
+  # Same rule as engram-backup: a live engram mcp keeps writing to the replaced
+  # file. engram serve is ours to stop, so only engram mcp blocks here.
+  if [[ -n $(pgrep -x -f '(.*/)?engram mcp( .*)?' || true) ]]; then
+    echo "error: engram mcp is running; nothing was restored" >&2
+    print_restore_commands "$current" "$backup"
+    return 0
+  fi
   confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 1
   stop_server || stop_code=$?
   if ((stop_code == 2)); then
@@ -197,7 +204,7 @@ offer_restore() {
     cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && cp -p "$backup/engram.db" "$tmp_db" &&
     mv -f "$tmp_bin" "$ENGRAM_BIN" && mv -f "$tmp_db" "$ENGRAM_DATA_DIR/engram.db" &&
     rm -f "$ENGRAM_DATA_DIR/engram.db-wal" "$ENGRAM_DATA_DIR/engram.db-shm"; then
-    echo "restored: engram $current and the database. Restart Claude Code: open sessions still hold the replaced database."
+    echo "restored: engram $current and the database. Restart Claude Code to use them."
   else
     rm -f "$tmp_bin" "$tmp_db"
     echo "error: restore failed; copies kept: $ENGRAM_BIN-$current.bak and $backup/engram.db" >&2
