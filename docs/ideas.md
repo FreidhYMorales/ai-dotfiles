@@ -23,6 +23,9 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 17 | Recovery drill restores real engram memories | GO | backlog (audit-fixes #07) | 0.5 | 2026-11-02 | [17](#17-recovery-drill-restores-real-engram-memories) |
 | 18 | Honest dry-run for prune_links | GO | backlog (audit-fixes #17) | 0.1 | 2026-11-04 | [18](#18-honest-dry-run-for-prune_links) |
 | 19 | look agent.list test flakes at the 5 s watchdog | GO | backlog (audit-fixes #18) | 0.1 | 2026-11-04 | [19](#19-look-agentlist-test-flakes-at-the-5-s-watchdog) |
+| 20 | Uninstall says so when jq or rg is missing | pending | backlog | 0.1 | 2026-11-04 | [20](#20-uninstall-says-so-when-jq-or-rg-is-missing) |
+| 21 | A 30 s budget for every look harness test | GO | backlog (audit-fixes #19) | 0.1 | 2026-11-04 | [21](#21-a-30-s-budget-for-every-look-harness-test) |
+| 22 | Real mutation survivors in backup-status and hooks-path | pending | backlog | 0.1 | 2026-11-05 | [22](#22-real-mutation-survivors-in-backup-status-and-hooks-path) |
 
 ---
 
