@@ -310,6 +310,26 @@ before=$(repo_state "$root")
 GIT_DIR="$root/.git" expect 0 'run-tests.sh alone passes under GIT_DIR' run-tests.sh "$root"
 state_kept 'run-tests.sh alone leaves the checked repo as it was under GIT_DIR' "$root" "$before"
 
+root=$(git_fixture vars-index)
+cat >"$root/scripts/tests/stages-in-own-repo.test.sh" <<'EOF'
+#!/usr/bin/env bash
+set -eu
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+git -C "$tmp" init -q
+touch "$tmp/own-file"
+git -C "$tmp" add own-file
+EOF
+before=$(git -C "$root" ls-files --stage)
+GIT_INDEX_FILE="$root/.git/index" expect 0 'run-tests.sh passes under GIT_INDEX_FILE' run-tests.sh "$root"
+after=$(git -C "$root" ls-files --stage)
+if [[ $after == "$before" ]]; then
+  printf 'PASS  the checked repo index is untouched under GIT_INDEX_FILE\n'
+else
+  printf 'FAIL  the checked repo index is untouched under GIT_INDEX_FILE\n%s\n' "$after"
+  failures=$((failures + 1))
+fi
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
