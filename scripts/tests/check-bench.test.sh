@@ -171,20 +171,19 @@ assert 'a branch behind the remote validates no task' lacks 'good-task'
 echo "== an exported GIT_DIR, as a hook in a linked worktree sets =="
 # Git reads GIT_DIR before -C, so the tasks must not act on the checked repo.
 mk_repo gitdir
-source_repo=$TMP_ROOT/gitdir-source
-git init -q "$source_repo"
-git -C "$source_repo" commit -q --allow-empty -m init
 mk_task "$R" cloned-task
 rm -rf "$R/bench/worker/tasks/cloned-task/fixture"
-printf '%s %s\n' "$source_repo" "$(git -C "$source_repo" rev-parse HEAD)" \
+# Its own commit: under GIT_DIR a commit from another repo stops `checkout -B`
+# before the code that switches the branch and deletes refs gets to run.
+printf '%s %s\n' "$R" "$(git -C "$R" rev-parse HEAD)" \
   >"$R/bench/worker/tasks/cloned-task/source"
 git -C "$R" add -A
-git -C "$R" commit -q -m 'add a task from another repo'
+git -C "$R" commit -q -m 'add a task cloned from this repo'
 git -C "$R" branch keep-me
 head=$(git -C "$R" rev-parse HEAD)
 OUTPUT=$(GIT_DIR="$R/.git" bash "$ROOT/scripts/check-bench.sh" "$R" 2>&1)
 assert 'the fixture task is validated' says 'ok    good-task'
-assert 'the task from another repo is validated' says 'ok    cloned-task'
+assert 'the cloned task is validated' says 'ok    cloned-task'
 assert 'HEAD of the checked repo does not move' test "$(git -C "$R" rev-parse HEAD)" = "$head"
 assert 'the branch of the checked repo stays' test "$(git -C "$R" branch --show-current)" = main
 assert 'the other branch of the checked repo survives' git -C "$R" rev-parse -q --verify refs/heads/keep-me
