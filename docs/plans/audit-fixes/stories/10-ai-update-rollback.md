@@ -1,0 +1,60 @@
+# Story 10: ai-update keeps two engram copies and rolls back binary and database together
+
+## Story
+
+10. As the dotfiles owner, I want `ai-update` to keep only the last two engram copies and roll back binary and database together on a failed doctor, so that an update can never strand my memory. (idea 15)
+
+## Acceptance criteria
+
+- [x] Given more than two older engram copies and a new version whose doctor reports at most warnings or blocked checks, when the update finishes, then only the two newest database copies and the two newest binary copies remain, and an update that fails removes none.
+- [x] Given a new version whose doctor fails or that does not start, with no `engram mcp` running and `engram serve` able to stop, when I confirm the restore (asked even with `--yes`), then the binary and the database are back as they were before the update, the old memories can be found, and `ai-update` says what it restored and exits non-zero; if either process blocks it, nothing changes and the restore commands are printed.
+- [x] Given the same failure, when I decline or there is no answer, then the database is untouched and `ai-update` exits non-zero; a binary that does not start goes back to the previous one, and after a failed doctor the new binary stays and the exact restore commands are printed.
+
+## Plan
+
+- Health check: read the doctor's JSON report after the swap. It failed on a non-zero exit or `summary.errors > 0`; warnings and blocked checks pass, because engram 3.6.1 exits 0 with `status: blocked` on the real database for old sync issues. The failure signal is inferred from that format; no real doctor failure has been observed.
+- Failure path: one confirmation, never skipped by `--yes`, warning that memories saved since the pre-update copy are lost. A binary reporting the wrong version counts as not starting.
+- Restore: stop a running `engram serve`, put the previous binary and the pre-update database copy back, discard the stale write-ahead files so they cannot replay over the copy, then restart the server. A live `engram mcp` blocks the restore, as in `engram-backup`: nothing changes and the commands are printed.
+- Decline path: leave the database alone and apply the third criterion.
+- Pruning: only after a healthy update, only the exact names of the copies `ai-update` makes, so `engram-backup` and the installed binary can never match.
+
+## Out of scope
+
+- Repairing the doctor's existing warning and blocked checks.
+- Rolling back plugins or the OpenCode and Antigravity build.
+- Pruning without an update, or cleaning copies held by restic.
+- A configurable number of copies.
+
+## Suggestions (your call)
+
+- `prune_backups` in `install.sh` already keeps the newest 2 of its own copies; follow its shape, without sharing code between the two scripts.
+
+## Size
+
+normal
+Risk: item 1, 4, 5 (restores over the live memory database and deletes old copies; `engram serve` and `engram mcp` hold it open; replaces the installed binary)
+
+## Log
+
+- L1 request: /flow:story 10
+- Declining the restore: confirmed by the user (database never touched without a yes; a non-starting binary goes back; after a failed doctor the new binary stays and restore commands are printed).
+- Pair: all listed tests plus 5b committed; `scripts/tests/ai-update.test.sh` 141 PASS, `make check` "All checks passed (7 steps)". Risk: item 1, 4, 5.
+- Verifier 1: FAIL (unanchored binary prune, unchecked database copy, `stop_server` timeout). One correction batch applied, each fix red then green.
+- Process breach: a024b9b was committed with tests failing and introduced a regression (a missing copy counted as sound); fixed in 3848d38, history not rewritten.
+- Driver decision, not in the story: under a server that will not stop, a restore changes nothing and prints the commands, a healthy update only warns, neither starts a second server.
+- Verifier 2 (recheck): FAIL. Must fix: suffix look-alikes still pruned; unchecked binary copy before the swap and a false "rolled back"; a no-server assertion that can pass by race. Should fix: empty backup dirs count as copies; an unreadable doctor report still prunes.
+- Status: NEEDS DECISION. Second FAIL, so the story stays open and no further fixes were applied.
+- User decision: fix verifier 2 items 1 and 2 now, decide the rest later.
+- Item 1 fixed: 04df2b8 (test), 00509ed. Only exact version names are pruned, so a prerelease copy stays unpruned.
+- Item 2 fixed: 5521f8f (test), 2bddbd2; 91b343f (test), a39b275. A failed binary copy stops the update; a failed rollback is not reported as done. fa504e7 adds a shellcheck comment to committed test 5521f8f, no assertion changed. `scripts/tests/ai-update.test.sh` 154 PASS, `make check` "All checks passed (7 steps)".
+- User decision: restore like `engram-backup`, refusing while engram runs. Applied to `engram mcp`; `engram serve` is still stopped and restarted by `ai-update`, because it can be stopped safely and the approved tests pin it. The refusal comes before the question.
+- Items 3, 4, 5 fixed, user approved: af9143c (guard test, validated by mutation); 2c7ee89 (test), 5c36290; fd5fae6 (test), 9ece794. `scripts/tests/ai-update.test.sh` 175 PASS, `make check` "All checks passed (7 steps)".
+- User authorized a third verifier run, beyond the flow's one recheck.
+- Verifier 3: FAIL. Must fix: no database at update time (restore fails, printed commands name a missing copy); `engram serve` with arguments is not detected; two no-server assertions cannot fail because the stub binary has no `serve`. Should fix: `engram mcp` is not rechecked after the yes; a failed binary copy can delete an older copy of the same version. For the user: confirm `engram serve` stays stopped rather than refused, confirm the stuck-server refusal.
+- Status: NEEDS DECISION. No fixes applied after verifier 3.
+- User decision: one more batch for verifier 3 items 1-5, keeping `engram serve` stopped and the stuck-server refusal, then a fourth verifier. If only minor items remain, the user decides whether to accept them.
+- Fixed: b001465 (fake release gets `serve`, mutation-checked); 8be1c9e, a90182c; 75da733, bfcc1e6; and one test commit plus one fix commit for a server with arguments and an `engram mcp` rechecked after the yes. A server with arguments restarts without them.
+- Verifier 4: PASS, no criterion broken. Residuals R1-R11 are for the user to accept; first R1 (criterion 2 wording), R2 (a healthy update now also replaces `engram serve --session-owned`), R5 (window after the `engram mcp` recheck). Story not closed yet.
+- User decision on closing: criterion 2 reworded to name the two refusals; residuals R2-R11 accepted (R2 session-owned server replaced on a healthy update; R3 server arguments lost on restart; R4 restart without `ENGRAM_CLOUD_AUTOSYNC=1`; R5 window between the `engram mcp` recheck and the replacement; R6 `pgrep` not required; R7 rollback copies without a temporary name; R8 "nothing was restored" after "rolled back"; R9 no timeout on `version` and `doctor`; R10 pruning by version after a manual downgrade; R11 old empty backup dirs count as copies); a024b9b stays in history.
+- Known limit: no real doctor failure was observed; every test uses a fake engram.
+- Closed: last code commit 7272fa2; `scripts/tests/ai-update.test.sh` 194 PASS, "All cases passed"; `make check` "All checks passed (7 steps)"; verifier 4 PASS. Risk: item 1, 4, 5 (restores over the live memory database and deletes old copies; `engram serve` and `engram mcp` hold it open; replaces the installed binary).

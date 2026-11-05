@@ -13,9 +13,20 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 
 # fake_engram FILE VERSION: an engram stub that reports VERSION.
 fake_engram() {
-  # shellcheck disable=SC2016 # $1 belongs to the generated stub.
-  printf '#!/usr/bin/env bash\ncase $1 in version) echo "engram %s" ;; doctor) echo "doctor: ok" ;; esac\n' \
-    "$2" >"$1"
+  cat >"$1" <<EOF
+#!/usr/bin/env bash
+case \$1 in
+  version) echo "engram $2" ;;
+  doctor)
+    if [[ \${2:-} == --json ]]; then echo '{"status":"ok","summary":{"errors":0}}'; else echo "doctor: ok"; fi
+    ;;
+  serve)
+    # Starting while the old server is still dying would lose its port.
+    [[ \$(ps -o stat= -p "\$(cat "\$FAKE_STATE/serve-pid" 2>/dev/null)" 2>/dev/null) != [^Z]* ]] || echo overlap >>"\$FAKE_STATE/serve-calls"
+    echo "$2" >>"\$FAKE_STATE/serve-calls"
+    ;;
+esac
+EOF
   chmod +x "$1"
 }
 
@@ -66,7 +77,29 @@ if [[ "$*" == "plugin marketplace update mkt" && -n ${FAKE_MKT_BUMP:-} ]]; then
     mv "$FAKE_STATE/mkt.tmp" "$FAKE_STATE/../mkt/.claude-plugin/marketplace.json"
 fi
 EOF
-  chmod +x "$home/bin/curl" "$home/bin/claude"
+  # Never the real pgrep: a match here is killed, and it must not be the host's
+  # engram serve. It answers for one fake process, by the command line under test.
+  cat >"$home/bin/pgrep" <<'EOF'
+#!/usr/bin/env bash
+if [[ -n ${FAKE_MCP_CMDLINE:-} ]] && printf '%s\n' "$FAKE_MCP_CMDLINE" | rg -qx -- "${!#}"; then
+  echo 1
+  exit 0
+fi
+# FAKE_MCP_LATE: absent on the first look, there on every later one.
+if [[ -n ${FAKE_MCP_LATE:-} ]] && printf '%s\n' "$FAKE_MCP_LATE" | rg -qx -- "${!#}"; then
+  if [[ -e $FAKE_STATE/mcp-seen ]]; then
+    echo 1
+    exit 0
+  fi
+  touch "$FAKE_STATE/mcp-seen"
+  exit 1
+fi
+pid=$(cat "$FAKE_STATE/serve-pid" 2>/dev/null)
+[[ -n ${FAKE_SERVE_CMDLINE:-} && -n $pid && $(ps -o stat= -p "$pid" 2>/dev/null) == [^Z]* ]] || exit 1
+printf '%s\n' "$FAKE_SERVE_CMDLINE" | rg -qx -- "${!#}" || exit 1
+echo "$pid"
+EOF
+  chmod +x "$home/bin/curl" "$home/bin/claude" "$home/bin/pgrep"
   # A stand-in repo: its install.sh records the call and copies `source` into
   # the build, so a changed source means a changed build.
   mkdir -p "$home/repo"
@@ -97,7 +130,7 @@ update() {
     FAKE_REMOTE="$home/remote" FAKE_STATE="$home/state" \
     ENGRAM_BIN="$home/local/bin/engram" ENGRAM_DATA_DIR="$home/.engram" \
     CLAUDE_PLUGINS_DIR="$home/plugins" AI_UPDATE_PLATFORM=linux_amd64 \
-    AI_UPDATE_RESTART_SERVER=0 bash "$SCRIPT" "$@" 2>&1)
+    AI_UPDATE_RESTART_SERVER="${FAKE_RESTART_SERVER:-0}" bash "$SCRIPT" "$@" 2>&1)
   LAST_EXIT=$?
 }
 
@@ -177,6 +210,504 @@ assert 'declining makes no backup' no_backup "$home" 3.4.0
 home=$(sandbox accept 3.4.0 3.5.0)
 update "$home" $'y\n'
 assert 'accepting the prompt upgrades' engram_is "$home" 3.5.0
+
+echo "== keeps the last two copies =="
+
+# old_copies HOME VERSION...: three dated database copies and one binary per VERSION.
+old_copies() {
+  local home=$1 stamp version
+  shift
+  for stamp in 20260101-000000 20260201-000000 20260301-000000; do
+    mkdir -p "$home/.engram-backup-$stamp"
+    echo old >"$home/.engram-backup-$stamp/engram.db"
+  done
+  for version in "$@"; do echo old >"$home/local/bin/engram-$version.bak"; done
+}
+# binary_copies HOME: the versions of the binary copies, oldest first.
+binary_copies() {
+  local f names=()
+  for f in "$1"/local/bin/engram-*.bak; do
+    [[ -e $f ]] || continue
+    f=${f##*/engram-}
+    names+=("${f%.bak}")
+  done
+  ((${#names[@]})) && printf '%s\n' "${names[@]}" | sort -V | xargs
+}
+database_copies() { compgen -G "$1/.engram-backup-*" | wc -l; }
+
+home=$(sandbox prune 3.12.0 3.13.0)
+old_copies "$home" 3.2.0 3.9.0 3.10.0
+update "$home" '' --yes
+assert 'a healthy update exits 0' test "$LAST_EXIT" -eq 0
+assert 'two database copies remain' test "$(database_copies "$home")" -eq 2
+assert 'the newest older database copy is one of them' test -d "$home/.engram-backup-20260301-000000"
+assert 'the older database copies are gone' test ! -e "$home/.engram-backup-20260201-000000"
+assert 'the two newest binaries remain, by version' test "$(binary_copies "$home")" == '3.10.0 3.12.0'
+
+# Names ai-update never made, sorting both before and after its own copies.
+home=$(sandbox prune-lookalikes 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+mkdir -p "$home/.engram-backup-0-mine" "$home/.engram-backup-notes"
+touch "$home/local/bin/engram-backup" "$home/local/bin/engram-0-mine.bak" "$home/local/bin/engram-notes.bak"
+update "$home" '' --yes
+assert 'engram-backup survives pruning' test -e "$home/local/bin/engram-backup"
+assert 'a look-alike database dir sorting first survives' test -d "$home/.engram-backup-0-mine"
+assert 'a look-alike database dir sorting last survives' test -d "$home/.engram-backup-notes"
+assert 'a look-alike binary sorting first survives' test -e "$home/local/bin/engram-0-mine.bak"
+assert 'a look-alike binary sorting last survives' test -e "$home/local/bin/engram-notes.bak"
+assert 'look-alikes do not displace a database copy' test -d "$home/.engram-backup-20260301-000000"
+assert 'look-alikes do not displace a binary copy' test -e "$home/local/bin/engram-3.10.0.bak"
+
+# Look-alikes that carry a version number, and sort after the real copies.
+home=$(sandbox prune-versioned 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+touch "$home/local/bin/engram-backup-1.2.3.bak" "$home/local/bin/engram-mine-1.2.3.bak"
+update "$home" '' --yes
+assert 'a versioned look-alike survives' test -e "$home/local/bin/engram-mine-1.2.3.bak"
+assert 'a versioned engram-backup look-alike survives' test -e "$home/local/bin/engram-backup-1.2.3.bak"
+assert 'a versioned look-alike does not displace the pre-update binary' test -e "$home/local/bin/engram-3.12.0.bak"
+assert 'a versioned look-alike does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
+
+# Hand-saved names with text after the version, one sorting after the real copies.
+home=$(sandbox prune-suffixes 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+touch "$home/local/bin/engram-3.6.1-works.bak" "$home/local/bin/engram-9.9.9.old.bak"
+update "$home" '' --yes
+assert 'a name with a suffix after the version survives' test -e "$home/local/bin/engram-3.6.1-works.bak"
+assert 'a high version with a suffix survives' test -e "$home/local/bin/engram-9.9.9.old.bak"
+assert 'a suffixed name does not displace the pre-update binary' test -e "$home/local/bin/engram-3.12.0.bak"
+assert 'a suffixed name does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
+assert 'the oldest real binaries are still pruned' test ! -e "$home/local/bin/engram-3.9.0.bak"
+
+# No database means no copy: an empty directory must not displace a real one.
+home=$(sandbox prune-no-database 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+rm -f "$home/.engram/engram.db"
+update "$home" '' --yes
+says_no_database_backup() { ! says 'backed up: database'; }
+assert 'no database claims no database backup' says_no_database_backup
+assert 'no database leaves two copies' test "$(database_copies "$home")" -eq 2
+assert 'no database keeps the newest real copy' test -f "$home/.engram-backup-20260301-000000/engram.db"
+assert 'no database keeps the next real copy' test -f "$home/.engram-backup-20260201-000000/engram.db"
+
+echo "== judges the doctor =="
+
+# publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
+# migration would), prints JSON with --json and exits EXIT.
+publish_doctor() {
+  local home=$1 tag=$2 code=$3 json=$4 build
+  publish "$home" "$tag"
+  build="$home/build-$tag"
+  cat >"$build/engram" <<EOF
+#!/usr/bin/env bash
+case \$1 in
+  version) echo "engram $tag" ;;
+  doctor)
+    sqlite3 "\$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
+    [[ -z \${FAKE_DOCTOR_LOSE_COPY:-} ]] || rm -f "\$HOME"/.engram-backup-*/engram.db
+    [[ -z \${FAKE_DOCTOR_CORRUPT_COPY:-} ]] || for f in "\$HOME"/.engram-backup-*/engram.db; do echo garbage >"\$f"; done
+    [[ -z \${FAKE_DOCTOR_LEAVE_WAL:-} ]] || echo stale | tee "\$ENGRAM_DATA_DIR/engram.db-wal" "\$ENGRAM_DATA_DIR/engram.db-shm" >/dev/null
+    if [[ \${2:-} == --json ]]; then printf '%s\n' '$json'; else echo 'doctor: report'; fi
+    exit $code
+    ;;
+  serve) echo "$tag" >>"\$FAKE_STATE/serve-calls" ;;
+esac
+EOF
+  repack "$home" "$tag"
+}
+# publish_no_start HOME TAG: release TAG that writes a row, then dies on start.
+publish_no_start() {
+  local home=$1 tag=$2
+  publish "$home" "$tag"
+  cat >"$home/build-$tag/engram" <<'EOF'
+#!/usr/bin/env bash
+sqlite3 "$ENGRAM_DATA_DIR/engram.db" "INSERT INTO obs VALUES ('migrated');"
+exit 1
+EOF
+  repack "$home" "$tag"
+}
+# repack HOME TAG: republish the edited build of release TAG.
+repack() {
+  local home=$1 tag=$2 rel
+  rel="$home/remote/github.com/$REPO/releases/download/v$tag"
+  chmod +x "$home/build-$tag/engram"
+  tar -czf "$rel/engram_${tag}_linux_amd64.tar.gz" -C "$home/build-$tag" engram
+  (cd "$rel" && sha256sum "engram_${tag}_linux_amd64.tar.gz" >checksums.txt)
+}
+has_row() { [[ $(sqlite3 "$1/.engram/engram.db" "SELECT count(*) FROM obs WHERE t = '$2'") -ge 1 ]]; }
+lacks_row() { ! has_row "$1" "$2"; }
+
+home=$(sandbox doctor-blocked 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 0 '{"status":"blocked","summary":{"total":10,"ok":8,"warnings":1,"blocked":1,"errors":0}}'
+update "$home" '' --yes
+assert 'warnings and blocked checks exit 0' test "$LAST_EXIT" -eq 0
+assert 'warnings and blocked checks keep the new binary' engram_is "$home" 3.5.0
+assert 'warnings and blocked checks keep the database' has_row "$home" migrated
+assert 'warnings and blocked checks still prune' test "$(database_copies "$home")" -eq 2
+
+home=$(sandbox failed-doctor-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" '' --yes
+assert 'a failed doctor fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed doctor removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'a failed doctor removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+
+home=$(sandbox wrong-version-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish "$home" 3.5.0 3.4.9
+update "$home" '' --yes
+assert 'a binary that does not start removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'a binary that does not start removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+
+echo "== never updates without a sound copy =="
+
+# fake_vacuum HOME BODY: a sqlite3 whose VACUUM INTO runs BODY; the rest is real.
+fake_vacuum() {
+  cat >"$1/bin/sqlite3" <<EOF
+#!/usr/bin/env bash
+case \$2 in
+  *'VACUUM INTO'*) $2 ;;
+  *) exec $(command -v sqlite3) "\$@" ;;
+esac
+EOF
+  chmod +x "$1/bin/sqlite3"
+}
+copies_kept_and_engram_alone() {
+  [[ $(database_copies "$1") -eq 3 && $(binary_copies "$1") == '3.1.0 3.2.0' ]] && engram_is "$1" 3.4.0
+}
+
+home=$(sandbox copy-fails 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+fake_vacuum "$home" 'exit 1'
+update "$home" '' --yes
+assert 'a failed database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed database copy is reported' says 'could not back up the database'
+assert 'a failed database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
+# The copy command reports success, but what it wrote is no database.
+home=$(sandbox copy-corrupt 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+fake_vacuum "$home" "echo garbage >\"\$(printf %s \"\$2\" | rg -o \"/[^']*\")\""
+update "$home" '' --yes
+assert 'a corrupt database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a corrupt database copy is reported' says 'could not back up the database'
+assert 'a corrupt database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
+# fake_cp HOME MATCH BODY: a cp that runs BODY when "$*" matches MATCH; the rest is real.
+fake_cp() {
+  cat >"$1/bin/cp" <<EOF
+#!/usr/bin/env bash
+case "\$*" in
+  $2) $3 ;;
+  *) exec $(command -v cp) "\$@" ;;
+esac
+EOF
+  chmod +x "$1/bin/cp"
+}
+
+# The disk fills up halfway through the copy of the binary.
+home=$(sandbox binary-copy-fails 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+# shellcheck disable=SC2016 # expanded by the generated stub
+fake_cp "$home" '*.bak' 'echo partial >"${!#}"; exit 1'
+update "$home" '' --yes
+assert 'a failed binary copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed binary copy is reported' says 'could not back up the binary'
+assert 'a failed binary copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
+# An older copy of this same version is there when the new copy fails.
+home=$(sandbox binary-copy-fails-older 3.4.0 3.5.0)
+old_copies "$home" 3.4.0
+# shellcheck disable=SC2016 # expanded by the generated stub
+fake_cp "$home" '*.bak' 'echo partial >"${!#}"; exit 1'
+update "$home" '' --yes
+assert 'a failed binary copy fails the update even with an older copy' test "$LAST_EXIT" -ne 0
+assert 'a failed binary copy keeps the older copy of that version' test "$(cat "$home/local/bin/engram-3.4.0.bak")" == old
+assert 'a failed binary copy leaves no temporary file' test -z "$(compgen -G "$home/local/bin/.engram-*")"
+
+# The rollback itself fails: it must not be reported as done.
+home=$(sandbox rollback-fails 3.4.0 none)
+publish "$home" 3.5.0 3.4.9
+fake_cp "$home" '-p\ *.bak\ */engram' 'exit 1'
+update "$home" '' --yes
+no_rollback_claim() { ! says 'rolled back'; }
+assert 'a failed rollback fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed rollback does not claim one' no_rollback_claim
+assert 'a failed rollback is reported' says 'could not roll back'
+assert 'a failed rollback names the copy to use' says "previous binary kept at $home/local/bin/engram-3.4.0.bak"
+assert 'a failed rollback keeps that copy' test "$("$home/local/bin/engram-3.4.0.bak" version)" == 'engram 3.4.0'
+
+echo "== restores on a yes =="
+
+home=$(sandbox restore-doctor-exit 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" $'y\n' --yes
+assert 'a restore still fails the update' test "$LAST_EXIT" -ne 0
+assert 'the previous binary is back' engram_is "$home" 3.4.0
+assert 'the old memories are back' has_row "$home" kept
+assert 'what the new version wrote is gone' lacks_row "$home" migrated
+assert 'the question warns newer memories are lost' says 'are lost'
+assert 'the restore is reported' says 'restored: engram 3.4.0 and the database'
+assert 'open sessions are told to restart' says 'Restart Claude Code'
+
+home=$(sandbox restore-no-start 3.4.0 none)
+publish_no_start "$home" 3.5.0
+update "$home" $'y\n' --yes
+assert 'a restore after a dead binary fails the update' test "$LAST_EXIT" -ne 0
+assert 'a restore after a dead binary brings the previous binary back' engram_is "$home" 3.4.0
+assert 'a restore after a dead binary brings the old memories back' has_row "$home" kept
+assert 'a restore after a dead binary drops what it wrote' lacks_row "$home" migrated
+assert 'a restore after a dead binary is reported' says 'restored: engram 3.4.0 and the database'
+
+# The database copy is gone by the time of the restore: all or nothing.
+home=$(sandbox restore-impossible 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LOSE_COPY=1 update "$home" $'y\n' --yes
+no_restored_claim() { ! says 'restored:'; }
+assert 'an impossible restore fails the update' test "$LAST_EXIT" -ne 0
+assert 'an impossible restore is reported' says 'restore failed'
+assert 'an impossible restore does not claim success' no_restored_claim
+assert 'an impossible restore leaves the binary alone' engram_is "$home" 3.5.0
+assert 'an impossible restore leaves the database alone' has_row "$home" migrated
+
+# The copy was damaged after the update made it: it must not replace the database.
+home=$(sandbox restore-corrupt 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_CORRUPT_COPY=1 update "$home" $'y\n' --yes
+assert 'a corrupt copy is not restored' says 'restore failed'
+assert 'a corrupt copy does not claim success' no_restored_claim
+assert 'a corrupt copy leaves the binary alone' engram_is "$home" 3.5.0
+assert 'a corrupt copy leaves the database alone' has_row "$home" migrated
+
+# No database when the update ran, so no copy: only the binary can go back.
+home=$(sandbox restore-no-database 3.4.0 none)
+rm -f "$home/.engram/engram.db"
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" $'y\n' --yes
+no_lost_memories_warning() { ! says 'are lost'; }
+no_failed_restore() { ! says 'restore failed'; }
+assert 'a restore with no database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a restore with no database copy brings the binary back' engram_is "$home" 3.4.0
+assert 'a restore with no database copy does not report a failure' no_failed_restore
+assert 'a restore with no database copy says so' says 'restored: engram 3.4.0; there was no database copy'
+assert 'a restore with no database copy warns of no lost memories' no_lost_memories_warning
+
+# A leftover write-ahead log must not replay over the restored copy.
+home=$(sandbox restore-wal 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" $'y\n' --yes
+assert 'the restore reports success with a stale log around' says 'restored: engram 3.4.0 and the database'
+assert 'the stale write-ahead log is gone' test ! -e "$home/.engram/engram.db-wal"
+assert 'the stale shared-memory file is gone' test ! -e "$home/.engram/engram.db-shm"
+
+# fake_server HOME: a server that takes half a second to die, as a real one may.
+fake_server() {
+  (
+    bash -c 'trap "sleep 0.5; exit 0" TERM; for _ in {1..300}; do sleep 0.1; done' >/dev/null 2>&1 &
+    echo $! >"$1/state/serve-pid"
+  )
+}
+server_gone() { [[ $(ps -o stat= -p "$(cat "$1/state/serve-pid")" 2>/dev/null) != [^Z]* ]]; }
+# server_started_as HOME VERSION: VERSION started once, with the old server gone.
+server_started_as() {
+  local _
+  for _ in {1..50}; do
+    [[ -s $1/state/serve-calls ]] && break
+    sleep 0.1
+  done
+  [[ $(cat "$1/state/serve-calls" 2>/dev/null) == "$2" ]]
+}
+stop_fake_server() { kill "$(cat "$1/state/serve-pid")" 2>/dev/null || true; }
+
+home=$(sandbox restore-server 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" update "$home" $'y\n' --yes
+assert 'a restore stops a server running under an absolute path' server_gone "$home"
+assert 'a restore starts the previous binary once the old server is gone' server_started_as "$home" 3.4.0
+stop_fake_server "$home"
+
+home=$(sandbox update-server 3.4.0 3.5.0)
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve' update "$home" '' --yes
+assert 'an update stops a server started by bare name' server_gone "$home"
+assert 'an update starts the new binary once the old server is gone' server_started_as "$home" 3.5.0
+stop_fake_server "$home"
+
+home=$(sandbox restore-no-server 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_RESTART_SERVER=1 update "$home" $'y\n' --yes
+assert 'a restore starts no server when none was running' test ! -e "$home/state/serve-calls"
+
+# stuck_server HOME: a server that ignores the request to stop.
+stuck_server() {
+  (
+    bash -c 'trap "" TERM; for _ in {1..300}; do sleep 0.1; done' >/dev/null 2>&1 &
+    echo $! >"$1/state/serve-pid"
+  )
+}
+kill_stuck_server() { kill -9 "$(cat "$1/state/serve-pid")" 2>/dev/null || true; }
+# A server starts in the background: give a wrong one the time to show up.
+no_server_started() {
+  sleep 0.5
+  [[ ! -e $1/state/serve-calls ]]
+}
+
+home=$(sandbox restore-stuck 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+stuck_server "$home"
+FAKE_DOCTOR_LEAVE_WAL=1 FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" update "$home" $'y\n' --yes
+kill_stuck_server "$home"
+assert 'a stuck server fails the restore' test "$LAST_EXIT" -ne 0
+assert 'a stuck server is reported' says 'engram serve did not stop'
+assert 'a stuck server does not claim a restore' no_restored_claim
+assert 'a stuck server keeps the write-ahead log' test -e "$home/.engram/engram.db-wal"
+assert 'a stuck server keeps the database' has_row "$home" migrated
+assert 'a stuck server keeps the binary' engram_is "$home" 3.5.0
+assert 'a stuck server still gets the restore commands' says 'To restore by hand'
+assert 'a stuck server gets no second server' no_server_started "$home"
+
+home=$(sandbox update-stuck 3.4.0 3.5.0)
+stuck_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve' update "$home" '' --yes
+kill_stuck_server "$home"
+assert 'a healthy update with a stuck server warns' says 'engram serve did not stop'
+assert 'a healthy update with a stuck server starts no second one' no_server_started "$home"
+
+# A live engram mcp would keep writing to the replaced file: no question, no change.
+home=$(sandbox restore-mcp 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_DOCTOR_LEAVE_WAL=1 FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" \
+  FAKE_MCP_CMDLINE="$home/local/bin/engram mcp --tools=agent" update "$home" $'y\n' --yes
+no_question() { ! says 'are lost'; }
+server_alive() { ! server_gone "$1"; }
+assert 'a live engram mcp fails the restore' test "$LAST_EXIT" -ne 0
+assert 'a live engram mcp is reported' says 'engram mcp is running'
+assert 'a live engram mcp asks nothing' no_question
+assert 'a live engram mcp does not claim a restore' no_restored_claim
+assert 'a live engram mcp leaves the server running' server_alive "$home"
+assert 'a live engram mcp starts no server' no_server_started "$home"
+assert 'a live engram mcp keeps the write-ahead log' test -e "$home/.engram/engram.db-wal"
+assert 'a live engram mcp keeps the database' has_row "$home" migrated
+assert 'a live engram mcp keeps the binary' engram_is "$home" 3.5.0
+assert 'a live engram mcp still gets the restore commands' says 'To restore by hand'
+stop_fake_server "$home"
+
+# The same engram mcp started by bare name, with no arguments.
+home=$(sandbox restore-mcp-bare 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_MCP_CMDLINE='engram mcp' update "$home" $'y\n' --yes
+assert 'a bare engram mcp is reported' says 'engram mcp is running'
+assert 'a bare engram mcp keeps the database' has_row "$home" migrated
+
+# A server started with arguments is still a server.
+home=$(sandbox restore-server-args 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve --port 7437' update "$home" $'y\n' --yes
+assert 'a restore stops a server started with arguments' server_gone "$home"
+assert 'a restore restarts after a server started with arguments' server_started_as "$home" 3.4.0
+stop_fake_server "$home"
+
+# An engram mcp that starts while the question waits: the answer is not enough.
+home=$(sandbox restore-mcp-late 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_MCP_LATE='engram mcp --tools=agent' update "$home" $'y\n' --yes
+assert 'a late engram mcp is reported' says 'engram mcp is running'
+assert 'a late engram mcp does not claim a restore' no_restored_claim
+assert 'a late engram mcp keeps the binary' engram_is "$home" 3.5.0
+assert 'a late engram mcp keeps the database' has_row "$home" migrated
+assert 'a late engram mcp still gets the restore commands' says 'To restore by hand'
+
+# The same check as 'a restore starts no server when none was running', with time
+# for a wrong start to show up.
+home=$(sandbox restore-no-server-wait 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_RESTART_SERVER=1 update "$home" $'y\n' --yes
+assert 'a restore with no server running still restores' says 'restored: engram 3.4.0 and the database'
+assert 'a restore with no server running never starts one' no_server_started "$home"
+
+# The doctor exits 0 and only its report says it failed.
+home=$(sandbox restore-doctor-errors 3.4.0 none)
+publish_doctor "$home" 3.5.0 0 '{"status":"error","summary":{"total":10,"ok":9,"errors":1}}'
+update "$home" $'y\n' --yes
+assert 'a report with errors fails the update' test "$LAST_EXIT" -ne 0
+assert 'a report with errors brings the previous binary back' engram_is "$home" 3.4.0
+assert 'a report with errors drops what the new version wrote' lacks_row "$home" migrated
+
+# An unreadable report is no evidence of a failure: warn, never overwrite.
+home=$(sandbox doctor-unreadable 3.4.0 none)
+publish_doctor "$home" 3.5.0 0 'not json'
+update "$home" '' --yes
+assert 'an unreadable report keeps the update' test "$LAST_EXIT" -eq 0
+assert 'an unreadable report keeps the database' has_row "$home" migrated
+assert 'an unreadable report warns' says 'could not read the engram doctor report'
+
+# Health is unknown, so this update has not earned the removal of old copies.
+home=$(sandbox doctor-unreadable-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 0 'not json'
+update "$home" '' --yes
+assert 'an unreadable report removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'an unreadable report removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+assert 'an unreadable report says the copies stay' says 'old copies kept'
+
+echo "== without a yes, the database stays =="
+
+# printed_commands: the indented lines after the restore header in $LAST_OUTPUT.
+printed_commands() { printf '%s\n' "$LAST_OUTPUT" | sed -n '/^To restore by hand/,$p' | rg '^  '; }
+
+home=$(sandbox decline-doctor 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" '' --yes
+assert 'no answer after a failed doctor fails the update' test "$LAST_EXIT" -ne 0
+assert 'no answer keeps the new binary, which may have migrated the database' engram_is "$home" 3.5.0
+# Look at the log before any query: opening the database makes sqlite discard it.
+assert 'no answer leaves the write-ahead log alone' test -e "$home/.engram/engram.db-wal"
+cp "$home/.engram/engram.db-wal" "$home/state/wal-before-query"
+assert 'no answer leaves the database untouched' has_row "$home" migrated
+assert 'no answer says to stop engram before the commands' says 'Stop engram serve and close Claude Code'
+commands=$(printed_commands)
+assert 'restore commands are printed' test -n "$commands"
+cp "$home/state/wal-before-query" "$home/.engram/engram.db-wal"
+bash -euc "$commands"
+assert 'the printed commands drop the stale log' test ! -e "$home/.engram/engram.db-wal"
+assert 'the printed commands bring the previous binary back' engram_is "$home" 3.4.0
+assert 'the printed commands bring the old memories back' has_row "$home" kept
+assert 'the printed commands drop what the new version wrote' lacks_row "$home" migrated
+
+# No copy to name: the commands bring the binary back and leave the database alone.
+home=$(sandbox decline-no-database 3.4.0 none)
+rm -f "$home/.engram/engram.db"
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" '' --yes
+commands=$(printed_commands)
+names_no_copy() { [[ $commands != *.engram-backup-* ]]; }
+assert 'no database copy still prints commands' test -n "$commands"
+assert 'no database copy names no missing copy' names_no_copy
+bash -euc "$commands"
+assert 'no database copy: the commands bring the binary back' engram_is "$home" 3.4.0
+assert 'no database copy: the commands keep the write-ahead log' test -e "$home/.engram/engram.db-wal"
+
+home=$(sandbox decline-explicit 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" $'n\n' --yes
+assert 'an explicit no fails the update' test "$LAST_EXIT" -ne 0
+assert 'an explicit no keeps the new binary' engram_is "$home" 3.5.0
+assert 'an explicit no leaves the database untouched' has_row "$home" migrated
+assert 'an explicit no prints the restore commands' says 'To restore by hand'
+
+home=$(sandbox decline-no-start 3.4.0 none)
+publish_no_start "$home" 3.5.0
+update "$home" '' --yes
+no_commands() { [[ -z $(printed_commands) ]]; }
+assert 'no answer after a dead binary fails the update' test "$LAST_EXIT" -ne 0
+assert 'no answer after a dead binary brings the previous binary back' engram_is "$home" 3.4.0
+assert 'no answer after a dead binary leaves the database untouched' has_row "$home" migrated
+assert 'no answer after a dead binary prints no restore commands' no_commands
 
 echo "== major versions always ask =="
 
