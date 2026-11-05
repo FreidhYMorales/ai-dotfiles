@@ -408,6 +408,16 @@ assert 'a failed binary copy fails the update' test "$LAST_EXIT" -ne 0
 assert 'a failed binary copy is reported' says 'could not back up the binary'
 assert 'a failed binary copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
 
+# An older copy of this same version is there when the new copy fails.
+home=$(sandbox binary-copy-fails-older 3.4.0 3.5.0)
+old_copies "$home" 3.4.0
+# shellcheck disable=SC2016 # expanded by the generated stub
+fake_cp "$home" '*.bak' 'echo partial >"${!#}"; exit 1'
+update "$home" '' --yes
+assert 'a failed binary copy fails the update even with an older copy' test "$LAST_EXIT" -ne 0
+assert 'a failed binary copy keeps the older copy of that version' test "$(cat "$home/local/bin/engram-3.4.0.bak")" == old
+assert 'a failed binary copy leaves no temporary file' test -z "$(compgen -G "$home/local/bin/.engram-*")"
+
 # The rollback itself fails: it must not be reported as done.
 home=$(sandbox rollback-fails 3.4.0 none)
 publish "$home" 3.5.0 3.4.9
