@@ -119,6 +119,12 @@ assert 'taste SKILL.md name matches the project dir' \
   test "$(sed -n 's/^name: *//p' "$V/taste-skill/SKILL.md" | head -n1)" = design-taste-frontend
 assert 'taste LICENSE holds the bytes of the v2.1.2 tarball' \
   test "$(sha256sum "$V/taste-skill/LICENSE" 2>/dev/null | cut -d' ' -f1)" = 4575a543ab88dad12ccea7d97e563d0bce5b448b06072e65d3264497dad326df
+repin=$(sed -n '/^## Update and re-pin/,/^## /p' "$V/README.md")
+repin_names() { grep -qF -- "$1" <<<"$repin"; }
+assert 'the re-pin procedure is found' test -n "$repin"
+assert 'the re-pin procedure names the taste LICENSE' repin_names 'taste-skill/LICENSE'
+assert 'the vendor table says where the taste LICENSE lives' \
+  grep -qF '| MIT (`taste-skill/LICENSE`' "$V/README.md"
 assert 'archify update check is patched off (check-update.mjs)' \
   grep -q 'ai-dotfiles vendor patch' "$V/archify/scripts/check-update.mjs"
 assert 'archify update check is patched off (delivery-update.mjs)' \
