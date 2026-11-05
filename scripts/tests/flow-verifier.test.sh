@@ -62,6 +62,16 @@ assert 'one correction batch on FAIL' has "$PAIR" 'one correction batch'
 assert 'one recheck by the verifier' has "$PAIR" 'one recheck'
 assert 'second FAIL hands it to the user' has "$PAIR" 'a second FAIL ends with NEEDS DECISION'
 
+echo "== pair: the repo's refs are compared around the verifier =="
+OPENCODE_PAIR="$ROOT/scripts/gen-agents/golden/opencode/skills/flow-pair/SKILL.md"
+for skill in "$PAIR" "$OPENCODE_PAIR"; do
+  name=${skill#"$ROOT"/}
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$name: saves the refs and HEAD around every verifier run" has "$skill" 'Around every verifier run, save `git for-each-ref` and `git rev-parse HEAD`'
+  assert "$name: a difference outranks the verdict" has "$skill" 'any difference is NEEDS DECISION whatever the verdict says'
+  assert "$name: names the moved refs and repairs nothing" has "$skill" 'name the refs that moved and repair nothing'
+done
+
 echo "== pair: verifier only for high risk =="
 # The backticks below are literal markdown, not command substitution.
 # shellcheck disable=SC2016
