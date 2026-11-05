@@ -408,6 +408,30 @@ assert 'an unreadable report keeps the update' test "$LAST_EXIT" -eq 0
 assert 'an unreadable report keeps the database' has_row "$home" migrated
 assert 'an unreadable report warns' says 'could not read the engram doctor report'
 
+echo "== without a yes, the database stays =="
+
+# printed_commands: the indented lines after the restore header in $LAST_OUTPUT.
+printed_commands() { printf '%s\n' "$LAST_OUTPUT" | sed -n '/^To restore by hand/,$p' | rg '^  '; }
+
+home=$(sandbox decline-doctor 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_DOCTOR_LEAVE_WAL=1 update "$home" '' --yes
+assert 'no answer after a failed doctor fails the update' test "$LAST_EXIT" -ne 0
+assert 'no answer keeps the new binary, which may have migrated the database' engram_is "$home" 3.5.0
+# Look at the log before any query: opening the database makes sqlite discard it.
+assert 'no answer leaves the write-ahead log alone' test -e "$home/.engram/engram.db-wal"
+cp "$home/.engram/engram.db-wal" "$home/state/wal-before-query"
+assert 'no answer leaves the database untouched' has_row "$home" migrated
+assert 'no answer says to stop engram before the commands' says 'Stop engram serve and close Claude Code'
+commands=$(printed_commands)
+assert 'restore commands are printed' test -n "$commands"
+cp "$home/state/wal-before-query" "$home/.engram/engram.db-wal"
+bash -euc "$commands"
+assert 'the printed commands drop the stale log' test ! -e "$home/.engram/engram.db-wal"
+assert 'the printed commands bring the previous binary back' engram_is "$home" 3.4.0
+assert 'the printed commands bring the old memories back' has_row "$home" kept
+assert 'the printed commands drop what the new version wrote' lacks_row "$home" migrated
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
