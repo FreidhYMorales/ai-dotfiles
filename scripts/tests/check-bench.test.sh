@@ -82,6 +82,15 @@ assert 'it says the validation was skipped' says 'skipped'
 assert 'it validates no task' lacks 'good-task'
 assert 'it does not fail' test -z "$FAILED_LINE"
 
+echo "== an uncommitted change under bench/ =="
+mk_repo dirty
+printf 'Create done now.\n' >"$R/bench/worker/tasks/good-task/prompt.md"
+run_check
+assert 'the task is validated' says 'ok    good-task'
+assert 'the validation reports its total' says 'All 1 task(s) valid'
+assert 'it no longer says skipped' lacks 'skipped'
+assert 'a valid task does not fail the step' test -z "$FAILED_LINE"
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
