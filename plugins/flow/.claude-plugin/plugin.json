@@ -1,7 +1,7 @@
 {
   "name": "flow",
   "description": "Planning-first workflow: research, scope + UX planning, review, gap filling, a backlog of one-line vertical stories, just-in-time story refinement with a size/risk line, Strict TDD pair programming (/flow:pair) that commits each test before its code, a read-only verifier for high-risk stories, and handoff to implementation.",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "author": {
     "name": "FreidhYMorales"
   },

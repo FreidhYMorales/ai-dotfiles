@@ -153,6 +153,14 @@ assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/
 echo "== no Antigravity verifier agent =="
 # A shell-less agy verifier made up PASS reports (#13 smoke); none is built.
 assert 'no agy verifier agent is generated' test ! -e "$OUT/antigravity/agents/flow-verifier.md"
+# The real pair skill, with the ref comparison in its check step (story 24).
+AGY_PAIR_CHECK=$(grep '^6\. \*\*Check\.\*\*' "$OUT/antigravity/skills/flow-pair/SKILL.md")
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy pair stops a high-risk story at NEEDS DECISION' \
+  grep -qF 'High-risk story (any item): stop with NEEDS DECISION, do not run the `flow-verifier` agent' <<<"$AGY_PAIR_CHECK"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'agy pair never says to invoke the verifier' \
+  test -z "$(grep -F 'invoke the `flow-verifier` agent' <<<"$AGY_PAIR_CHECK")"
 
 echo "== Antigravity plan-review skill =="
 assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md

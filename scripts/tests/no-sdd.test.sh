@@ -32,9 +32,9 @@ assert 'high-risk list names no sdd' no_sdd "$FLOW/skills/pair/references/high-r
 for skill in plan research foundation; do
   assert "$skill delegates by understanding, not 4+ files" test -f "$FLOW/skills/$skill/SKILL.md" -a -z "$(grep -F '4+ files' "$FLOW/skills/$skill/SKILL.md")"
 done
-assert 'flow plugin is 0.10.0' test "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")" = 0.10.0
-assert 'marketplace lists flow 0.10.0' \
-  test "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")" = 0.10.0
+assert 'flow plugin is 0.10.1' test "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")" = 0.10.1
+assert 'marketplace lists flow 0.10.1' \
+  test "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")" = 0.10.1
 
 echo "== toolkit skills name no sdd =="
 TOOLKIT="$ROOT/plugins/toolkit"
