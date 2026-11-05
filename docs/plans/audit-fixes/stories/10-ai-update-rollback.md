@@ -48,4 +48,5 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - Item 1 fixed: 04df2b8 (test), 00509ed. Only exact version names are pruned, so a prerelease copy stays unpruned.
 - Item 2 fixed: 5521f8f (test), 2bddbd2; 91b343f (test), a39b275. A failed binary copy stops the update; a failed rollback is not reported as done. fa504e7 adds a shellcheck comment to committed test 5521f8f, no assertion changed. `scripts/tests/ai-update.test.sh` 154 PASS, `make check` "All checks passed (7 steps)".
 - User decision: restore like `engram-backup`, refusing while engram runs. Applied to `engram mcp`; `engram serve` is still stopped and restarted by `ai-update`, because it can be stopped safely and the approved tests pin it. The refusal comes before the question.
-- Still open: items 3, 4, 5; no verifier has seen these last fixes.
+- Items 3, 4, 5 fixed, user approved: af9143c (guard test, validated by mutation); 2c7ee89 (test), 5c36290; fd5fae6 (test), 9ece794. `scripts/tests/ai-update.test.sh` 175 PASS, `make check` "All checks passed (7 steps)".
+- User authorized a third verifier run, beyond the flow's one recheck.
