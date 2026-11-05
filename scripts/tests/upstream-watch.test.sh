@@ -172,6 +172,12 @@ printf '{"changed":["oops"]}' >"$d/state/state.json"
 watch "$d" --refresh
 assert 'a state with a broken entry becomes an empty one' json_ok "$d/state/state.json" '.changed == []'
 
+d=$(fixture corrupt-empty)
+rm "$d"/gh/*
+: >"$d/state/state.json"
+watch "$d" --refresh
+assert 'an empty state file becomes an empty state' json_ok "$d/state/state.json" '.changed == []'
+
 echo "== --mark =="
 
 d=$(fixture mark)
