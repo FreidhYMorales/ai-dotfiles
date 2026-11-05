@@ -305,6 +305,11 @@ else
   printf 'PASS  no test fails because of the variables\n'
 fi
 
+root=$(git_fixture vars-step)
+before=$(repo_state "$root")
+GIT_DIR="$root/.git" expect 0 'run-tests.sh alone passes under GIT_DIR' run-tests.sh "$root"
+state_kept 'run-tests.sh alone leaves the checked repo as it was under GIT_DIR' "$root" "$before"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
