@@ -91,6 +91,14 @@ assert 'the validation reports its total' says 'All 1 task(s) valid'
 assert 'it no longer says skipped' lacks 'skipped'
 assert 'a valid task does not fail the step' test -z "$FAILED_LINE"
 
+echo "== an unpushed commit under bench/, clean tree =="
+mk_repo unpushed
+printf 'Create done now.\n' >"$R/bench/worker/tasks/good-task/prompt.md"
+git -C "$R" commit -q -am 'change a task'
+run_check
+assert 'the unpushed change validates the task' says 'ok    good-task'
+assert 'the unpushed change is not skipped' lacks 'skipped'
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
