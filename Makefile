@@ -26,6 +26,6 @@ eval:
 
 # Mutation testing for the toolkit hooks (slow; not part of `check`): flips one
 # operator at a time and reports mutants the tests fail to catch.
-HOOKS ?= prefer-modern-cli require-check update-check host-info pause pack-hint
+HOOKS ?= prefer-modern-cli require-check update-check host-info pause pack-hint backup-status protect-credentials hooks-path
 mutate:
 	@for h in $(HOOKS); do echo "### $$h"; bash scripts/mutate.sh plugins/toolkit/hooks/$$h.sh bash plugins/toolkit/hooks/tests/$$h.test.sh; done

@@ -1,5 +1,6 @@
 # Never commit runtime state, credentials or memory data
 .claude.json
+.claude/settings.local.json
 *.bak-*
 .env
 .env.*
