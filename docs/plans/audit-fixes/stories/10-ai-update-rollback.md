@@ -50,3 +50,5 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - User decision: restore like `engram-backup`, refusing while engram runs. Applied to `engram mcp`; `engram serve` is still stopped and restarted by `ai-update`, because it can be stopped safely and the approved tests pin it. The refusal comes before the question.
 - Items 3, 4, 5 fixed, user approved: af9143c (guard test, validated by mutation); 2c7ee89 (test), 5c36290; fd5fae6 (test), 9ece794. `scripts/tests/ai-update.test.sh` 175 PASS, `make check` "All checks passed (7 steps)".
 - User authorized a third verifier run, beyond the flow's one recheck.
+- Verifier 3: FAIL. Must fix: no database at update time (restore fails, printed commands name a missing copy); `engram serve` with arguments is not detected; two no-server assertions cannot fail because the stub binary has no `serve`. Should fix: `engram mcp` is not rechecked after the yes; a failed binary copy can delete an older copy of the same version. For the user: confirm `engram serve` stays stopped rather than refused, confirm the stuck-server refusal.
+- Status: NEEDS DECISION. No fixes applied after verifier 3.
