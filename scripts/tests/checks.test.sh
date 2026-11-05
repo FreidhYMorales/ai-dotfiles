@@ -245,6 +245,51 @@ expect 1 'any failing step fails the aggregate' check.sh "$root"
 output_has 'summary lists json step' 'FAILED: json'
 output_has 'summary lists skills step' 'FAILED: skills'
 
+echo "== git's local variables, as a hook exports them =="
+# git_fixture NAME: a fixture with one commit and no remote, holding a test that
+# builds its own repo and commits there, as the real suite's tests do.
+git_fixture() {
+  local root
+  root=$(fixture "$1")
+  mkdir -p "$root/scripts/tests"
+  cat >"$root/scripts/tests/builds-own-repo.test.sh" <<'EOF'
+#!/usr/bin/env bash
+set -eu
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+git -C "$tmp" init -q
+git -C "$tmp" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m own
+test "$(git -C "$tmp" rev-list --count HEAD)" = 1
+EOF
+  git -C "$root" add -A
+  git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m base
+  printf '%s\n' "$root"
+}
+
+# repo_state ROOT: every ref, HEAD and the number of commits.
+repo_state() {
+  git -C "$1" for-each-ref
+  git -C "$1" rev-parse HEAD
+  git -C "$1" rev-list --all --count
+}
+
+# state_kept LABEL ROOT BEFORE: assert ROOT's state still equals BEFORE.
+state_kept() {
+  local after
+  after=$(repo_state "$2")
+  if [[ $after == "$3" ]]; then
+    printf 'PASS  %s\n' "$1"
+  else
+    printf 'FAIL  %s\nbefore:\n%s\nafter:\n%s\n' "$1" "$3" "$after"
+    failures=$((failures + 1))
+  fi
+}
+
+root=$(git_fixture vars-state)
+before=$(repo_state "$root")
+LAST_OUT=$(GIT_DIR="$root/.git" bash "$SCRIPTS/check.sh" "$root" 2>&1)
+state_kept 'check.sh leaves the checked repo as it was under GIT_DIR' "$root" "$before"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
