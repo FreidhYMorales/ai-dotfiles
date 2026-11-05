@@ -1,0 +1,43 @@
+# Story 24: The verifier cannot push back
+
+## Story
+
+24. As the dotfiles owner, I want the verifier to work on scratch clones that cannot push back and to prove my refs did not change, so that a verification can never pollute my repo unnoticed. (idea 24, from #22)
+
+## Acceptance criteria
+
+- [ ] Given a verifier that needs more than inspection and the `Test command:`, such as running a mutant, when it experiments, then its rules allow that only in a scratch clone with its remotes removed before anything runs, and a caller's prompt cannot widen them.
+- [ ] Given `/flow:pair` running the verifier, when the verifier returns, then pair compares the repo's refs from before and after, and any difference ends in NEEDS DECISION naming the refs, whatever the verdict says, with nothing repaired automatically.
+- [ ] Given the generated OpenCode verifier and pair skill, when I read them, then they carry the same rules, and Antigravity keeps ending a high-risk story in NEEDS DECISION without running a verifier.
+
+## Plan
+
+- Replace the verifier's read-only rule with one that says exactly what may run where: inspection and the `Test command:` in the repo, every experiment in a clone with no remotes.
+- Add the before and after ref comparison to pair's check step, kept out of the sentence the Antigravity generator rewrites.
+- Regenerate the OpenCode and Antigravity copies and their golden files.
+- Pin the new rules in the structural tests, bump the flow plugin version, and run the existing verifier and pair evals, since only a paid eval can grade how an agent behaves.
+
+Assumptions:
+
+- The comparison covers every ref and `HEAD`. A ref moved by the user or another session during the run also stops at NEEDS DECISION; a false stop is cheaper than a missed one.
+- No new eval: a pair eval would need a fake verifier that really moves a ref. The structural tests pin the wording and the existing evals guard against regressions.
+- This story's own verifier may run the installed plugin version rather than the edited one, so this run compares the refs by hand and states the rule in the verifier's prompt.
+
+## Out of scope
+
+- `make check` under an exported `GIT_DIR` (#23) and the bench step's small gaps (#25).
+- A sandbox or a hook that blocks pushes at the tool level.
+- The `Test command:` itself, which still runs in the repo.
+- Cleaning up scratch clones left by earlier runs.
+
+## Suggestions (your call)
+
+## Size
+
+normal
+Risk: item 6 (how an agent follows its instructions, graded only by a paid eval)
+
+## Log
+
+- L1 request: /flow:story 24
+- L2 evidence: the scratchpad of story 22 holds about 15 clones whose `origin` is this repo, including `gd`, `idx`, `m1` and `mainc`. The caller's prompts for both story 22 verifiers said to use "clones in a scratch directory" and asked for `GIT_DIR` runs, without saying to remove the remote, although the agent's rules say read-only. So the caller shares the cause. Still not proven which run pushed.
