@@ -66,11 +66,11 @@ Requires `jq`, `rg`, and at least one supported agent CLI (`claude`, `opencode`,
 
 ## Turning hooks off
 
-Every toolkit hook honors `AI_HOOKS_OFF`: a comma-separated list of hook names (file name without `.sh`) or `all`. The per-hook `SKIP_*` variables keep working.
+Every toolkit hook except `protect-credentials` honors `AI_HOOKS_OFF`: a comma-separated list of hook names (file name without `.sh`) or `all`. The per-hook `SKIP_*` variables keep working. `protect-credentials` has no opt-out on purpose: an agent could set the variable and defeat the guard.
 
 ```bash
 AI_HOOKS_OFF=host-info,pause claude   # these two stay quiet this session
-AI_HOOKS_OFF=all claude               # minimal session, no toolkit hooks
+AI_HOOKS_OFF=all claude               # minimal session, only protect-credentials stays on
 ```
 
 Measured cost (2026-10-19): toolkit hooks add ~160 tokens at startup (~300 on resume) and none takes more than ~110 ms; skill descriptions add ~1.5k tokens and engram's hooks ~1.3k.
