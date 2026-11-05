@@ -113,3 +113,4 @@ if ((${#lines[@]})); then
 else
   echo "all upstreams reviewed"
 fi
+exit 0
