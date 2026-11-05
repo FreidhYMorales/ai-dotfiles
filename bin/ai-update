@@ -175,8 +175,11 @@ print_restore_commands() {
   echo "To restore by hand:"
   echo "Stop engram serve and close Claude Code, then run:"
   printf '  cp -p %q %q\n' "$ENGRAM_BIN-$1.bak" "$ENGRAM_BIN"
-  printf '  cp -p %q %q\n' "$2/engram.db" "$db"
-  printf '  rm -f %q %q\n' "$db-wal" "$db-shm"
+  # No backup dir: there was no database when the update ran, so nothing to put back.
+  if [[ -d $2 ]]; then
+    printf '  cp -p %q %q\n' "$2/engram.db" "$db"
+    printf '  rm -f %q %q\n' "$db-wal" "$db-shm"
+  fi
 }
 
 # offer_restore CURRENT BACKUP: always ask, even with --yes, because memories
@@ -191,7 +194,9 @@ offer_restore() {
     print_restore_commands "$current" "$backup"
     return 0
   fi
-  confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 1
+  local question="Restore engram $current and the database from before the update? Memories saved since then are lost."
+  [[ -d $backup ]] || question="Restore engram $current? There is no database copy, so the database stays as it is."
+  confirm "$question" || return 1
   stop_server || stop_code=$?
   if ((stop_code == 2)); then
     echo "error: engram serve did not stop; nothing was restored" >&2
@@ -200,8 +205,15 @@ offer_restore() {
   fi
   tmp_bin=$(dirname "$ENGRAM_BIN")/.engram.new
   tmp_db=$ENGRAM_DATA_DIR/.engram.db.restore
+  if [[ ! -d $backup ]]; then
+    if cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && mv -f "$tmp_bin" "$ENGRAM_BIN"; then
+      echo "restored: engram $current; there was no database copy, so the database stays as it is. Restart Claude Code to use it."
+    else
+      rm -f "$tmp_bin"
+      echo "error: restore failed; copy kept: $ENGRAM_BIN-$current.bak" >&2
+    fi
   # Prepare both before replacing either: all or nothing.
-  if copy_is_sound "$backup/engram.db" &&
+  elif copy_is_sound "$backup/engram.db" &&
     cp -p "$ENGRAM_BIN-$current.bak" "$tmp_bin" && cp -p "$backup/engram.db" "$tmp_db" &&
     mv -f "$tmp_bin" "$ENGRAM_BIN" && mv -f "$tmp_db" "$ENGRAM_DATA_DIR/engram.db" &&
     rm -f "$ENGRAM_DATA_DIR/engram.db-wal" "$ENGRAM_DATA_DIR/engram.db-shm"; then
