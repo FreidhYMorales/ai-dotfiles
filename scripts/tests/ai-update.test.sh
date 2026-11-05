@@ -301,6 +301,7 @@ case \$1 in
     if [[ \${2:-} == --json ]]; then printf '%s\n' '$json'; else echo 'doctor: report'; fi
     exit $code
     ;;
+  serve) echo "$tag" >>"\$FAKE_STATE/serve-calls" ;;
 esac
 EOF
   repack "$home" "$tag"
