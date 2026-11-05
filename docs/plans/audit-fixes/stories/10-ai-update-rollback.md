@@ -44,3 +44,7 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - Driver decision, not in the story: under a server that will not stop, a restore changes nothing and prints the commands, a healthy update only warns, neither starts a second server.
 - Verifier 2 (recheck): FAIL. Must fix: suffix look-alikes still pruned; unchecked binary copy before the swap and a false "rolled back"; a no-server assertion that can pass by race. Should fix: empty backup dirs count as copies; an unreadable doctor report still prunes.
 - Status: NEEDS DECISION. Second FAIL, so the story stays open and no further fixes were applied.
+- User decision: fix verifier 2 items 1 and 2 now, decide the rest later.
+- Item 1 fixed: 04df2b8 (test), 00509ed. Only exact version names are pruned, so a prerelease copy stays unpruned.
+- Item 2 fixed: 5521f8f (test), 2bddbd2; 91b343f (test), a39b275. A failed binary copy stops the update; a failed rollback is not reported as done. fa504e7 adds a shellcheck comment to committed test 5521f8f, no assertion changed. `scripts/tests/ai-update.test.sh` 154 PASS, `make check` "All checks passed (7 steps)".
+- Still open: items 3, 4, 5; restoring under a live `engram mcp`; no verifier has seen these last fixes.
