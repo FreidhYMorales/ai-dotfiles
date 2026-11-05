@@ -383,6 +383,7 @@ EOF
 # The disk fills up halfway through the copy of the binary.
 home=$(sandbox binary-copy-fails 3.4.0 3.5.0)
 old_copies "$home" 3.1.0 3.2.0
+# shellcheck disable=SC2016 # expanded by the generated stub
 fake_cp "$home" '*.bak' 'echo partial >"${!#}"; exit 1'
 update "$home" '' --yes
 assert 'a failed binary copy fails the update' test "$LAST_EXIT" -ne 0
