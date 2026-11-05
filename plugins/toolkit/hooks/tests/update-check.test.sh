@@ -137,6 +137,15 @@ touch -d '2 days ago' "$dir/cache/engram-latest"
 run "$dir"
 assert 'stale cache queries GitHub again' test -e "$dir/curl-called"
 
+echo "== remembers a failed lookup =="
+
+dir=$(fixture offline 0.3.1 0.3.1 3.4.0 fail)
+run "$dir"
+assert 'a failed lookup was attempted' test -e "$dir/curl-called"
+rm -f "$dir/curl-called"
+run "$dir"
+assert 'a failed lookup is not repeated within the hour' test ! -e "$dir/curl-called"
+
 # with_look DIR PIN CLAUDE: install look@mkt in fixture DIR with PIN as its
 # pinned Claude Code version and stub `claude --version` to print CLAUDE.
 # CLAUDE "fail" makes `claude` exit 1.
