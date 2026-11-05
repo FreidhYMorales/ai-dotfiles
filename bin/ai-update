@@ -158,7 +158,8 @@ doctor_reports_errors() {
   ((errors > 0))
 }
 
-copy_is_sound() { [[ $(sqlite3 "$1" 'PRAGMA integrity_check' 2>/dev/null) == ok ]]; }
+# The size check comes first: sqlite3 creates a missing file and calls it ok.
+copy_is_sound() { [[ -s $1 && $(sqlite3 "$1" 'PRAGMA integrity_check' 2>/dev/null) == ok ]]; }
 
 # print_restore_commands CURRENT BACKUP: the restore, for when it was declined.
 print_restore_commands() {
