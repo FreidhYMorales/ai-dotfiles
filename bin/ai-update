@@ -248,15 +248,17 @@ upgrade_engram() {
     fi
     echo "backed up: database -> $backup"
   fi
-  if ! cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"; then
-    rm -f "$ENGRAM_BIN-$current.bak"
+  dir=$(dirname "$ENGRAM_BIN")
+  # A temporary name first: a partial copy must not replace an older copy.
+  if ! cp -p "$ENGRAM_BIN" "$dir/.engram-$current.new.bak" ||
+    ! mv -f "$dir/.engram-$current.new.bak" "$ENGRAM_BIN-$current.bak"; then
+    rm -f "$dir/.engram-$current.new.bak"
     rm -rf "$backup"
     echo "error: could not back up the binary; engram unchanged" >&2
     return 1
   fi
   echo "backed up: binary -> $ENGRAM_BIN-$current.bak"
 
-  dir=$(dirname "$ENGRAM_BIN")
   install -m 755 "$work/engram" "$dir/.engram.new"
   mv -f "$dir/.engram.new" "$ENGRAM_BIN"
 
