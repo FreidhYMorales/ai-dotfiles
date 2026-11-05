@@ -52,3 +52,5 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - User authorized a third verifier run, beyond the flow's one recheck.
 - Verifier 3: FAIL. Must fix: no database at update time (restore fails, printed commands name a missing copy); `engram serve` with arguments is not detected; two no-server assertions cannot fail because the stub binary has no `serve`. Should fix: `engram mcp` is not rechecked after the yes; a failed binary copy can delete an older copy of the same version. For the user: confirm `engram serve` stays stopped rather than refused, confirm the stuck-server refusal.
 - Status: NEEDS DECISION. No fixes applied after verifier 3.
+- User decision: one more batch for verifier 3 items 1-5, keeping `engram serve` stopped and the stuck-server refusal, then a fourth verifier. If only minor items remain, the user decides whether to accept them.
+- Fixed: b001465 (fake release gets `serve`, mutation-checked); 8be1c9e, a90182c; 75da733, bfcc1e6; and one test commit plus one fix commit for a server with arguments and an `engram mcp` rechecked after the yes. A server with arguments restarts without them.
