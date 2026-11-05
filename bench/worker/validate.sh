@@ -9,8 +9,9 @@
 #   check  check.sh must pass with the patch
 #   gate   the gate must pass with the patch
 #   scope  every file the patch touches must be listed in `allowed`
-# Prints one line per task; exits 1 when any task fails. KEEP=1 keeps the
-# work dir for inspection.
+# Prints one line per task; exits 1 when any task fails. A task whose source
+# repo is not on this machine is skipped, not failed. KEEP=1 keeps the work dir
+# for inspection.
 set -u
 
 # shellcheck source=bench/worker/lib.sh
@@ -35,6 +36,7 @@ fail() {
 }
 
 failed=0
+skipped=0
 for task in "${tasks[@]}"; do
   task_dir=$BENCH/tasks/${task%/}
   task=${task_dir##*/}
@@ -47,6 +49,14 @@ for task in "${tasks[@]}"; do
       continue 2
     }
   done
+  # A task built from another repo can only run where that repo lives.
+  source_repo=$(meta "$task_dir" source self)
+  source_repo=${source_repo%% *}
+  if [[ $source_repo == /* && ! -d $source_repo ]]; then
+    printf 'SKIP  %-34s source repo not on this machine: %s\n' "$task" "$source_repo"
+    skipped=$((skipped + 1))
+    continue
+  fi
   if ! base=$(build_repo "$task_dir" "$repo" 2>"$logs/setup.log"); then
     fail "$task" "setup" "$logs/setup.log"
     continue
@@ -83,4 +93,8 @@ if ((failed)); then
   echo "$failed of ${#tasks[@]} task(s) failed validation"
   exit 1
 fi
-echo "All ${#tasks[@]} task(s) valid"
+if ((skipped)); then
+  echo "All $((${#tasks[@]} - skipped)) task(s) valid, $skipped skipped"
+else
+  echo "All ${#tasks[@]} task(s) valid"
+fi

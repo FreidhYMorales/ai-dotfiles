@@ -26,6 +26,9 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 20 | Uninstall says so when jq or rg is missing | pending | backlog | 0.1 | 2026-11-04 | [20](#20-uninstall-says-so-when-jq-or-rg-is-missing) |
 | 21 | A 30 s budget for every look harness test | GO | backlog (audit-fixes #19) | 0.1 | 2026-11-04 | [21](#21-a-30-s-budget-for-every-look-harness-test) |
 | 22 | Real mutation survivors in backup-status and hooks-path | pending | backlog | 0.1 | 2026-11-05 | [22](#22-real-mutation-survivors-in-backup-status-and-hooks-path) |
+| 23 | make check leaves the repo alone under an exported GIT_DIR | GO | backlog (audit-fixes #23) | 0.25 | 2026-11-05 | [23](#23-make-check-leaves-the-repo-alone-under-an-exported-git_dir) |
+| 24 | Verifier scratch clones cannot push back | GO | backlog (audit-fixes #24) | 0.25 | 2026-11-05 | [24](#24-verifier-scratch-clones-cannot-push-back) |
+| 25 | Small gaps in the bench step | GO | backlog (audit-fixes #25) | 0.25 | 2026-11-05 | [25](#25-small-gaps-in-the-bench-step) |
 
 ---
 
@@ -241,3 +244,30 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high; complexity low (one test case each); effort 0.1 d; value medium (the hooks behave correctly today; the tests would catch a regression); risk low; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: one more small story.
 - Decision: pending (raised 2026-11-05; agreed in story 20 as the way to record real survivors).
+
+## 23. make check leaves the repo alone under an exported GIT_DIR
+
+- Idea: clear git's local variables for the whole of `make check`, not only for the bench step.
+- Raised during: audit-fixes story 22, second verifier (2026-11-05).
+- Findings: git reads `GIT_DIR` before `-C`, so tests that build throwaway repos act on the checked repo instead. The verifier reports that `scripts/run-tests.sh` under an exported `GIT_DIR`, on a clone of `main`, added fake backup commits, moved `origin/main`, created branches and failed 12 test files. Story 22 protects `bench/worker/lib.sh` only. A pre-commit hook in a linked worktree exports `GIT_DIR`; nothing in this repo runs `make check` that way today.
+- Score: feasibility high (`git rev-parse --local-env-vars` lists the names); complexity low; effort 0.25 d; value high (the damage is to refs and can spread to a remote); risk item 5; no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: one more guard in the gate.
+- Decision: GO (user, 2026-11-05) → audit-fixes backlog #23.
+
+## 24. Verifier scratch clones cannot push back
+
+- Idea: have `flow:verifier` experiment only in clones with no route back to the repo, and compare the repo's refs before and after instead of assuming they held.
+- Raised during: audit-fixes story 22 (2026-11-05), an incident during the second verifier.
+- Findings: at 14:01-14:02 fixture commits were pushed into this repo, moving local `main` to 254b3c2 and creating `story/03-x` (reflog entries `push`). Probable cause, not proven: the verifier ran the suite under an exported `GIT_DIR` in a scratch clone, and a clone of a local repo has `origin` pointing back at it. Its report said the repo was unchanged. It came to light only through a ref count going from 26 to 27. GitHub was never affected; `main` was repaired with the user's OK.
+- Score: feasibility high; complexity low (instructions plus a before/after ref comparison in `pair`'s check step); effort 0.25 d; value high (a read-only agent wrote to the real repo); risk item 6 for the agent's wording, since no test here can prove how an agent behaves; depends on nothing, and idea 23 narrows one path to it; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: a little more ceremony per verification.
+- Decision: GO (user, 2026-11-05) → audit-fixes backlog #24.
+
+## 25. Small gaps in the bench step
+
+- Idea: fix the four low findings the story 22 verifiers left open.
+- Raised during: audit-fixes story 22, first verifier (2026-11-05).
+- Findings: (1) `scripts/check-bench.sh` prints "no change under bench/" even when it could not compare, with no `origin/main` or no git, as on a pull request that does change `bench/`. (2) Deleting `bench/worker/validate.sh` makes the step exit 127. (3) If the outer timeout lands in the bench step, the nested `timeout 900` survives for a few seconds, up to one nested check. (4) The README's "so never in CI" holds only while CI checks out with `fetch-depth: 1`.
+- Score: feasibility high; complexity low; effort 0.25 d; value low-medium (accurate messages, no damage); risk item 5, contained; no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: one more small story.
+- Decision: GO (user, 2026-11-05) → audit-fixes backlog #25.
