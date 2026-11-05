@@ -77,10 +77,13 @@ if [[ $MODE == mark ]]; then
 fi
 
 changed='[]'
+previous=$(jq -c '.changed // []' "$STATE" 2>/dev/null) || previous='[]'
 lines=()
 while IFS=$'\t' read -r repo watch reviewed why; do
   if ! IFS=$'\t' read -r id url < <(latest "$repo" "$watch"); then
     lines+=("$repo: could not check (offline or rate-limited)")
+    changed=$(jq --argjson previous "$previous" --arg r "$repo" \
+      '. + [$previous[] | select(.repo == $r)]' <<<"$changed")
     continue
   fi
   [[ $id == "$reviewed" ]] && continue
