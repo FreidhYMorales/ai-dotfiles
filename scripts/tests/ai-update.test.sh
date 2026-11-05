@@ -521,6 +521,14 @@ assert 'the printed commands bring the previous binary back' engram_is "$home" 3
 assert 'the printed commands bring the old memories back' has_row "$home" kept
 assert 'the printed commands drop what the new version wrote' lacks_row "$home" migrated
 
+home=$(sandbox decline-explicit 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+update "$home" $'n\n' --yes
+assert 'an explicit no fails the update' test "$LAST_EXIT" -ne 0
+assert 'an explicit no keeps the new binary' engram_is "$home" 3.5.0
+assert 'an explicit no leaves the database untouched' has_row "$home" migrated
+assert 'an explicit no prints the restore commands' says 'To restore by hand'
+
 home=$(sandbox decline-no-start 3.4.0 none)
 publish_no_start "$home" 3.5.0
 update "$home" '' --yes
