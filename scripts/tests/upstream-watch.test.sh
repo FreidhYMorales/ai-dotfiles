@@ -121,6 +121,24 @@ watch "$d" --refresh
 assert 'the unreachable repo keeps its news and the reachable one is updated' json_ok "$d/state/state.json" \
   '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "ccc333"]]'
 
+d=$(fixture keep-reviewed)
+watch "$d" --refresh
+watch "$d" --mark acme/tool
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'an unreachable repo reviewed at its news does not bring it back' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/skills"]'
+
+d=$(fixture keep-reviewed-newer)
+watch "$d" --refresh
+printf '{"tag_name":"v1.3.0","html_url":"https://github.com/acme/tool/releases/tag/v1.3.0"}' \
+  >"$d/gh/repos_acme_tool_releases_latest"
+watch "$d" --mark acme/tool
+rm "$d"/gh/*
+watch "$d" --refresh
+assert 'an unreachable repo reviewed past its news does not bring it back' json_ok "$d/state/state.json" \
+  '.changed | map(.repo) == ["acme/skills"]'
+
 echo "== --mark =="
 
 d=$(fixture mark)
