@@ -2,7 +2,9 @@
 Description=Check the upstream repos these dotfiles learn from
 Documentation=file://%h/.local/bin/upstream-watch
 # 4 runs at most: the first plus 3 retries. The window outlasts them all and
-# ends before the next day's timer run.
+# normally ends before the next day's timer run; time suspended may not count
+# towards it, so that run may be refused after a long suspend. Accepted: one
+# lost day, with the recorded news kept.
 StartLimitIntervalSec=2h
 StartLimitBurst=4
 

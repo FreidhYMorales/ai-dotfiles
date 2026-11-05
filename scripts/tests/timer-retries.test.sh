@@ -36,7 +36,8 @@ for unit in engram-backup.service upstream-watch.service; do
   assert "$unit waits 10 minutes between runs" same "$(setting "$unit" Service RestartSec)" 10min
   assert "$unit runs at most 4 times in a window" same "$(setting "$unit" Unit StartLimitBurst)" 4
   # 3 waits of 10 min plus up to 10 min on engram-backup's lock per run fit in
-  # 2 h, and the next day's timer run falls outside it.
+  # 2 h, and the next day's timer run normally falls outside it (a long suspend
+  # may not count: accepted in story 11).
   assert "$unit counts its runs over 2 hours" same "$(setting "$unit" Unit StartLimitIntervalSec)" 2h
 done
 
