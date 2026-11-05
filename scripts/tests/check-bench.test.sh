@@ -109,6 +109,15 @@ assert 'the step names the broken task' says 'FAIL  broken-task'
 assert 'the other task is still validated' says 'ok    good-task'
 assert 'make check reports the bench step failed' test -n "$FAILED_LINE"
 
+echo "== no origin/main, clean tree (a pull request checkout in CI) =="
+mk_repo noremote
+git -C "$R" update-ref -d refs/remotes/origin/main
+run_check
+assert 'with no origin/main it says skipped' says 'skipped'
+assert 'with no origin/main it validates no task' lacks 'good-task'
+assert 'with no origin/main it prints no git error' lacks 'fatal'
+assert 'with no origin/main it does not fail' test -z "$FAILED_LINE"
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
