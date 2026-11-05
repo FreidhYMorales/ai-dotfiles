@@ -322,6 +322,31 @@ update "$home" '' --yes
 assert 'a binary that does not start removes no database copy' test "$(database_copies "$home")" -eq 4
 assert 'a binary that does not start removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
 
+echo "== never updates without a sound copy =="
+
+# fake_vacuum HOME BODY: a sqlite3 whose VACUUM INTO runs BODY; the rest is real.
+fake_vacuum() {
+  cat >"$1/bin/sqlite3" <<EOF
+#!/usr/bin/env bash
+case \$2 in
+  *'VACUUM INTO'*) $2 ;;
+  *) exec $(command -v sqlite3) "\$@" ;;
+esac
+EOF
+  chmod +x "$1/bin/sqlite3"
+}
+copies_kept_and_engram_alone() {
+  [[ $(database_copies "$1") -eq 3 && $(binary_copies "$1") == '3.1.0 3.2.0' ]] && engram_is "$1" 3.4.0
+}
+
+home=$(sandbox copy-fails 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+fake_vacuum "$home" 'exit 1'
+update "$home" '' --yes
+assert 'a failed database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed database copy is reported' says 'could not back up the database'
+assert 'a failed database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
 echo "== restores on a yes =="
 
 home=$(sandbox restore-doctor-exit 3.4.0 none)
