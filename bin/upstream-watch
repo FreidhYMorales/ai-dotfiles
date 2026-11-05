@@ -77,7 +77,7 @@ if [[ $MODE == mark ]]; then
 fi
 
 changed='[]'
-previous=$(jq -c '.changed // []' "$STATE" 2>/dev/null) || previous='[]'
+previous=$(jq -c '[.changed[]? | objects]' "$STATE" 2>/dev/null) || previous='[]'
 refresh_exit=0
 lines=()
 while IFS=$'\t' read -r repo watch reviewed why; do
