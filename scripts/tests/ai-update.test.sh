@@ -17,7 +17,9 @@ fake_engram() {
 #!/usr/bin/env bash
 case \$1 in
   version) echo "engram $2" ;;
-  doctor) echo "doctor: ok" ;;
+  doctor)
+    if [[ \${2:-} == --json ]]; then echo '{"status":"ok","summary":{"errors":0}}'; else echo "doctor: ok"; fi
+    ;;
   serve)
     # Starting while the old server is still dying would lose its port.
     [[ \$(ps -o stat= -p "\$(cat "\$FAKE_STATE/serve-pid" 2>/dev/null)" 2>/dev/null) != [^Z]* ]] || echo overlap >>"\$FAKE_STATE/serve-calls"
@@ -591,6 +593,15 @@ update "$home" '' --yes
 assert 'an unreadable report keeps the update' test "$LAST_EXIT" -eq 0
 assert 'an unreadable report keeps the database' has_row "$home" migrated
 assert 'an unreadable report warns' says 'could not read the engram doctor report'
+
+# Health is unknown, so this update has not earned the removal of old copies.
+home=$(sandbox doctor-unreadable-keeps 3.4.0 none)
+old_copies "$home" 3.1.0 3.2.0
+publish_doctor "$home" 3.5.0 0 'not json'
+update "$home" '' --yes
+assert 'an unreadable report removes no database copy' test "$(database_copies "$home")" -eq 4
+assert 'an unreadable report removes no binary copy' test "$(binary_copies "$home")" == '3.1.0 3.2.0 3.4.0'
+assert 'an unreadable report says the copies stay' says 'old copies kept'
 
 echo "== without a yes, the database stays =="
 
