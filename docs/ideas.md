@@ -229,3 +229,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high; complexity low; effort 0.1 d; value high (main is red from this flake); risk low (a hung case takes up to 30 s to fail instead of 5; the assertions still fail fast, as story 18's mutant showed in 245 ms); no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: a slower failure for a case that really hangs.
 - Decision: GO (user, 2026-11-04) → audit-fixes backlog #19.
+
+## 22. Real mutation survivors in backup-status and hooks-path
+
+- Idea: pin the three behaviours `make mutate` shows no test protects in these two hooks, so its report can return to listing equivalent mutants only.
+- Raised during: audit-fixes story 20 (2026-11-05), first `make mutate` run on these hooks.
+- Findings: (1) `backup-status.sh:33` as `return 1`: a failed backup also adds the false note "no engram backup recorded yet", and no test notices. (2) `hooks-path.sh:7` as `|| hook_off`: `AI_HOOKS_OFF=hooks-path` stops silencing the hook, and `hooks-off.test.sh` has no `hooks-path` case. (3) `hooks-path.sh:10` as `exit 1`: a non-startup session exits 1 instead of 0, and no test pins that exit code. Scores: `backup-status` 18/22, `hooks-path` 9/12, `protect-credentials` 8/8. The other survivors do not count: `backup-status.sh:13` and `:47` and `hooks-path.sh:9` are equivalent, and `hooks-off.test.sh` catches `backup-status.sh:9`, a test `make mutate` does not run for that hook. The six hooks listed earlier were not rerun in story 20.
+- Score: feasibility high; complexity low (one test case each); effort 0.1 d; value medium (the hooks behave correctly today; the tests would catch a regression); risk low; no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: one more small story.
+- Decision: pending (raised 2026-11-05; agreed in story 20 as the way to record real survivors).

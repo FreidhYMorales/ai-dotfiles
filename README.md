@@ -98,7 +98,7 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [x] Session-start hook: notify-only update check
 - [x] Secret protection: Read deny rules + global gitleaks pre-commit hook
 - [x] Verification harness: `make check` + `require-check` Stop hook
-- [x] Mutation testing for hooks (`make mutate`, `scripts/mutate.sh`; remaining survivors are equivalent mutants)
+- [x] Mutation testing for hooks (`make mutate`, `scripts/mutate.sh`; not every survivor is an equivalent mutant: `docs/ideas.md` idea 22 lists the real ones found in `backup-status` and `hooks-path`)
 - [x] `claude plugin eval` suite for `flow` (plan, idea, should-not-fire)
 - [x] Eval suite for `toolkit:ship`
 - [x] Eval suites for the other `toolkit` skills (one fires case each plus a behavior grader; `delegate-local` should-not-fire)
