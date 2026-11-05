@@ -3,6 +3,11 @@
 # Every check takes an optional ROOT argument (default: this repo) and exits
 # non-zero when any error was reported.
 
+# A git hook can export GIT_DIR and friends, and they outrank `git -C`: every
+# throwaway repo a test builds would then rewrite the repo being checked.
+mapfile -t git_local_vars < <(git rev-parse --local-env-vars)
+unset "${git_local_vars[@]}"
+
 # shellcheck disable=SC2034 # ROOT and errors are used by the sourcing script.
 ROOT=$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)
 errors=0
