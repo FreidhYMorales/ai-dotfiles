@@ -111,8 +111,8 @@ confirm() {
 
 server_pids() { pgrep -x -f '(.*/)?engram serve' || true; }
 
-# stop_server: true when a running server was stopped and is gone, so that a new
-# one can take its port.
+# stop_server: 0 when a running server was stopped and is gone, so that a new one
+# can take its port; 1 when none was running; 2 when it would not stop.
 stop_server() {
   [[ ${AI_UPDATE_RESTART_SERVER:-1} == 1 ]] || return 1
   local pids _
@@ -121,9 +121,10 @@ stop_server() {
   # shellcheck disable=SC2086 # one pid per word
   kill $pids
   for _ in {1..50}; do
-    [[ -n $(server_pids) ]] || break
+    [[ -n $(server_pids) ]] || return 0
     sleep 0.1
   done
+  return 2
 }
 
 start_server() {
@@ -133,7 +134,12 @@ start_server() {
 }
 
 restart_server() {
-  if stop_server; then start_server; fi
+  local code=0
+  stop_server || code=$?
+  case $code in
+    0) start_server ;;
+    2) echo "warning: engram serve did not stop; restart it by hand" >&2 ;;
+  esac
 }
 
 # prune_copies: keep the two newest database copies and binary copies, matching
@@ -176,9 +182,14 @@ print_restore_commands() {
 # saved since BACKUP are overwritten; then put the binary and database back.
 # False when declined.
 offer_restore() {
-  local current=$1 backup=$2 tmp_bin tmp_db server_was_running=0
+  local current=$1 backup=$2 tmp_bin tmp_db stop_code=0
   confirm "Restore engram $current and the database from before the update? Memories saved since then are lost." || return 1
-  if stop_server; then server_was_running=1; fi
+  stop_server || stop_code=$?
+  if ((stop_code == 2)); then
+    echo "error: engram serve did not stop; nothing was restored" >&2
+    print_restore_commands "$current" "$backup"
+    return 0
+  fi
   tmp_bin=$(dirname "$ENGRAM_BIN")/.engram.new
   tmp_db=$ENGRAM_DATA_DIR/.engram.db.restore
   # Prepare both before replacing either: all or nothing.
@@ -191,7 +202,7 @@ offer_restore() {
     rm -f "$tmp_bin" "$tmp_db"
     echo "error: restore failed; copies kept: $ENGRAM_BIN-$current.bak and $backup/engram.db" >&2
   fi
-  if ((server_was_running)); then start_server; fi
+  if ((stop_code == 0)); then start_server; fi
 }
 
 # upgrade_engram CURRENT LATEST: verified, backed-up, atomic swap with rollback.
