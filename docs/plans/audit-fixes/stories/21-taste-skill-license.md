@@ -40,3 +40,7 @@ Risk: item 5 (vendored pack bytes and manifest pin)
 ## Log
 
 - L1 request: /flow:story 21
+- L2 commits: 9c7f78c test → 9557636 fix (LICENSE and pin; tests 1-3 share one red, as the user approved); 72e4ba0 test → da501f8 docs (vendor README). `make check`: "All checks passed (7 steps)". New pin: sha256:152e5f43381b4f17b27b29160b1b76f8646c64347c6d155e5a26a898cfa6bf9b.
+- L3 verifier: PASS. It confirmed the LICENSE is identical to the tarball's, that the earlier-copy fixture hashes to main's pin, and that deleting the LICENSE and re-pinning fails `make check`. A scratch run of real `add web`, with npm stubbed, gave the same result as `add taste` for new, earlier and hand-edited copies.
+- L4 verifier notes, none blocking: no committed test runs `add web` on the taste path; `repin_names` matches only the string `taste-skill/LICENSE`; the vendor table assertion was not in the approved test list, though the story's plan asks for that text.
+- L5 Risk: item 5 (vendored pack bytes and manifest pin).
