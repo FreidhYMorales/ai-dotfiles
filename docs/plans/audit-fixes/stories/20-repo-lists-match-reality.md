@@ -40,3 +40,7 @@ Risk: none
 
 - L1 request: /flow:story 12
 - L2 split: idea 16 holds five independent gaps, more than 3 criteria fit, so #12 became #20, #21 and #22.
+- L3 commits: ccb1fe3 test → 2f3a845 fix (README row); b0f10cd test → ccf1267 fix (`make mutate` list); 2963df7 test → 54ca7b2 fix (`.gitignore`). `scripts/tests/repo-lists.test.sh`: "All cases passed"; `make check`: "All checks passed (7 steps)".
+- L4 test setup: the `.gitignore` case first passed with no fix, because git reads `~/.config/git/ignore` even with an empty global config. It now sets `core.excludesFile=/dev/null` and uses a new repo instead of a clone, so it needs no `safe.directory`. Both changes came before its test commit.
+- L5 mutation: `backup-status` 18/22, `protect-credentials` 8/8, `hooks-path` 9/12. Three survivors are real gaps, so the README claim was corrected and idea 22 records them, as this story assumed. The six hooks listed earlier were not rerun.
+- L6 Risk: none. No verifier.

@@ -29,6 +29,6 @@
 17. [x] 51f15c9 As the dotfiles owner, I want `install.sh --dry-run` to stop saying it pruned a broken link it only reported, so that a dry-run never claims a change it did not make. (idea 18, from #15)
 18. [x] 2be9666 As the dotfiles owner, I want the look test "an agent missing from agent.list on two polls in a row is stopped" to stop failing CI at the 5 s watchdog, so that a red run means something again. (idea 19, from #15)
 19. [x] 8e9cf81 As the dotfiles owner, I want every look harness test to have the 30 s budget, and `make check` to fail when one lacks it, so that a slow CI runner stops turning `main` red one case at a time. (idea 21, from #18)
-20. [~] As the dotfiles owner, I want the README's toolkit row, the `make mutate` hook list and the repo's `.gitignore` to match what is really there, so that the repo tells the truth about itself. (idea 16, from #12)
+20. [x] 54ca7b2 As the dotfiles owner, I want the README's toolkit row, the `make mutate` hook list and the repo's `.gitignore` to match what is really there, so that the repo tells the truth about itself. (idea 16, from #12)
 21. [ ] As the dotfiles owner, I want `ai-pack add web` to copy taste-skill with its MIT `LICENSE`, so that projects receive the notice the license requires. (idea 16, from #12)
 22. [ ] As the dotfiles owner, I want a change under `bench/` proven by `bench/worker/validate.sh` during verification, so that a broken benchmark task cannot stay unnoticed. (idea 16, from #12)
