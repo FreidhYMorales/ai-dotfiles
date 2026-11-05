@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given more than two older engram copies and a new version whose doctor reports at most warnings or blocked checks, when the update finishes, then only the two newest database copies and the two newest binary copies remain, and an update that fails removes none.
-- [ ] Given a new version whose doctor fails or that does not start, when I confirm the restore (asked even with `--yes`), then the binary and the database are back as they were before the update, the old memories can be found, and `ai-update` says what it restored and exits non-zero.
-- [ ] Given the same failure, when I decline or there is no answer, then the database is untouched and `ai-update` exits non-zero; a binary that does not start goes back to the previous one, and after a failed doctor the new binary stays and the exact restore commands are printed.
+- [x] Given more than two older engram copies and a new version whose doctor reports at most warnings or blocked checks, when the update finishes, then only the two newest database copies and the two newest binary copies remain, and an update that fails removes none.
+- [x] Given a new version whose doctor fails or that does not start, with no `engram mcp` running and `engram serve` able to stop, when I confirm the restore (asked even with `--yes`), then the binary and the database are back as they were before the update, the old memories can be found, and `ai-update` says what it restored and exits non-zero; if either process blocks it, nothing changes and the restore commands are printed.
+- [x] Given the same failure, when I decline or there is no answer, then the database is untouched and `ai-update` exits non-zero; a binary that does not start goes back to the previous one, and after a failed doctor the new binary stays and the exact restore commands are printed.
 
 ## Plan
 
@@ -54,3 +54,7 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - Status: NEEDS DECISION. No fixes applied after verifier 3.
 - User decision: one more batch for verifier 3 items 1-5, keeping `engram serve` stopped and the stuck-server refusal, then a fourth verifier. If only minor items remain, the user decides whether to accept them.
 - Fixed: b001465 (fake release gets `serve`, mutation-checked); 8be1c9e, a90182c; 75da733, bfcc1e6; and one test commit plus one fix commit for a server with arguments and an `engram mcp` rechecked after the yes. A server with arguments restarts without them.
+- Verifier 4: PASS, no criterion broken. Residuals R1-R11 are for the user to accept; first R1 (criterion 2 wording), R2 (a healthy update now also replaces `engram serve --session-owned`), R5 (window after the `engram mcp` recheck). Story not closed yet.
+- User decision on closing: criterion 2 reworded to name the two refusals; residuals R2-R11 accepted (R2 session-owned server replaced on a healthy update; R3 server arguments lost on restart; R4 restart without `ENGRAM_CLOUD_AUTOSYNC=1`; R5 window between the `engram mcp` recheck and the replacement; R6 `pgrep` not required; R7 rollback copies without a temporary name; R8 "nothing was restored" after "rolled back"; R9 no timeout on `version` and `doctor`; R10 pruning by version after a manual downgrade; R11 old empty backup dirs count as copies); a024b9b stays in history.
+- Known limit: no real doctor failure was observed; every test uses a fake engram.
+- Closed: last code commit 7272fa2; `scripts/tests/ai-update.test.sh` 194 PASS, "All cases passed"; `make check` "All checks passed (7 steps)"; verifier 4 PASS. Risk: item 1, 4, 5 (restores over the live memory database and deletes old copies; `engram serve` and `engram mcp` hold it open; replaces the installed binary).
