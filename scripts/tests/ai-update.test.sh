@@ -390,6 +390,18 @@ assert 'a failed binary copy fails the update' test "$LAST_EXIT" -ne 0
 assert 'a failed binary copy is reported' says 'could not back up the binary'
 assert 'a failed binary copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
 
+# The rollback itself fails: it must not be reported as done.
+home=$(sandbox rollback-fails 3.4.0 none)
+publish "$home" 3.5.0 3.4.9
+fake_cp "$home" '-p\ *.bak\ */engram' 'exit 1'
+update "$home" '' --yes
+no_rollback_claim() { ! says 'rolled back'; }
+assert 'a failed rollback fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed rollback does not claim one' no_rollback_claim
+assert 'a failed rollback is reported' says 'could not roll back'
+assert 'a failed rollback names the copy to use' says "previous binary kept at $home/local/bin/engram-3.4.0.bak"
+assert 'a failed rollback keeps that copy' test "$("$home/local/bin/engram-3.4.0.bak" version)" == 'engram 3.4.0'
+
 echo "== restores on a yes =="
 
 home=$(sandbox restore-doctor-exit 3.4.0 none)
