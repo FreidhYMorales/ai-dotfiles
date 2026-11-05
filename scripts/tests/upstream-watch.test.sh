@@ -100,6 +100,16 @@ watch "$d" --refresh
 assert 'a refresh that reaches no repo keeps the recorded news' json_ok "$d/state/state.json" \
   '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "bbb222"]]'
 
+d=$(fixture keep-one)
+watch "$d" --refresh
+rm "$d/gh/repos_acme_tool_releases_latest"
+printf '[{"sha":"ccc333"}]' >"$d/gh/repos_acme_skills_commits_per_page=1"
+printf '{"total_commits":9,"html_url":"https://github.com/acme/skills/compare/aaa111...ccc333"}' \
+  >"$d/gh/repos_acme_skills_compare_aaa111...ccc333"
+watch "$d" --refresh
+assert 'the unreachable repo keeps its news and the reachable one is updated' json_ok "$d/state/state.json" \
+  '.changed | map([.repo, .to]) == [["acme/tool", "v1.2.0"], ["acme/skills", "ccc333"]]'
+
 echo "== --mark =="
 
 d=$(fixture mark)
