@@ -109,7 +109,7 @@ confirm() {
   [[ $answer == [yY]* ]]
 }
 
-server_pids() { pgrep -x -f '(.*/)?engram serve' || true; }
+server_pids() { pgrep -x -f '(.*/)?engram serve( .*)?' || true; }
 
 # stop_server: 0 when a running server was stopped and is gone, so that a new one
 # can take its port; 1 when none was running; 2 when it would not stop.
@@ -182,21 +182,26 @@ print_restore_commands() {
   fi
 }
 
+# mcp_blocks_restore CURRENT BACKUP: true, after saying so, when engram mcp runs.
+# Same rule as engram-backup: a live engram mcp keeps writing to the replaced file.
+# engram serve is ours to stop, so only engram mcp blocks here.
+mcp_blocks_restore() {
+  [[ -n $(pgrep -x -f '(.*/)?engram mcp( .*)?' || true) ]] || return 1
+  echo "error: engram mcp is running; nothing was restored" >&2
+  print_restore_commands "$1" "$2"
+}
+
 # offer_restore CURRENT BACKUP: always ask, even with --yes, because memories
 # saved since BACKUP are overwritten; then put the binary and database back.
 # False when declined.
 offer_restore() {
   local current=$1 backup=$2 tmp_bin tmp_db stop_code=0
-  # Same rule as engram-backup: a live engram mcp keeps writing to the replaced
-  # file. engram serve is ours to stop, so only engram mcp blocks here.
-  if [[ -n $(pgrep -x -f '(.*/)?engram mcp( .*)?' || true) ]]; then
-    echo "error: engram mcp is running; nothing was restored" >&2
-    print_restore_commands "$current" "$backup"
-    return 0
-  fi
+  mcp_blocks_restore "$current" "$backup" && return 0
   local question="Restore engram $current and the database from before the update? Memories saved since then are lost."
   [[ -d $backup ]] || question="Restore engram $current? There is no database copy, so the database stays as it is."
   confirm "$question" || return 1
+  # The question can wait for a long time: look again after the answer.
+  mcp_blocks_restore "$current" "$backup" && return 0
   stop_server || stop_code=$?
   if ((stop_code == 2)); then
     echo "error: engram serve did not stop; nothing was restored" >&2
