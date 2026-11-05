@@ -14,7 +14,7 @@
 
 - Health check: read the doctor's JSON report after the swap. It failed on a non-zero exit or `summary.errors > 0`; warnings and blocked checks pass, because engram 3.6.1 exits 0 with `status: blocked` on the real database for old sync issues. The failure signal is inferred from that format; no real doctor failure has been observed.
 - Failure path: one confirmation, never skipped by `--yes`, warning that memories saved since the pre-update copy are lost. A binary reporting the wrong version counts as not starting.
-- Restore: stop a running `engram serve`, put the previous binary and the pre-update database copy back, discard the stale write-ahead files so they cannot replay over the copy, then restart the server. Say that open Claude Code sessions must restart, since their `engram mcp` still holds the replaced file.
+- Restore: stop a running `engram serve`, put the previous binary and the pre-update database copy back, discard the stale write-ahead files so they cannot replay over the copy, then restart the server. A live `engram mcp` blocks the restore, as in `engram-backup`: nothing changes and the commands are printed.
 - Decline path: leave the database alone and apply the third criterion.
 - Pruning: only after a healthy update, only the exact names of the copies `ai-update` makes, so `engram-backup` and the installed binary can never match.
 
@@ -47,4 +47,5 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 - User decision: fix verifier 2 items 1 and 2 now, decide the rest later.
 - Item 1 fixed: 04df2b8 (test), 00509ed. Only exact version names are pruned, so a prerelease copy stays unpruned.
 - Item 2 fixed: 5521f8f (test), 2bddbd2; 91b343f (test), a39b275. A failed binary copy stops the update; a failed rollback is not reported as done. fa504e7 adds a shellcheck comment to committed test 5521f8f, no assertion changed. `scripts/tests/ai-update.test.sh` 154 PASS, `make check` "All checks passed (7 steps)".
-- Still open: items 3, 4, 5; restoring under a live `engram mcp`; no verifier has seen these last fixes.
+- User decision: restore like `engram-backup`, refusing while engram runs. Applied to `engram mcp`; `engram serve` is still stopped and restarted by `ai-update`, because it can be stopped safely and the approved tests pin it. The refusal comes before the question.
+- Still open: items 3, 4, 5; no verifier has seen these last fixes.
