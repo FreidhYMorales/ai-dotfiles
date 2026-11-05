@@ -63,7 +63,7 @@
       "project_dirs": {
         ".claude/skills/design-taste-frontend": {
           "from": "vendor:taste-skill",
-          "hash": "sha256:28668cdb5957ca13f55bb6fcc4339cffba8adccf724165649c6cf3c3d9a05449"
+          "hash": "sha256:152e5f43381b4f17b27b29160b1b76f8646c64347c6d155e5a26a898cfa6bf9b"
         }
       },
       "leftovers": [".taste-skill"]
