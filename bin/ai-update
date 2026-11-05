@@ -141,7 +141,7 @@ restart_server() {
 prune_copies() {
   compgen -G "$HOME/.engram-backup-*" | rg '/\.engram-backup-[0-9]{8}-[0-9]{6}$' |
     sort | head -n -2 | xargs -r -d '\n' rm -rf --
-  compgen -G "$ENGRAM_BIN-*.bak" | rg -e '-[0-9]+\.[0-9]+\.[0-9]+[^/]*\.bak$' |
+  compgen -G "$ENGRAM_BIN-*.bak" | rg '/engram-[0-9]+\.[0-9]+\.[0-9]+[^/]*\.bak$' |
     sort -V | head -n -2 | xargs -r -d '\n' rm -f --
 }
 
