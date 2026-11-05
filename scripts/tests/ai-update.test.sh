@@ -368,6 +368,27 @@ assert 'a corrupt database copy fails the update' test "$LAST_EXIT" -ne 0
 assert 'a corrupt database copy is reported' says 'could not back up the database'
 assert 'a corrupt database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
 
+# fake_cp HOME MATCH BODY: a cp that runs BODY when "$*" matches MATCH; the rest is real.
+fake_cp() {
+  cat >"$1/bin/cp" <<EOF
+#!/usr/bin/env bash
+case "\$*" in
+  $2) $3 ;;
+  *) exec $(command -v cp) "\$@" ;;
+esac
+EOF
+  chmod +x "$1/bin/cp"
+}
+
+# The disk fills up halfway through the copy of the binary.
+home=$(sandbox binary-copy-fails 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+fake_cp "$home" '*.bak' 'echo partial >"${!#}"; exit 1'
+update "$home" '' --yes
+assert 'a failed binary copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a failed binary copy is reported' says 'could not back up the binary'
+assert 'a failed binary copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
 echo "== restores on a yes =="
 
 home=$(sandbox restore-doctor-exit 3.4.0 none)
