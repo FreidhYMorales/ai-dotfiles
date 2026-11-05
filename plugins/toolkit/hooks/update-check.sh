@@ -65,6 +65,8 @@ if command -v engram >/dev/null 2>&1; then
       touch "$LOOKUP_FAILED"
     fi
   fi
+  # A failed or waiting lookup falls back to the last version it knew.
+  [[ -z $latest && -f $CACHE ]] && latest=$(<"$CACHE")
   if newer "$latest" "$current"; then
     notes+=("engram $current -> $latest (https://github.com/Gentleman-Programming/engram/releases)")
   fi
