@@ -432,6 +432,15 @@ assert 'the printed commands bring the previous binary back' engram_is "$home" 3
 assert 'the printed commands bring the old memories back' has_row "$home" kept
 assert 'the printed commands drop what the new version wrote' lacks_row "$home" migrated
 
+home=$(sandbox decline-no-start 3.4.0 none)
+publish_no_start "$home" 3.5.0
+update "$home" '' --yes
+no_commands() { [[ -z $(printed_commands) ]]; }
+assert 'no answer after a dead binary fails the update' test "$LAST_EXIT" -ne 0
+assert 'no answer after a dead binary brings the previous binary back' engram_is "$home" 3.4.0
+assert 'no answer after a dead binary leaves the database untouched' has_row "$home" migrated
+assert 'no answer after a dead binary prints no restore commands' no_commands
+
 echo "== major versions always ask =="
 
 home=$(sandbox major-no 3.4.0 4.0.0)
