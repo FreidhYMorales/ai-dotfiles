@@ -68,6 +68,7 @@ else
   gave_up() { same "$(systemctl --user show -P Result "$probe")" start-limit-hit; }
   ran_again() { (($(run_count) > 4)); }
 
+  # shellcheck disable=SC2016  # $1 expands in the inner bash, not here.
   systemd-run --user --quiet --no-block --unit="$probe" --service-type=oneshot \
     -p Restart="$(setting engram-backup.service Service Restart)" -p RestartSec=1 \
     -p StartLimitBurst="$(setting engram-backup.service Unit StartLimitBurst)" \
