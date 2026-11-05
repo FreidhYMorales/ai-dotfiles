@@ -145,6 +145,12 @@ assert 'a failed lookup was attempted' test -e "$dir/curl-called"
 rm -f "$dir/curl-called"
 run "$dir"
 assert 'a failed lookup is not repeated within the hour' test ! -e "$dir/curl-called"
+touch -d '50 minutes ago' "$dir/cache/"*
+run "$dir"
+assert 'a lookup that failed 50 minutes ago is not repeated' test ! -e "$dir/curl-called"
+touch -d '70 minutes ago' "$dir/cache/"*
+run "$dir"
+assert 'a lookup that failed over an hour ago is tried again' test -e "$dir/curl-called"
 
 # with_look DIR PIN CLAUDE: install look@mkt in fixture DIR with PIN as its
 # pinned Claude Code version and stub `claude --version` to print CLAUDE.
