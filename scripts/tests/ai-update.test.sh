@@ -85,6 +85,15 @@ if [[ -n ${FAKE_MCP_CMDLINE:-} ]] && printf '%s\n' "$FAKE_MCP_CMDLINE" | rg -qx 
   echo 1
   exit 0
 fi
+# FAKE_MCP_LATE: absent on the first look, there on every later one.
+if [[ -n ${FAKE_MCP_LATE:-} ]] && printf '%s\n' "$FAKE_MCP_LATE" | rg -qx -- "${!#}"; then
+  if [[ -e $FAKE_STATE/mcp-seen ]]; then
+    echo 1
+    exit 0
+  fi
+  touch "$FAKE_STATE/mcp-seen"
+  exit 1
+fi
 pid=$(cat "$FAKE_STATE/serve-pid" 2>/dev/null)
 [[ -n ${FAKE_SERVE_CMDLINE:-} && -n $pid && $(ps -o stat= -p "$pid" 2>/dev/null) == [^Z]* ]] || exit 1
 printf '%s\n' "$FAKE_SERVE_CMDLINE" | rg -qx -- "${!#}" || exit 1
@@ -593,6 +602,25 @@ publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
 FAKE_MCP_CMDLINE='engram mcp' update "$home" $'y\n' --yes
 assert 'a bare engram mcp is reported' says 'engram mcp is running'
 assert 'a bare engram mcp keeps the database' has_row "$home" migrated
+
+# A server started with arguments is still a server.
+home=$(sandbox restore-server-args 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+fake_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve --port 7437' update "$home" $'y\n' --yes
+assert 'a restore stops a server started with arguments' server_gone "$home"
+assert 'a restore restarts after a server started with arguments' server_started_as "$home" 3.4.0
+stop_fake_server "$home"
+
+# An engram mcp that starts while the question waits: the answer is not enough.
+home=$(sandbox restore-mcp-late 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_MCP_LATE='engram mcp --tools=agent' update "$home" $'y\n' --yes
+assert 'a late engram mcp is reported' says 'engram mcp is running'
+assert 'a late engram mcp does not claim a restore' no_restored_claim
+assert 'a late engram mcp keeps the binary' engram_is "$home" 3.5.0
+assert 'a late engram mcp keeps the database' has_row "$home" migrated
+assert 'a late engram mcp still gets the restore commands' says 'To restore by hand'
 
 # The same check as 'a restore starts no server when none was running', with time
 # for a wrong start to show up.
