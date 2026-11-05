@@ -3,7 +3,8 @@
 # with why each is watched and the last release or commit reviewed.
 #
 # Usage: upstream-watch              report what changed since the last review
-#        upstream-watch --refresh    update the state quietly (daily timer)
+#        upstream-watch --refresh    update the state quietly (daily timer);
+#                                    exits 1 when it could not reach a repo
 #        upstream-watch --mark REPO  record REPO's latest as reviewed (or: all)
 #
 # State for the toolkit update-check hook: ~/.local/state/upstream-watch/state.json
