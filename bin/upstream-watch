@@ -84,8 +84,8 @@ while IFS=$'\t' read -r repo watch reviewed why; do
   if ! IFS=$'\t' read -r id url < <(latest "$repo" "$watch"); then
     lines+=("$repo: could not check (offline or rate-limited)")
     refresh_exit=1
-    changed=$(jq --argjson previous "$previous" --arg r "$repo" \
-      '. + [$previous[] | select(.repo == $r)]' <<<"$changed")
+    changed=$(jq --argjson previous "$previous" --arg r "$repo" --arg reviewed "$reviewed" \
+      '. + [$previous[] | select(.repo == $r and .from == $reviewed)]' <<<"$changed")
     continue
   fi
   [[ $id == "$reviewed" ]] && continue
