@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given the engram release lookup failed in the last hour, when I start a new session, then no lookup is attempted, so the session pays no network wait; after that hour one is attempted again, and a newer engram version already known from an earlier lookup is still noted in the meantime.
-- [ ] Given the backup timer's run fails, for example because the network or the keyring is not up yet after boot, when I do nothing, then it runs again on its own about 10 minutes later, at most 3 more times; if all of them fail, the startup `backup-status` warning still appears and the next day's timer run still happens.
-- [ ] Given the upstream-watch timer's run cannot reach a repo, when it finishes, then the news already recorded for that repo is still shown at startup, and the run retries on its own with the same limit as the backup.
+- [x] Given the engram release lookup failed in the last hour, when I start a new session, then no lookup is attempted, so the session pays no network wait; after that hour one is attempted again, and a newer engram version already known from an earlier lookup is still noted in the meantime.
+- [x] Given the backup timer's run fails, for example because the network or the keyring is not up yet after boot, when I do nothing, then it runs again on its own about 10 minutes later, at most 3 more times; if all of them fail, the startup `backup-status` warning still appears and the next day's timer run still happens.
+- [x] Given the upstream-watch timer's run cannot reach a repo, when it finishes, then the news already recorded for that repo is still shown at startup, and the run retries on its own with the same limit as the backup.
 
 ## Plan
 
@@ -43,3 +43,8 @@ Risk: item 4, 5 (retries of timer runs; systemd unit config)
 - L5 verifier 1: NEEDS DECISION. Finding 1: the 2 h start-limit window may not count suspended time, so after a failed morning and under 2 h awake the next timer run could be refused (from the verifier's memory of systemd's source, not run). Finding 2: report mode exited 1 with no repo reached and no news, reproduced on the branch and on `main`.
 - L6 user decision: the suspend edge is accepted for now, to be solved later; the unit comments and `docs/recovery.md` now state it. Finding 2 fixed before closing.
 - L7 verifier 2: FAIL on one sentence only: `docs/recovery.md` gave the wrong trigger for the suspend edge. All criteria, reds, commit order and assertions passed. Correction batch: that sentence reworded, and an empty state file now counts as empty (its non-blocking note, within approved test 9).
+- L8 verifier 3, scoped to `1323840..HEAD`: PASS. Non-blocking, left as they are: the unit comments keep the looser "after a long suspend"; the limit may count every start in the window, not only failed ones; a state file of concatenated JSON values is still not repaired.
+- L9 commits (test → fix): 1b5f660 → 6082a2f, 6b199d4 → 1cacfce, 71e8595 → 5496416 (update-check); 782d065 → 8d1f450, 95cba82 → 2c52b87, cdb83ba → e6d9cae, 424415a → cf82bae, 45cb250 → 397fc82, 80d5c11 → cae5a3c (upstream-watch); bfebce9 → 01980ad (units). Green on arrival, mutants killed on scratch copies: fbd2024, 50e836b, bd505de. bd505de was committed with shellcheck red, repaired by 0373c12 with no assertion changed. One mutant survived and is equivalent: "the known version always wins" in update-check.
+- L10 tests: `make check` "All checks passed (7 steps)". `timer-retries.test.sh` ran against this machine's real user manager, not skipped (CI may skip it): 4 runs, `start-limit-hit`, a start after the window runs again. That start stands in for the timer; no real timer or suspend was exercised.
+- L11 pending on each machine: `./install.sh` to load the new unit settings, and `claude plugin update toolkit@ai-dotfiles` for the hook.
+- L12 Risk: item 4, 5 (retries of timer runs; systemd unit config)
