@@ -130,6 +130,19 @@ assert 'the other task is validated' says 'ok    good-task'
 assert 'the summary counts the valid and the skipped' says 'All 1 task(s) valid, 1 skipped'
 assert 'the missing repo alone does not fail the step' test -z "$FAILED_LINE"
 
+echo "== a source repo that is here, without the task's commit =="
+mk_repo here
+mk_task "$R" here-task
+rm -rf "$R/bench/worker/tasks/here-task/fixture"
+source_repo=$TMP_ROOT/here-source
+git init -q "$source_repo"
+git -C "$source_repo" commit -q --allow-empty -m init
+printf '%s abc1234\n' "$source_repo" >"$R/bench/worker/tasks/here-task/source"
+run_check
+assert 'the task fails' says 'FAIL  here-task'
+assert 'the task is not skipped' lacks 'SKIP  here-task'
+assert 'make check reports the failure' test -n "$FAILED_LINE"
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
