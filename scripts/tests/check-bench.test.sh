@@ -118,6 +118,18 @@ assert 'with no origin/main it validates no task' lacks 'good-task'
 assert 'with no origin/main it prints no git error' lacks 'fatal'
 assert 'with no origin/main it does not fail' test -z "$FAILED_LINE"
 
+echo "== a task whose source repo is not on this machine =="
+mk_repo away
+mk_task "$R" away-task
+rm -rf "$R/bench/worker/tasks/away-task/fixture"
+printf '%s abc1234\n' "$TMP_ROOT/no-such-repo" >"$R/bench/worker/tasks/away-task/source"
+run_check
+assert 'the task is reported as skipped' says 'SKIP  away-task'
+assert 'the report names the missing repo' says "$TMP_ROOT/no-such-repo"
+assert 'the other task is validated' says 'ok    good-task'
+assert 'the summary counts the valid and the skipped' says 'All 1 task(s) valid, 1 skipped'
+assert 'the missing repo alone does not fail the step' test -z "$FAILED_LINE"
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
