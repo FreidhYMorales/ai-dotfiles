@@ -79,6 +79,7 @@ fi
 
 changed='[]'
 previous=$(jq -c '[.changed[]? | objects]' "$STATE" 2>/dev/null) || previous='[]'
+[[ -n $previous ]] || previous='[]' # an empty file is valid input to jq
 refresh_exit=0
 lines=()
 while IFS=$'\t' read -r repo watch reviewed why; do
