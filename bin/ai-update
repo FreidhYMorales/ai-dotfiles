@@ -3,9 +3,9 @@
 #   - Plugins: refresh every marketplace, then update installed plugins that
 #     are older than their marketplace manifest.
 #   - engram: download the latest GitHub release, verify its checksum, back up
-#     the database (sqlite3 VACUUM INTO) and the binary, swap it atomically, verify
-#     the version (rolling back on mismatch), run `engram doctor`, and restart
-#     a running `engram serve`.
+#     the database (sqlite3 VACUUM INTO) and the binary, keeping the last two of
+#     each, swap it atomically, check the version and `engram doctor`; on a failure
+#     offer to restore both (always asks); restart a running `engram serve`.
 #   - OpenCode and Antigravity: rerun install.sh for the installed ones (by
 #     config dir), so their generated build follows the repo after a pull;
 #     without a prompt, since it only rebuilds derived files.
