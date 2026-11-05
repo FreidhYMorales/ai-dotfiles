@@ -99,6 +99,16 @@ run_check
 assert 'the unpushed change validates the task' says 'ok    good-task'
 assert 'the unpushed change is not skipped' lacks 'skipped'
 
+echo "== a task that fails validation =="
+mk_repo broken
+mk_task "$R" broken-task
+# A check that passes on the untouched repo proves nothing, so validation fails.
+printf 'true\n' >"$R/bench/worker/tasks/broken-task/check.sh"
+run_check
+assert 'the step names the broken task' says 'FAIL  broken-task'
+assert 'the other task is still validated' says 'ok    good-task'
+assert 'make check reports the bench step failed' test -n "$FAILED_LINE"
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
