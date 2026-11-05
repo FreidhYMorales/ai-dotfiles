@@ -235,8 +235,8 @@ upgrade_engram() {
 
   stamp=$(date +%Y%m%d-%H%M%S)
   backup="$HOME/.engram-backup-$stamp"
-  mkdir -p "$backup"
   if [[ -f $ENGRAM_DATA_DIR/engram.db ]]; then
+    mkdir -p "$backup"
     # VACUUM INTO, like engram-backup: a consistent copy without the deleted
     # rows that engram's sqlite leaves in free pages.
     if ! sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'" ||
@@ -245,8 +245,8 @@ upgrade_engram() {
       echo "error: could not back up the database; engram unchanged" >&2
       return 1
     fi
+    echo "backed up: database -> $backup"
   fi
-  echo "backed up: database -> $backup"
   if ! cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"; then
     rm -f "$ENGRAM_BIN-$current.bak"
     rm -rf "$backup"
