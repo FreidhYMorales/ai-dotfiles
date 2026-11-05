@@ -38,3 +38,9 @@ Risk: item 1, 4, 5 (restores over the live memory database and deletes old copie
 
 - L1 request: /flow:story 10
 - Declining the restore: confirmed by the user (database never touched without a yes; a non-starting binary goes back; after a failed doctor the new binary stays and restore commands are printed).
+- Pair: all listed tests plus 5b committed; `scripts/tests/ai-update.test.sh` 141 PASS, `make check` "All checks passed (7 steps)". Risk: item 1, 4, 5.
+- Verifier 1: FAIL (unanchored binary prune, unchecked database copy, `stop_server` timeout). One correction batch applied, each fix red then green.
+- Process breach: a024b9b was committed with tests failing and introduced a regression (a missing copy counted as sound); fixed in 3848d38, history not rewritten.
+- Driver decision, not in the story: under a server that will not stop, a restore changes nothing and prints the commands, a healthy update only warns, neither starts a second server.
+- Verifier 2 (recheck): FAIL. Must fix: suffix look-alikes still pruned; unchecked binary copy before the swap and a false "rolled back"; a no-server assertion that can pass by race. Should fix: empty backup dirs count as copies; an unreadable doctor report still prunes.
+- Status: NEEDS DECISION. Second FAIL, so the story stays open and no further fixes were applied.
