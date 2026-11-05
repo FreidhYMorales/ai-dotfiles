@@ -13,6 +13,11 @@
 #           (default: `make check` for self, nothing otherwise); $BENCH
 #           points at bench/worker, for shared gate scripts
 
+# A git hook can export GIT_DIR and friends, and they outrank `git -C`: every
+# command below would then rewrite the repo being checked, not the task's repo.
+mapfile -t git_local_vars < <(git rev-parse --local-env-vars)
+unset "${git_local_vars[@]}"
+
 BENCH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(cd "$BENCH/../.." && pwd)
 BASE=$(<"$BENCH/BASE")
