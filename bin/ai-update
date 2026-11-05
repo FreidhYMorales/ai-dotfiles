@@ -255,8 +255,11 @@ upgrade_engram() {
   local installed
   installed=$("$ENGRAM_BIN" version 2>/dev/null | awk '{print $2}' || true)
   if [[ ${installed#v} != "$latest" ]]; then
-    cp -p "$ENGRAM_BIN-$current.bak" "$ENGRAM_BIN"
-    echo "error: new binary does not report $latest; rolled back to $current" >&2
+    if cp -p "$ENGRAM_BIN-$current.bak" "$ENGRAM_BIN"; then
+      echo "error: new binary does not report $latest; rolled back to $current" >&2
+    else
+      echo "error: new binary does not report $latest and could not roll back; previous binary kept at $ENGRAM_BIN-$current.bak" >&2
+    fi
     offer_restore "$current" "$backup"
     return 1
   fi
