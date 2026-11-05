@@ -290,6 +290,21 @@ before=$(repo_state "$root")
 LAST_OUT=$(GIT_DIR="$root/.git" bash "$SCRIPTS/check.sh" "$root" 2>&1)
 state_kept 'check.sh leaves the checked repo as it was under GIT_DIR' "$root" "$before"
 
+root=$(git_fixture vars-healthy)
+GIT_DIR="$root/.git" GIT_WORK_TREE="$root" expect 0 'a healthy tree still passes under the variables' check.sh "$root"
+output_has 'the healthy tree prints a passing summary' 'All checks passed'
+
+root=$(git_fixture vars-broken)
+printf 'nope' >"$root/plugins/p/broken.json"
+GIT_DIR="$root/.git" GIT_WORK_TREE="$root" expect 1 'a broken tree still fails under the variables' check.sh "$root"
+output_has 'the broken tree names the failed step' 'FAILED: json'
+if grep -q 'FAILED: tests' <<<"$LAST_OUT"; then
+  printf 'FAIL  no test fails because of the variables\n%s\n' "$LAST_OUT"
+  failures=$((failures + 1))
+else
+  printf 'PASS  no test fails because of the variables\n'
+fi
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
