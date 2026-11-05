@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Structural test: the lists the repo keeps by hand match what is on disk.
+# Run: bash scripts/tests/repo-lists.test.sh
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TOOLKIT="$ROOT/plugins/toolkit"
+failures=0
+
+assert() {
+  local label=$1
+  shift
+  if "$@"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s\n' "$label"
+    failures=$((failures + 1))
+  fi
+}
+
+# has TEXT FIXED: TEXT contains the fixed string.
+has() { rg -qF -- "$2" <<<"$1"; }
+
+# Every hook script; lib.sh is a helper sourced by the hooks, not a hook.
+hooks=()
+for f in "$TOOLKIT"/hooks/*.sh; do
+  name=${f##*/}
+  name=${name%.sh}
+  [[ $name == lib ]] || hooks+=("$name")
+done
+
+skills=()
+for d in "$TOOLKIT"/skills/*/; do
+  d=${d%/}
+  skills+=("${d##*/}")
+done
+
+echo "== the README's toolkit row names every skill and hook =="
+row=$(rg -F '| `plugins/toolkit/` |' "$ROOT/README.md")
+assert 'the toolkit row is found' test -n "$row"
+assert 'the scan found the 11 skills' test "${#skills[@]}" -ge 11
+assert 'the scan found the 9 hooks' test "${#hooks[@]}" -ge 9
+for name in "${skills[@]}"; do
+  assert "the toolkit row names the skill $name" has "$row" "\`$name\`"
+done
+for name in "${hooks[@]}"; do
+  assert "the toolkit row names the hook $name" has "$row" "\`$name\`"
+done
+
+if ((failures > 0)); then
+  printf '%d case(s) failed\n' "$failures"
+  exit 1
+fi
+echo 'All cases passed'
