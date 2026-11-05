@@ -217,7 +217,11 @@ upgrade_engram() {
   if [[ -f $ENGRAM_DATA_DIR/engram.db ]]; then
     # VACUUM INTO, like engram-backup: a consistent copy without the deleted
     # rows that engram's sqlite leaves in free pages.
-    sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'"
+    if ! sqlite3 "$ENGRAM_DATA_DIR/engram.db" "VACUUM INTO '${backup//\'/\'\'}/engram.db'"; then
+      rm -rf "$backup"
+      echo "error: could not back up the database; engram unchanged" >&2
+      return 1
+    fi
   fi
   echo "backed up: database -> $backup"
   cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"
