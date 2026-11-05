@@ -347,6 +347,15 @@ assert 'a failed database copy fails the update' test "$LAST_EXIT" -ne 0
 assert 'a failed database copy is reported' says 'could not back up the database'
 assert 'a failed database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
 
+# The copy command reports success, but what it wrote is no database.
+home=$(sandbox copy-corrupt 3.4.0 3.5.0)
+old_copies "$home" 3.1.0 3.2.0
+fake_vacuum "$home" "echo garbage >\"\$(printf %s \"\$2\" | rg -o \"/[^']*\")\""
+update "$home" '' --yes
+assert 'a corrupt database copy fails the update' test "$LAST_EXIT" -ne 0
+assert 'a corrupt database copy is reported' says 'could not back up the database'
+assert 'a corrupt database copy stops before the swap and costs no copy' copies_kept_and_engram_alone "$home"
+
 echo "== restores on a yes =="
 
 home=$(sandbox restore-doctor-exit 3.4.0 none)
