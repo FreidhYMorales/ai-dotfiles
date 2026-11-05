@@ -143,6 +143,31 @@ assert 'the task fails' says 'FAIL  here-task'
 assert 'the task is not skipped' lacks 'SKIP  here-task'
 assert 'make check reports the failure' test -n "$FAILED_LINE"
 
+echo "== changes outside bench/ =="
+mk_repo outside-dirty
+printf 'x\n' >"$R/other"
+run_check
+assert 'an uncommitted change elsewhere says skipped' says 'skipped'
+assert 'an uncommitted change elsewhere validates no task' lacks 'good-task'
+
+mk_repo outside-unpushed
+printf 'x\n' >"$R/other"
+git -C "$R" add other
+git -C "$R" commit -q -m 'change elsewhere'
+run_check
+assert 'an unpushed commit elsewhere says skipped' says 'skipped'
+assert 'an unpushed commit elsewhere validates no task' lacks 'good-task'
+
+echo "== a branch behind origin/main, whose new commit changed bench/ =="
+mk_repo behind
+printf 'Create done now.\n' >"$R/bench/worker/tasks/good-task/prompt.md"
+git -C "$R" commit -q -am 'the remote changes a task'
+git -C "$R" update-ref refs/remotes/origin/main HEAD
+git -C "$R" reset -q --hard HEAD~1
+run_check
+assert 'a branch behind the remote says skipped' says 'skipped'
+assert 'a branch behind the remote validates no task' lacks 'good-task'
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
