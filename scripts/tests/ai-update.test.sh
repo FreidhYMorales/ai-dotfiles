@@ -253,6 +253,17 @@ assert 'a versioned engram-backup look-alike survives' test -e "$home/local/bin/
 assert 'a versioned look-alike does not displace the pre-update binary' test -e "$home/local/bin/engram-3.12.0.bak"
 assert 'a versioned look-alike does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
 
+# Hand-saved names with text after the version, one sorting after the real copies.
+home=$(sandbox prune-suffixes 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+touch "$home/local/bin/engram-3.6.1-works.bak" "$home/local/bin/engram-9.9.9.old.bak"
+update "$home" '' --yes
+assert 'a name with a suffix after the version survives' test -e "$home/local/bin/engram-3.6.1-works.bak"
+assert 'a high version with a suffix survives' test -e "$home/local/bin/engram-9.9.9.old.bak"
+assert 'a suffixed name does not displace the pre-update binary' test -e "$home/local/bin/engram-3.12.0.bak"
+assert 'a suffixed name does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
+assert 'the oldest real binaries are still pruned' test ! -e "$home/local/bin/engram-3.9.0.bak"
+
 echo "== judges the doctor =="
 
 # publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
