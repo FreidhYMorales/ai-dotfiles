@@ -268,6 +268,17 @@ assert 'a suffixed name does not displace the pre-update binary' test -e "$home/
 assert 'a suffixed name does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
 assert 'the oldest real binaries are still pruned' test ! -e "$home/local/bin/engram-3.9.0.bak"
 
+# No database means no copy: an empty directory must not displace a real one.
+home=$(sandbox prune-no-database 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+rm -f "$home/.engram/engram.db"
+update "$home" '' --yes
+says_no_database_backup() { ! says 'backed up: database'; }
+assert 'no database claims no database backup' says_no_database_backup
+assert 'no database leaves two copies' test "$(database_copies "$home")" -eq 2
+assert 'no database keeps the newest real copy' test -f "$home/.engram-backup-20260301-000000/engram.db"
+assert 'no database keeps the next real copy' test -f "$home/.engram-backup-20260201-000000/engram.db"
+
 echo "== judges the doctor =="
 
 # publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
