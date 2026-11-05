@@ -47,6 +47,18 @@ for name in "${hooks[@]}"; do
   assert "the toolkit row names the hook $name" has "$row" "\`$name\`"
 done
 
+echo "== make mutate covers every hook with its own test file =="
+tested=()
+for name in "${hooks[@]}"; do
+  [[ -f $TOOLKIT/hooks/tests/$name.test.sh ]] && tested+=("$name")
+done
+# HOOKS is overridable, so an exported value must not decide this result.
+plan=$(env -u HOOKS make --no-print-directory -C "$ROOT" -n mutate)
+assert 'the scan found the 9 tested hooks' test "${#tested[@]}" -ge 9
+for name in "${tested[@]}"; do
+  assert "make mutate covers $name" has "$plan" "$name"
+done
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
