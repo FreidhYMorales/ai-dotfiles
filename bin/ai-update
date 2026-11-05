@@ -151,17 +151,18 @@ prune_copies() {
     sort -V | head -n -2 | xargs -r -d '\n' rm -f --
 }
 
-# doctor_reports_errors: true when the report counts errors. Doctor exits 0 even
-# when blocked, and warnings or blocked checks can predate the update, so they
-# pass; an unreadable report is no evidence of a failure, only a warning.
-doctor_reports_errors() {
+# read_doctor_report: 0 when the report counts no errors, 1 when it counts some,
+# 2 when it cannot be read. Doctor exits 0 even when blocked, and warnings or
+# blocked checks can predate the update, so they pass. An unreadable report is no
+# evidence of a failure, nor of health: warn, keep the update and the old copies.
+read_doctor_report() {
   local errors
   errors=$("$ENGRAM_BIN" doctor --json </dev/null 2>/dev/null | jq -r '.summary.errors' 2>/dev/null || true)
   if [[ ! $errors =~ ^[0-9]+$ ]]; then
-    echo "warning: could not read the engram doctor report" >&2
-    return 1
+    echo "warning: could not read the engram doctor report; old copies kept" >&2
+    return 2
   fi
-  ((errors > 0))
+  ((errors == 0))
 }
 
 # The size check comes first: sqlite3 creates a missing file and calls it ok.
@@ -271,13 +272,16 @@ upgrade_engram() {
     return 1
   fi
   echo "installed: engram $latest"
-  if ! "$ENGRAM_BIN" doctor </dev/null 2>&1 | tail -n 5 || doctor_reports_errors; then
+  local doctor_code=0
+  "$ENGRAM_BIN" doctor </dev/null 2>&1 | tail -n 5 || doctor_code=1
+  if ((doctor_code == 0)); then read_doctor_report || doctor_code=$?; fi
+  if ((doctor_code == 1)); then
     echo "error: engram doctor failed" >&2
     offer_restore "$current" "$backup" || print_restore_commands "$current" "$backup"
     return 1
   fi
   rm -f "$UPDATE_CHECK_CACHE"
-  prune_copies
+  if ((doctor_code == 0)); then prune_copies; fi
   restart_server
 }
 
