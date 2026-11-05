@@ -240,7 +240,12 @@ upgrade_engram() {
     fi
   fi
   echo "backed up: database -> $backup"
-  cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"
+  if ! cp -p "$ENGRAM_BIN" "$ENGRAM_BIN-$current.bak"; then
+    rm -f "$ENGRAM_BIN-$current.bak"
+    rm -rf "$backup"
+    echo "error: could not back up the binary; engram unchanged" >&2
+    return 1
+  fi
   echo "backed up: binary -> $ENGRAM_BIN-$current.bak"
 
   dir=$(dirname "$ENGRAM_BIN")
