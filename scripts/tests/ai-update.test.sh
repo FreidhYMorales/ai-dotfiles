@@ -446,6 +446,41 @@ publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
 FAKE_RESTART_SERVER=1 update "$home" $'y\n' --yes
 assert 'a restore starts no server when none was running' test ! -e "$home/state/serve-calls"
 
+# stuck_server HOME: a server that ignores the request to stop.
+stuck_server() {
+  (
+    bash -c 'trap "" TERM; for _ in {1..300}; do sleep 0.1; done' >/dev/null 2>&1 &
+    echo $! >"$1/state/serve-pid"
+  )
+}
+kill_stuck_server() { kill -9 "$(cat "$1/state/serve-pid")" 2>/dev/null || true; }
+# A server starts in the background: give a wrong one the time to show up.
+no_server_started() {
+  sleep 0.5
+  [[ ! -e $1/state/serve-calls ]]
+}
+
+home=$(sandbox restore-stuck 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+stuck_server "$home"
+FAKE_DOCTOR_LEAVE_WAL=1 FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE="$home/local/bin/engram serve" update "$home" $'y\n' --yes
+kill_stuck_server "$home"
+assert 'a stuck server fails the restore' test "$LAST_EXIT" -ne 0
+assert 'a stuck server is reported' says 'engram serve did not stop'
+assert 'a stuck server does not claim a restore' no_restored_claim
+assert 'a stuck server keeps the write-ahead log' test -e "$home/.engram/engram.db-wal"
+assert 'a stuck server keeps the database' has_row "$home" migrated
+assert 'a stuck server keeps the binary' engram_is "$home" 3.5.0
+assert 'a stuck server still gets the restore commands' says 'To restore by hand'
+assert 'a stuck server gets no second server' no_server_started "$home"
+
+home=$(sandbox update-stuck 3.4.0 3.5.0)
+stuck_server "$home"
+FAKE_RESTART_SERVER=1 FAKE_SERVE_CMDLINE='engram serve' update "$home" '' --yes
+kill_stuck_server "$home"
+assert 'a healthy update with a stuck server warns' says 'engram serve did not stop'
+assert 'a healthy update with a stuck server starts no second one' no_server_started "$home"
+
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
 publish_doctor "$home" 3.5.0 0 '{"status":"error","summary":{"total":10,"ok":9,"errors":1}}'
