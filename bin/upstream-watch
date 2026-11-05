@@ -78,10 +78,12 @@ fi
 
 changed='[]'
 previous=$(jq -c '.changed // []' "$STATE" 2>/dev/null) || previous='[]'
+refresh_exit=0
 lines=()
 while IFS=$'\t' read -r repo watch reviewed why; do
   if ! IFS=$'\t' read -r id url < <(latest "$repo" "$watch"); then
     lines+=("$repo: could not check (offline or rate-limited)")
+    refresh_exit=1
     changed=$(jq --argjson previous "$previous" --arg r "$repo" \
       '. + [$previous[] | select(.repo == $r)]' <<<"$changed")
     continue
@@ -103,7 +105,7 @@ mkdir -p "$(dirname "$STATE")"
 jq -n --argjson changed "$changed" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{checked_at: $at, changed: $changed}' >"$STATE.tmp" && mv -f "$STATE.tmp" "$STATE"
 
-[[ $MODE == refresh ]] && exit 0
+[[ $MODE == refresh ]] && exit "$refresh_exit"
 if ((${#lines[@]})); then
   printf '%s\n' "${lines[@]}"
   [[ $changed != '[]' ]] && echo "Review them, then: upstream-watch --mark REPO (or all)"
