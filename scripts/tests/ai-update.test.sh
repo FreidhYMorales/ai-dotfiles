@@ -557,6 +557,14 @@ FAKE_MCP_CMDLINE='engram mcp' update "$home" $'y\n' --yes
 assert 'a bare engram mcp is reported' says 'engram mcp is running'
 assert 'a bare engram mcp keeps the database' has_row "$home" migrated
 
+# The same check as 'a restore starts no server when none was running', with time
+# for a wrong start to show up.
+home=$(sandbox restore-no-server-wait 3.4.0 none)
+publish_doctor "$home" 3.5.0 1 '{"status":"error","summary":{"errors":1}}'
+FAKE_RESTART_SERVER=1 update "$home" $'y\n' --yes
+assert 'a restore with no server running still restores' says 'restored: engram 3.4.0 and the database'
+assert 'a restore with no server running never starts one' no_server_started "$home"
+
 # The doctor exits 0 and only its report says it failed.
 home=$(sandbox restore-doctor-errors 3.4.0 none)
 publish_doctor "$home" 3.5.0 0 '{"status":"error","summary":{"total":10,"ok":9,"errors":1}}'
