@@ -243,6 +243,16 @@ assert 'a look-alike binary sorting last survives' test -e "$home/local/bin/engr
 assert 'look-alikes do not displace a database copy' test -d "$home/.engram-backup-20260301-000000"
 assert 'look-alikes do not displace a binary copy' test -e "$home/local/bin/engram-3.10.0.bak"
 
+# Look-alikes that carry a version number, and sort after the real copies.
+home=$(sandbox prune-versioned 3.12.0 3.13.0)
+old_copies "$home" 3.9.0 3.10.0
+touch "$home/local/bin/engram-backup-1.2.3.bak" "$home/local/bin/engram-mine-1.2.3.bak"
+update "$home" '' --yes
+assert 'a versioned look-alike survives' test -e "$home/local/bin/engram-mine-1.2.3.bak"
+assert 'a versioned engram-backup look-alike survives' test -e "$home/local/bin/engram-backup-1.2.3.bak"
+assert 'a versioned look-alike does not displace the pre-update binary' test -e "$home/local/bin/engram-3.12.0.bak"
+assert 'a versioned look-alike does not displace the older binary' test -e "$home/local/bin/engram-3.10.0.bak"
+
 echo "== judges the doctor =="
 
 # publish_doctor HOME TAG EXIT JSON: release TAG whose doctor writes a row (as a
