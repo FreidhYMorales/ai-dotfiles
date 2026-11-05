@@ -29,6 +29,7 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 23 | make check leaves the repo alone under an exported GIT_DIR | GO | backlog (audit-fixes #23) | 0.25 | 2026-11-05 | [23](#23-make-check-leaves-the-repo-alone-under-an-exported-git_dir) |
 | 24 | Verifier scratch clones cannot push back | GO | backlog (audit-fixes #24) | 0.25 | 2026-11-05 | [24](#24-verifier-scratch-clones-cannot-push-back) |
 | 25 | Small gaps in the bench step | GO | backlog (audit-fixes #25) | 0.25 | 2026-11-05 | [25](#25-small-gaps-in-the-bench-step) |
+| 26 | A verifier that keeps its shell and a caller that cannot widen it | pending | backlog | 0.5 | 2026-11-05 | [26](#26-a-verifier-that-keeps-its-shell-and-a-caller-that-cannot-widen-it) |
 
 ---
 
@@ -271,3 +272,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high; complexity low; effort 0.25 d; value low-medium (accurate messages, no damage); risk item 5, contained; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: one more small story.
 - Decision: GO (user, 2026-11-05) → audit-fixes backlog #25.
+
+## 26. A verifier that keeps its shell and a caller that cannot widen it
+
+- Idea: find out why the verifier loses its shell inside the evals, so they can grade it again, and limit what `/flow:pair` may tell a verifier to the story ID, the plan folder and the reference paths.
+- Raised during: audit-fixes story 24 (2026-11-05).
+- Findings: (1) In `verifier-catches-tampered-test` and `verifier-passes-good-story`, failing runs report that the subagent had no shell although its definition lists Bash, and `replace-sdd` story 04 L7 saw the same. Neither case reached its threshold on 2026-11-05 (pass rates 0.67 and 0.33; earlier scores in story 04 L8), and a verifier with no shell cannot exercise the clone rules, so these evals prove nothing about them. Cause not confirmed: the traces were not kept. (2) In stories 22 and 24 the caller's own prompts widened the verifier: they asked for clones and `GIT_DIR` runs, and told it to follow the branch's rules over its installed definition, which said read-only. Its written rule that a caller cannot widen it does not stop this; only the ref comparison outside the agent caught the risk.
+- Score: feasibility medium ((1) needs a run with `--keep-temp` to read the traces); complexity low to medium; effort 0.5 d; value medium-high (a working eval is the only way to grade item 6 here); risk item 6; no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: GO; tradeoff: paid eval runs while diagnosing, and a narrower prompt gives the verifier less context.
+- Decision: pending (raised 2026-11-05; the user asked to record it).
