@@ -36,6 +36,17 @@ assert 'reads the story file' has "$AGENT" 'stories/NN-<slug>.md'
 assert 'reads the branch diff against main' has "$AGENT" 'git diff main...HEAD'
 assert 'reads the pair references' has "$AGENT" 'pair/references/'
 
+echo "== agent: experiments cannot reach the repo =="
+# The generated OpenCode agent must carry the rules too; gen-agents.test.sh
+# proves its golden matches a fresh generation.
+OPENCODE_AGENT="$ROOT/scripts/gen-agents/golden/opencode/agents/flow-verifier.md"
+for agent in "$AGENT" "$OPENCODE_AGENT"; do
+  name=${agent#"$ROOT"/}
+  assert "$name: read-only applies to the repo under review" has "$agent" 'Read-only in the repo under review.'
+  assert "$name: experiments run only in a scratch clone" has "$agent" 'only in a scratch clone outside the repo'
+  assert "$name: remotes go before anything runs" has "$agent" 'every remote removed'
+done
+
 echo "== agent: report shape pair parses =="
 assert 'has a fixed report section' has "$AGENT" '## Report'
 assert 'one row per acceptance criterion' has "$AGENT" '| Criterion | Result | Evidence |'
