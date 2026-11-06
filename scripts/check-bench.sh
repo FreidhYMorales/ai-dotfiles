@@ -15,4 +15,9 @@ if [[ -z $uncommitted$unpushed ]]; then
   exit 0
 fi
 
+if [[ ! -f $ROOT/bench/worker/validate.sh ]]; then
+  printf 'bench: cannot validate the change, bench/worker/validate.sh is missing\n'
+  exit 1
+fi
+
 bash "$ROOT/bench/worker/validate.sh"
