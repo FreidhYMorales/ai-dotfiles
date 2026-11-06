@@ -115,7 +115,7 @@ tool_env() {
     CARGO_TARGET_DIR=$cache/cargo-target PYTHONDONTWRITEBYTECODE=1 DENO_DIR=$cache/deno
 }
 run_check() {
-  (cd "$2" && tool_env "$2.cache" && timeout 600 bash "$1/check.sh") </dev/null >"$3" 2>&1
+  (cd "$2" && tool_env "$2.cache" && limited 600 bash "$1/check.sh") </dev/null >"$3" 2>&1
 }
 run_gate() {
   local gate
