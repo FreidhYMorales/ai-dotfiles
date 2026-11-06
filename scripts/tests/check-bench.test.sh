@@ -81,6 +81,8 @@ assert 'the bench step ran' says '== bench =='
 assert 'it says the validation was skipped' says 'skipped'
 assert 'it validates no task' lacks 'good-task'
 assert 'it does not fail' test -z "$FAILED_LINE"
+assert 'it says nothing changed' says 'no change under bench/'
+assert 'it does not say it could not compare' lacks 'could not compare'
 
 echo "== an uncommitted change under bench/ =="
 mk_repo dirty
