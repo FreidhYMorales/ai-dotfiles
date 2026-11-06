@@ -240,11 +240,19 @@ HANG
 
 under() { [[ $1 == "$2"/* ]]; }
 
+# running PID: true while PID runs. A zombie has ended: in a container with no
+# init nothing reaps an orphan, and kill -0 still finds it.
+running() {
+  local state
+  state=$(ps -o stat= -p "$1" 2>/dev/null)
+  [[ -n $state && $state != Z* ]]
+}
+
 # gone_soon PID: true when PID ends within 5 seconds.
 gone_soon() {
   local _
   for _ in {1..50}; do
-    kill -0 "$1" 2>/dev/null || return 0
+    running "$1" || return 0
     sleep 0.1
   done
   return 1
