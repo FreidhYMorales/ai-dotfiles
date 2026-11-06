@@ -211,6 +211,16 @@ assert 'HEAD of the checked repo does not move' test "$(git -C "$R" rev-parse HE
 assert 'the branch of the checked repo stays' test "$(git -C "$R" branch --show-current)" = main
 assert 'the other branch of the checked repo survives' git -C "$R" rev-parse -q --verify refs/heads/keep-me
 
+echo "== a change that deletes validate.sh =="
+mk_repo no-validator
+rm "$R/bench/worker/validate.sh"
+run_check
+assert 'a deleted validator fails the step' test -n "$FAILED_LINE"
+assert 'the failure names the missing file' says 'bench/worker/validate.sh'
+assert 'the failure hides the raw shell error' lacks 'No such file'
+bash "$ROOT/scripts/check-bench.sh" "$R" >/dev/null 2>&1
+assert 'a deleted validator exits 1, not 127' test "$?" = 1
+
 echo "== the README's claim about CI =="
 # shellcheck disable=SC2016
 OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
