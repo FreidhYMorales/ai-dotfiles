@@ -11,7 +11,11 @@ changes=$(
   git -C "$ROOT" diff --name-only origin/main...HEAD -- bench 2>/dev/null
 )
 if [[ -z $changes ]]; then
-  printf 'bench: skipped, no change under bench/\n'
+  if git -C "$ROOT" rev-parse -q --verify origin/main >/dev/null 2>&1; then
+    printf 'bench: skipped, no change under bench/\n'
+  else
+    printf 'bench: skipped, could not compare with origin/main\n'
+  fi
   exit 0
 fi
 
