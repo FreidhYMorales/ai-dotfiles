@@ -121,7 +121,17 @@ run_gate() {
   local gate
   gate=$(gate_cmd "$1")
   [[ -z $gate ]] && return 0
-  (cd "$2" && tool_env "$2.cache" && BENCH=$BENCH timeout 900 bash -c "$gate") </dev/null >"$3" 2>&1
+  (cd "$2" && tool_env "$2.cache" && BENCH=$BENCH limited 900 bash -c "$gate") </dev/null >"$3" 2>&1
+}
+
+# limited SECONDS CMD...: like timeout, but a TERM to this shell also reaches
+# the command. timeout gives it its own process group, out of an outer timeout's
+# reach. Call it in a subshell: it leaves its trap set.
+limited() {
+  timeout "$@" &
+  local pid=$!
+  trap 'kill "$pid" 2>/dev/null' TERM
+  wait "$pid"
 }
 
 # format_changed REPO BASE: shfmt the shell files the worker changed. Format is
