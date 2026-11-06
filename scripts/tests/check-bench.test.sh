@@ -230,6 +230,59 @@ assert 'the failure names the missing validator' says 'bench/worker/validate.sh'
 assert 'the failure says it cannot validate' says 'cannot validate'
 assert 'the failure hides the raw error for bench/' lacks 'No such file'
 
+# hang_command STATE: one line that records itself in STATE, then hangs with a
+# child; if it gets past the child, it writes STATE/finished.
+hang_command() {
+  cat <<HANG
+pwd >"$1/cwd"; echo \$\$ >"$1/pid"; sleep 30 & echo \$! >"$1/child"; wait; touch "$1/finished"
+HANG
+}
+
+under() { [[ $1 == "$2"/* ]]; }
+
+# gone_soon PID: true when PID ends within 5 seconds.
+gone_soon() {
+  local _
+  for _ in {1..50}; do
+    kill -0 "$1" 2>/dev/null || return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+# stop_step STATE: run the bench step on $R under an outer timeout that lands
+# while STATE's command hangs. The timeout's exit code lands in $STOP_RC.
+stop_step() {
+  mkdir -p "$1/tmp"
+  TMPDIR=$1/tmp timeout 8 bash "$ROOT/scripts/check-bench.sh" "$R" >/dev/null 2>&1
+  STOP_RC=$?
+}
+
+# assert_stopped LABEL STATE: the command started, and nothing of it remains.
+assert_stopped() {
+  local cmd child
+  cmd=$(<"$2/pid")
+  child=$(<"$2/child")
+  assert "$1: the command had started" test -n "$child"
+  assert "$1: it ran in a work directory under TMPDIR" under "$(<"$2/cwd")" "$2/tmp"
+  assert "$1: the timeout still reports 124" test "$STOP_RC" = 124
+  assert "$1: the command stops" gone_soon "$cmd"
+  assert "$1: its child stops" gone_soon "$child"
+  assert "$1: the work directory is gone" test -z "$(compgen -G "$2/tmp/*")"
+  assert "$1: it never reaches its last line" test ! -e "$2/finished"
+  kill "$cmd" "$child" 2>/dev/null
+}
+
+echo "== an outer timeout during a task's gate =="
+mk_repo stop-gate
+rm -rf "$R/bench/worker/tasks/good-task"
+mk_task "$R" hang-task
+state=$TMP_ROOT/stop-gate-state
+mkdir -p "$state"
+hang_command "$state" >"$R/bench/worker/tasks/hang-task/gate"
+stop_step "$state"
+assert_stopped 'gate' "$state"
+
 echo "== the README's claim about CI =="
 # shellcheck disable=SC2016
 OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
