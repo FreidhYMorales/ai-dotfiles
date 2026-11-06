@@ -42,3 +42,8 @@ Risk: item 5 (the bench step of `make check`, the gate run at every stop and in 
 ## Log
 
 - L1 request: /flow:story 25
+- L2 no red commit of their own: tests 2 (no git), 4 (real comparison) and 7 (all of `bench/` deleted) passed once written, because an earlier fix already covered them. Their red was run against the previous or a mutated `scripts/check-bench.sh`, then the script was restored.
+- L3 slip: d1d2701 was committed with `make check` red, because the commit was chained without checking its result. Cause: SC2016 on the literal backticks in the test from ffc081e. The user approved d7b6daa, which adds only the two `shellcheck disable` lines. Later commits ran only on a green check.
+- L4 user-approved test edit: `gate: the work directory is gone` from c9c079a failed once on green code. In 12 repeated runs the directory was still there at the outer timeout's return 5 times and gone at the next look every time: the outer shell dies before `validate.sh` finishes removing it. 951efbf makes the assertion wait up to 5 s; the expected result is unchanged, and it fails with `KEEP=1`.
+- L5 decision: `limited` forwards TERM to the nested `timeout` and keeps its limit. `timeout --foreground` was rejected because at the limit it would leave the command's children alive.
+- L6 timing, against the assumption above: `make check` with a bench change took 319 s, then 327 s at load 0.5 to 3, over the 300 s limit of `require-check`. Measured apart, under heavier load: tests 162 s, validation 135 s. Whether another run overlapped is not proven. Out of scope here.
