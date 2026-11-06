@@ -117,6 +117,8 @@ assert 'with no origin/main it says skipped' says 'skipped'
 assert 'with no origin/main it validates no task' lacks 'good-task'
 assert 'with no origin/main it prints no git error' lacks 'fatal'
 assert 'with no origin/main it does not fail' test -z "$FAILED_LINE"
+assert 'with no origin/main it says it could not compare' says 'could not compare'
+assert 'with no origin/main it does not claim no change' lacks 'no change'
 
 echo "== a task whose source repo is not on this machine =="
 mk_repo away
