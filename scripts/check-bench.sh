@@ -6,16 +6,12 @@ set -u
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # Uncommitted work, or commits the remote's main does not have yet.
-changes=$(
-  git -C "$ROOT" status --porcelain -- bench 2>/dev/null
-  git -C "$ROOT" diff --name-only origin/main...HEAD -- bench 2>/dev/null
-)
-if [[ -z $changes ]]; then
-  if git -C "$ROOT" rev-parse -q --verify origin/main >/dev/null 2>&1; then
-    printf 'bench: skipped, no change under bench/\n'
-  else
-    printf 'bench: skipped, could not compare with origin/main\n'
-  fi
+reason='no change under bench/'
+uncommitted=$(git -C "$ROOT" status --porcelain -- bench 2>/dev/null)
+unpushed=$(git -C "$ROOT" diff --name-only origin/main...HEAD -- bench 2>/dev/null) ||
+  reason='could not compare with origin/main'
+if [[ -z $uncommitted$unpushed ]]; then
+  printf 'bench: skipped, %s\n' "$reason"
   exit 0
 fi
 
