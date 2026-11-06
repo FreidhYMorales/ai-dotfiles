@@ -129,6 +129,16 @@ assert 'with no git it does not claim no change' lacks 'no change'
 assert 'with no git it validates no task' lacks 'good-task'
 assert 'with no git it does not fail' test -z "$FAILED_LINE"
 
+echo "== an origin/main with no history in common =="
+mk_repo unrelated
+empty_tree=$(git -C "$R" hash-object -t tree /dev/null)
+git -C "$R" update-ref refs/remotes/origin/main "$(git -C "$R" commit-tree -m other "$empty_tree")"
+run_check
+assert 'with unrelated history it says it could not compare' says 'could not compare'
+assert 'with unrelated history it does not claim no change' lacks 'no change'
+assert 'with unrelated history it validates no task' lacks 'good-task'
+assert 'with unrelated history it does not fail' test -z "$FAILED_LINE"
+
 echo "== a task whose source repo is not on this machine =="
 mk_repo away
 mk_task "$R" away-task
