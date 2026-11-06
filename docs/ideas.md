@@ -30,6 +30,7 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 24 | Verifier scratch clones cannot push back | GO | backlog (audit-fixes #24) | 0.25 | 2026-11-05 | [24](#24-verifier-scratch-clones-cannot-push-back) |
 | 25 | Small gaps in the bench step | GO | backlog (audit-fixes #25) | 0.25 | 2026-11-05 | [25](#25-small-gaps-in-the-bench-step) |
 | 26 | A verifier that keeps its shell and a caller that cannot widen it | pending | backlog | 0.5 | 2026-11-05 | [26](#26-a-verifier-that-keeps-its-shell-and-a-caller-that-cannot-widen-it) |
+| 27 | What makes make check exceed 300 s with a bench change | SPIKE | backlog | up to 1 h | 2026-11-05 | [27](#27-what-makes-make-check-exceed-300-s-with-a-bench-change) |
 
 ---
 
@@ -281,3 +282,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility medium ((1) needs a run with `--keep-temp` to read the traces); complexity low to medium; effort 0.5 d; value medium-high (a working eval is the only way to grade item 6 here); risk item 6; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: paid eval runs while diagnosing, and a narrower prompt gives the verifier less context.
 - Decision: pending (raised 2026-11-05; the user asked to record it).
+
+## 27. What makes make check exceed 300 s with a bench change
+
+- Idea: find out why `make check` with a change under `bench/` takes over the 300 s limit of `require-check`, which can report a false red at a stop.
+- Raised during: audit-fixes story 25 (2026-11-05).
+- Findings: with a bench change, 319 s, 327 s and 5:25; with none, 93 s; validation alone about 135 s and the tests step alone 162 s, measured at load 4-6. About 100 s are unexplained, and whether another run overlapped is not proven.
+- Score: feasibility high; complexity low to measure, the fix depends on the result; effort up to 1 h; value medium (only while a bench change is unpushed); no risk to measure, item 5 if the gate changes; no dependencies; audit-fixes backlog; displaces nothing.
+- Recommendation: SPIKE. Question: what takes the extra 100 s? Measure `make check` with and without a bench change, per step, in a clean clone with nothing else running. Done when the 100 s are explained or ruled out. Tradeoff: it fixes nothing yet, but avoids speeding up the wrong step.
+- Decision: SPIKE (user, 2026-11-05).
