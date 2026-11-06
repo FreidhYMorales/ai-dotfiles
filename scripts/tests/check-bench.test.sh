@@ -283,6 +283,16 @@ hang_command "$state" >"$R/bench/worker/tasks/hang-task/gate"
 stop_step "$state"
 assert_stopped 'gate' "$state"
 
+echo "== an outer timeout during a task's check =="
+mk_repo stop-check
+rm -rf "$R/bench/worker/tasks/good-task"
+mk_task "$R" hang-task
+state=$TMP_ROOT/stop-check-state
+mkdir -p "$state"
+hang_command "$state" >"$R/bench/worker/tasks/hang-task/check.sh"
+stop_step "$state"
+assert_stopped 'check' "$state"
+
 echo "== the README's claim about CI =="
 # shellcheck disable=SC2016
 OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
