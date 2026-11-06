@@ -34,4 +34,4 @@
 22. [x] 6ee9ee3 As the dotfiles owner, I want a change under `bench/` proven by `bench/worker/validate.sh` during verification, so that a broken benchmark task cannot stay unnoticed. (idea 16, from #12)
 23. [x] 4929983 As the dotfiles owner, I want `make check` to leave the checked repo alone when git's local variables such as `GIT_DIR` are exported, so that running the gate from a hook can never rewrite my refs. (idea 23, from #22)
 24. [x] b2917b1 As the dotfiles owner, I want the verifier to work on scratch clones that cannot push back and to prove my refs did not change, so that a verification can never pollute my repo unnoticed. (idea 24, from #22)
-25. [~] As the dotfiles owner, I want the bench step's skip message, its handling of a deleted `validate.sh`, its leftovers after a timeout and the README's CI claim to be accurate, so that the step's small gaps stop misleading me. (idea 25, from #22)
+25. [x] 2091ec6 As the dotfiles owner, I want the bench step's skip message, its handling of a deleted `validate.sh`, its leftovers after a timeout and the README's CI claim to be accurate, so that the step's small gaps stop misleading me. (idea 25, from #22)
