@@ -211,6 +211,12 @@ assert 'HEAD of the checked repo does not move' test "$(git -C "$R" rev-parse HE
 assert 'the branch of the checked repo stays' test "$(git -C "$R" branch --show-current)" = main
 assert 'the other branch of the checked repo survives' git -C "$R" rev-parse -q --verify refs/heads/keep-me
 
+echo "== the README's claim about CI =="
+OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
+assert 'the README row mentions the bench step' says 'bench task validation'
+assert 'the README does not promise the step never runs in CI' lacks 'never in CI'
+assert 'the README says why a pull request skips' says 'shallow checkout has no `origin/main`'
+
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
