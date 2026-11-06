@@ -250,6 +250,17 @@ gone_soon() {
   return 1
 }
 
+# empties_soon DIR: true when DIR holds nothing within 5 seconds. The outer
+# timeout returns while validate.sh may still be removing its work directory.
+empties_soon() {
+  local _
+  for _ in {1..50}; do
+    [[ -z $(compgen -G "$1/*") ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 # stop_step STATE: run the bench step on $R under an outer timeout that lands
 # while STATE's command hangs. The timeout's exit code lands in $STOP_RC.
 stop_step() {
@@ -268,7 +279,7 @@ assert_stopped() {
   assert "$1: the timeout still reports 124" test "$STOP_RC" = 124
   assert "$1: the command stops" gone_soon "$cmd"
   assert "$1: its child stops" gone_soon "$child"
-  assert "$1: the work directory is gone" test -z "$(compgen -G "$2/tmp/*")"
+  assert "$1: the work directory is gone" empties_soon "$2/tmp"
   assert "$1: it never reaches its last line" test ! -e "$2/finished"
   kill "$cmd" "$child" 2>/dev/null
 }
