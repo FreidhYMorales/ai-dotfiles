@@ -120,6 +120,15 @@ assert 'with no origin/main it does not fail' test -z "$FAILED_LINE"
 assert 'with no origin/main it says it could not compare' says 'could not compare'
 assert 'with no origin/main it does not claim no change' lacks 'no change'
 
+echo "== a directory with no git =="
+mk_repo nogit
+rm -rf "$R/.git"
+run_check
+assert 'with no git it says it could not compare' says 'could not compare'
+assert 'with no git it does not claim no change' lacks 'no change'
+assert 'with no git it validates no task' lacks 'good-task'
+assert 'with no git it does not fail' test -z "$FAILED_LINE"
+
 echo "== a task whose source repo is not on this machine =="
 mk_repo away
 mk_task "$R" away-task
