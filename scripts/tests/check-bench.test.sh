@@ -221,6 +221,15 @@ assert 'the failure hides the raw shell error' lacks 'No such file'
 bash "$ROOT/scripts/check-bench.sh" "$R" >/dev/null 2>&1
 assert 'a deleted validator exits 1, not 127' test "$?" = 1
 
+echo "== a change that deletes all of bench/ =="
+mk_repo no-bench
+rm -rf "$R/bench"
+run_check
+assert 'a deleted bench/ fails the step' test -n "$FAILED_LINE"
+assert 'the failure names the missing validator' says 'bench/worker/validate.sh'
+assert 'the failure says it cannot validate' says 'cannot validate'
+assert 'the failure hides the raw error for bench/' lacks 'No such file'
+
 echo "== the README's claim about CI =="
 # shellcheck disable=SC2016
 OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
