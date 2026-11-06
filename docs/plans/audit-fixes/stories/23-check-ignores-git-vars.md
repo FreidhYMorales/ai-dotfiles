@@ -6,9 +6,9 @@
 
 ## Acceptance criteria
 
-- [ ] Given `GIT_DIR` and git's other local variables exported and pointing at the checked repo, when I run `make check`, then that repo's refs, HEAD and commits are exactly as they were, even though tests build throwaway repos of their own.
-- [ ] Given the same variables exported, when I run `make check`, then the result is the one I get without them: it passes on a healthy tree, fails on a broken one, and no test fails because of the variables.
-- [ ] Given the same variables exported, when I run a single step such as `scripts/run-tests.sh` or `make test`, then the checked repo's refs, HEAD and commits are also unchanged.
+- [x] Given `GIT_DIR` and git's other local variables exported and pointing at the checked repo, when I run `make check`, then that repo's refs, HEAD and commits are exactly as they were, even though tests build throwaway repos of their own.
+- [x] Given the same variables exported, when I run `make check`, then the result is the one I get without them: it passes on a healthy tree, fails on a broken one, and no test fails because of the variables.
+- [x] Given the same variables exported, when I run a single step such as `scripts/run-tests.sh` or `make test`, then the checked repo's refs, HEAD and commits are also unchanged.
 
 ## Plan
 
@@ -44,3 +44,8 @@ Risk: item 2, 5 (the gate's git commands must reach only the intended repo)
 
 - L1 request: /flow:story 23
 - L2 approved by the user, assumptions included; both suggestions accepted: clear the variables in `scripts/lib.sh`, add the test to `scripts/tests/checks.test.sh`.
+- L3 commits: test e223739, fix 4929983; tests 10ab231, a74dadd, bde71c8. `make check` at bde71c8: `All checks passed (8 steps)`.
+- L4 verifier: NEEDS DECISION. C1, C2, C3, tamper, assertions and security pass; refs and HEAD identical around the run. Open point: 10ab231, a74dadd and bde71c8 come after the fix, and the fix went beyond what e223739 required. The verifier reproduced their red: 8 failures with the guard removed, 5 with it narrowed to `unset GIT_DIR`.
+- L5 user accepted the three commits as they are, with no history rewrite. No formal PASS.
+- L6 observations left open: a hand-kept `unset` list or a guard only in `scripts/run-tests.sh` passes every test, though no criterion breaks; `scripts/tests/timer-retries.test.sh` failed once without the variables (`sleep: invalid option -- '1'`), then passed 5 of 5 reruns.
+- Risk: item 2, 5 (the gate's git commands must reach only the intended repo)
