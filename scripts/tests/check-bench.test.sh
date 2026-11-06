@@ -81,6 +81,8 @@ assert 'the bench step ran' says '== bench =='
 assert 'it says the validation was skipped' says 'skipped'
 assert 'it validates no task' lacks 'good-task'
 assert 'it does not fail' test -z "$FAILED_LINE"
+assert 'it says nothing changed' says 'no change under bench/'
+assert 'it does not say it could not compare' lacks 'could not compare'
 
 echo "== an uncommitted change under bench/ =="
 mk_repo dirty
@@ -117,6 +119,27 @@ assert 'with no origin/main it says skipped' says 'skipped'
 assert 'with no origin/main it validates no task' lacks 'good-task'
 assert 'with no origin/main it prints no git error' lacks 'fatal'
 assert 'with no origin/main it does not fail' test -z "$FAILED_LINE"
+assert 'with no origin/main it says it could not compare' says 'could not compare'
+assert 'with no origin/main it does not claim no change' lacks 'no change'
+
+echo "== a directory with no git =="
+mk_repo nogit
+rm -rf "$R/.git"
+run_check
+assert 'with no git it says it could not compare' says 'could not compare'
+assert 'with no git it does not claim no change' lacks 'no change'
+assert 'with no git it validates no task' lacks 'good-task'
+assert 'with no git it does not fail' test -z "$FAILED_LINE"
+
+echo "== an origin/main with no history in common =="
+mk_repo unrelated
+empty_tree=$(git -C "$R" hash-object -t tree /dev/null)
+git -C "$R" update-ref refs/remotes/origin/main "$(git -C "$R" commit-tree -m other "$empty_tree")"
+run_check
+assert 'with unrelated history it says it could not compare' says 'could not compare'
+assert 'with unrelated history it does not claim no change' lacks 'no change'
+assert 'with unrelated history it validates no task' lacks 'good-task'
+assert 'with unrelated history it does not fail' test -z "$FAILED_LINE"
 
 echo "== a task whose source repo is not on this machine =="
 mk_repo away
@@ -187,6 +210,107 @@ assert 'the cloned task is validated' says 'ok    cloned-task'
 assert 'HEAD of the checked repo does not move' test "$(git -C "$R" rev-parse HEAD)" = "$head"
 assert 'the branch of the checked repo stays' test "$(git -C "$R" branch --show-current)" = main
 assert 'the other branch of the checked repo survives' git -C "$R" rev-parse -q --verify refs/heads/keep-me
+
+echo "== a change that deletes validate.sh =="
+mk_repo no-validator
+rm "$R/bench/worker/validate.sh"
+run_check
+assert 'a deleted validator fails the step' test -n "$FAILED_LINE"
+assert 'the failure names the missing file' says 'bench/worker/validate.sh'
+assert 'the failure hides the raw shell error' lacks 'No such file'
+bash "$ROOT/scripts/check-bench.sh" "$R" >/dev/null 2>&1
+assert 'a deleted validator exits 1, not 127' test "$?" = 1
+
+echo "== a change that deletes all of bench/ =="
+mk_repo no-bench
+rm -rf "$R/bench"
+run_check
+assert 'a deleted bench/ fails the step' test -n "$FAILED_LINE"
+assert 'the failure names the missing validator' says 'bench/worker/validate.sh'
+assert 'the failure says it cannot validate' says 'cannot validate'
+assert 'the failure hides the raw error for bench/' lacks 'No such file'
+
+# hang_command STATE: one line that records itself in STATE, then hangs with a
+# child; if it gets past the child, it writes STATE/finished.
+hang_command() {
+  cat <<HANG
+pwd >"$1/cwd"; echo \$\$ >"$1/pid"; sleep 30 & echo \$! >"$1/child"; wait; touch "$1/finished"
+HANG
+}
+
+under() { [[ $1 == "$2"/* ]]; }
+
+# gone_soon PID: true when PID ends within 5 seconds.
+gone_soon() {
+  local _
+  for _ in {1..50}; do
+    kill -0 "$1" 2>/dev/null || return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+# empties_soon DIR: true when DIR holds nothing within 5 seconds. The outer
+# timeout returns while validate.sh may still be removing its work directory.
+empties_soon() {
+  local _
+  for _ in {1..50}; do
+    [[ -z $(compgen -G "$1/*") ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+# stop_step STATE: run the bench step on $R under an outer timeout that lands
+# while STATE's command hangs. The timeout's exit code lands in $STOP_RC.
+stop_step() {
+  mkdir -p "$1/tmp"
+  TMPDIR=$1/tmp timeout 8 bash "$ROOT/scripts/check-bench.sh" "$R" >/dev/null 2>&1
+  STOP_RC=$?
+}
+
+# assert_stopped LABEL STATE: the command started, and nothing of it remains.
+assert_stopped() {
+  local cmd child
+  cmd=$(<"$2/pid")
+  child=$(<"$2/child")
+  assert "$1: the command had started" test -n "$child"
+  assert "$1: it ran in a work directory under TMPDIR" under "$(<"$2/cwd")" "$2/tmp"
+  assert "$1: the timeout still reports 124" test "$STOP_RC" = 124
+  assert "$1: the command stops" gone_soon "$cmd"
+  assert "$1: its child stops" gone_soon "$child"
+  assert "$1: the work directory is gone" empties_soon "$2/tmp"
+  assert "$1: it never reaches its last line" test ! -e "$2/finished"
+  kill "$cmd" "$child" 2>/dev/null
+}
+
+echo "== an outer timeout during a task's gate =="
+mk_repo stop-gate
+rm -rf "$R/bench/worker/tasks/good-task"
+mk_task "$R" hang-task
+state=$TMP_ROOT/stop-gate-state
+mkdir -p "$state"
+hang_command "$state" >"$R/bench/worker/tasks/hang-task/gate"
+stop_step "$state"
+assert_stopped 'gate' "$state"
+
+echo "== an outer timeout during a task's check =="
+mk_repo stop-check
+rm -rf "$R/bench/worker/tasks/good-task"
+mk_task "$R" hang-task
+state=$TMP_ROOT/stop-check-state
+mkdir -p "$state"
+hang_command "$state" >"$R/bench/worker/tasks/hang-task/check.sh"
+stop_step "$state"
+assert_stopped 'check' "$state"
+
+echo "== the README's claim about CI =="
+# shellcheck disable=SC2016
+OUTPUT=$(grep -F '| `Makefile`, `scripts/` |' "$ROOT/README.md")
+assert 'the README row mentions the bench step' says 'bench task validation'
+assert 'the README does not promise the step never runs in CI' lacks 'never in CI'
+# shellcheck disable=SC2016
+assert 'the README says why a pull request skips' says 'shallow checkout has no `origin/main`'
 
 if ((failures > 0)); then
   printf '%d case(s) failed\n' "$failures"
