@@ -46,12 +46,15 @@ fi
 
 # Detect a `check` target from make's database without running any recipe:
 # the goal `.DEFAULT` has no recipe, and -q never executes commands.
-has_check=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
+targets=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
   awk '/^# Not a target:/ { skip = 1; next }
-       /^check:/ && !skip { found = 1 }
+       /^check:/ && !skip { check = 1 }
+       /^check-fast:/ && !skip { fast = 1 }
        { skip = 0 }
-       END { print found ? "yes" : "no" }')
-[[ $has_check == yes ]] || exit 0
+       END { print (check ? "check" : "") " " (fast ? "check-fast" : "") }')
+[[ $targets == check* ]] || exit 0
+target=check
+[[ $targets == *check-fast ]] && target=check-fast
 
 # /flow:pair commits a failing test on purpose before the code that makes it
 # pass. While that red test is committed it writes a marker (branch name, then
@@ -84,7 +87,7 @@ state=$({
 } | sha256sum | cut -d' ' -f1)
 [[ -f $cache_file && $(<"$cache_file") == "$state" ]] && exit 0
 
-output=$(cd "$dir" && timeout 300 make -f "$makefile" check 2>&1)
+output=$(cd "$dir" && timeout 300 make -f "$makefile" "$target" 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
   mkdir -p "${cache_file%/*}" && printf '%s\n' "$state" >"$cache_file.tmp" && mv -f "$cache_file.tmp" "$cache_file"
