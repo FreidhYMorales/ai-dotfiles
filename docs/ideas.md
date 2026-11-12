@@ -30,7 +30,8 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 24 | Verifier scratch clones cannot push back | GO | backlog (audit-fixes #24) | 0.25 | 2026-11-05 | [24](#24-verifier-scratch-clones-cannot-push-back) |
 | 25 | Small gaps in the bench step | GO | backlog (audit-fixes #25) | 0.25 | 2026-11-05 | [25](#25-small-gaps-in-the-bench-step) |
 | 26 | A verifier that keeps its shell and a caller that cannot widen it | pending | backlog | 0.5 | 2026-11-05 | [26](#26-a-verifier-that-keeps-its-shell-and-a-caller-that-cannot-widen-it) |
-| 27 | What makes make check exceed 300 s with a bench change | SPIKE | backlog | up to 1 h | 2026-11-05 | [27](#27-what-makes-make-check-exceed-300-s-with-a-bench-change) |
+| 27 | What makes make check exceed 300 s with a bench change | SPIKE (absorbed by 28) | backlog | up to 1 h | 2026-11-05 | [27](#27-what-makes-make-check-exceed-300-s-with-a-bench-change) |
+| 28 | Tiered checks: a fast hook between turns, the full suite at ship and CI | GO | v1 (before clean-install stage 2) | 1.5–2.5 | 2026-11-12 | [28](#28-tiered-checks-a-fast-hook-between-turns-the-full-suite-at-ship-and-ci) |
 
 ---
 
@@ -290,4 +291,13 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Findings: with a bench change, 319 s, 327 s and 5:25; with none, 93 s; validation alone about 135 s and the tests step alone 162 s, measured at load 4-6. About 100 s are unexplained, and whether another run overlapped is not proven.
 - Score: feasibility high; complexity low to measure, the fix depends on the result; effort up to 1 h; value medium (only while a bench change is unpushed); no risk to measure, item 5 if the gate changes; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: SPIKE. Question: what takes the extra 100 s? Measure `make check` with and without a bench change, per step, in a clean clone with nothing else running. Done when the 100 s are explained or ruled out. Tradeoff: it fixes nothing yet, but avoids speeding up the wrong step.
-- Decision: SPIKE (user, 2026-11-05).
+- Decision: SPIKE (user, 2026-11-05). Absorbed by idea 28 (2026-11-12): the `tiered-checks` plan adds a SHOULD report of the five slowest test files in `make test`, since the hook no longer runs the full suite. That report covers the tests step only, so the bench question stays open.
+
+## 28. Tiered checks: a fast hook between turns, the full suite at ship and CI
+
+- Idea: run each check where it pays. The `require-check` Stop hook runs `make check-fast` when the repo defines it (static checks on changed files only, no tests or bench), and `make check` otherwise. `/flow:pair` runs the story's focused test at red and green and the suite once at the end, never "until green" in a loop. `toolkit:ship` and CI keep the full `make check`. Docs-only changes run no tests. Local workers get the focused test command, and Claude reruns the full test command after applying their diff.
+- Raised during: clean-install planning (2026-11-09 research, triaged 2026-11-12). Motivation: the user wants organic development without waiting on large suites between messages, also with local models.
+- Findings: the hook runs the full 8-step `make check` at every stop with a changed tree, under `timeout 300` (`plugins/toolkit/hooks/require-check.sh`). Measured 2026-11-12 at load 1.4: `shell` 23 s over every script, `json` 0.46 s, `structure` 0.05 s, `settings` 0.12 s, `skills` 0.36 s, `workflows` 0.1 s; `tests` about 162 s over 58 files (already run in parallel) and `bench` variable (idea 27). Upstream gentle-ai runs a quick check once, sends long suites to a fresh worker or CI, ships no git hooks, and never loops until clean (engram `research/check-tiers`).
+- Score: feasibility high (own scripts, no external dependency); complexity medium (hook, `Makefile`, `pair`, `ship` and their tests); effort 1.5–2.5 d including the idea 27 measurement and a parallel test runner; value high (each turn from 93–300 s to under 10 s in `AI`, `NOTCH` and later `SYS`); risk medium: a red suite surfaces later, at `ship` or CI, and the gate is a high-risk item, so a verifier is needed; no dependencies; fit v1, before clean-install stage 2; displaces nothing while that plan is paused.
+- Recommendation: GO, with idea 27 as the first story (measure each step). Tradeoff: a broken test can go unnoticed for several turns, until `ship` or CI.
+- Decision: GO (user, 2026-11-12). Budget for the hook: about 10 s.
