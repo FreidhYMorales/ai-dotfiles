@@ -1,6 +1,6 @@
 # Plan: tiered-checks
 
-- Status: reviewed, reviews 1 to 5 resolved; ready for handoff
+- Status: approved, reviews 1 to 5 resolved; backlog in `backlog.md`
 - Deadline: none; lands before clean-install stage 2, which runs the most checks
 - Mode: solo
 - Supersedes: idea 27 (its question becomes the slow-test report below); idea 28 is this plan
