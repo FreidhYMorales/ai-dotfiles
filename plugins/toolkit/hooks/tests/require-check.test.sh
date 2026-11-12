@@ -296,6 +296,14 @@ write_marker "$wt" story/03-x "$sha"
 expect 0 'marker in a linked worktree git dir is honoured' "$(payload "$wt")"
 expect 2 'worktree marker does not leak to the main checkout' "$(payload "$repo")"
 
+echo "== check-fast tier =="
+
+repo=$(new_repo fast-preferred)
+printf 'check:\n\ttouch ran-check\ncheck-fast:\n\ttouch ran-fast\n' >"$repo/Makefile"
+expect 0 'a passing check-fast exits 0' "$(payload "$repo")"
+assert 'check-fast runs when the Makefile defines it' test -e "$repo/ran-fast"
+assert 'make check does not run when check-fast exists' test ! -e "$repo/ran-check"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
