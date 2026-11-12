@@ -1,0 +1,60 @@
+# Plan review: clean-install
+Verdict: PASS WITH CHANGES
+Summary: There are no blockers, and all MUST work fits because there is no deadline. Reviews 1 to 4 are resolved in the plan, apart from one partial follow-up (finding 4). One major remains: `SYS` has no test command, so `/flow:pair` stops on its stories, and the plan does not say how flow runs from a repo with no code. I inspected code and live state read-only, opened no secrets, and did not run bootstrap, a VM or a virgl test. The external disk was not checked.
+
+## Findings
+| # | Category | Severity (blocker/major/minor) | Finding | Evidence | Suggested fix |
+|---|---|---|---|---|---|
+| 1 | Contradiction / technical: workflow | major | The plan says each repo keeps "its own backlog and gate" and that the projects have "established conventions". `SYS` has no `Makefile`, tests or gate, yet it takes most of stage 2 and part of stage 3. `/flow:pair` stops with "no runnable test" when a backlog has no test command, and Strict TDD is on. After stage 3, flow runs from `clean-install-plan`, which has no code, while its stories change `SYS`, `AI` and `NOTCH`. Flow reads `docs/plans/<feature>/` and one `Test command:`, and the plan gives no local path for that clone. | plan.md:53, :60, :66, :104-111; `SYS` root listing and `fd 'Makefile\|\.test\.'` (none); `plugins/flow/skills/backlog/SKILL.md:36,44-45`; `plugins/flow/skills/pair/SKILL.md:33,52`; `plugins/flow/skills/pair/references/high-risk.md` items 5-6 | Add a minimal `make check` to `SYS` at the start of stage 2: `bash -n`, `shellcheck`, `shfmt -d`, a flag-forwarding test and `deploy.sh --dry-run`. Treat VM-only behaviour as manual criteria. Fix the clone path of `clean-install-plan`, and state where each repo's stories live and which test command they use. About 0.25 d. |
+| 2 | Technical: publish | minor | The global pre-commit hook will block the `SYS` root commit. Both Yazi files are still at HEAD, and `gitleaks dir` reports 1 finding in each. Gap 1 treats them as a history matter. The only documented ways past the hook are `.gitleaksignore` and `SKIP_GITLEAKS=1`, and using `SKIP_GITLEAKS=1` turns off secret scanning for the most exposed commit of the plan. | plan.md:111, :129; `git-hooks/_dispatch:11-17`; `gitleaks dir` on `dotfiles/yazi/.config/yazi/init.lua` and `plugins/simple-mtp.yazi/main.lua` | After the by-eye check, add a narrow allow rule for those two findings before the first `git add`. Forbid `SKIP_GITLEAKS` for root commits. |
+| 3 | Gaps: VM | minor | Row 112 lists `make check` in `NOTCH` as a VM check, and the accepted partial pass keeps "all non-graphical checks" in the VM. `make check` includes `smoke`, and the Makefile describes `ci` as the subset for "no Wayland session". If virgl fails, that check is red or unclassified. | plan.md:112; `NOTCH/Makefile` (`check`, `ci`) | State it in the row: in a partial pass, `NOTCH` runs `make ci` in the VM and the full `make check` at first boot. |
+| 4 | Gaps: gates | minor | Review 4 #4 was resolved as "in the packages row and post-install", but row 110 omits the trust setting. Bootstrap cannot set it, because `AI` and `NOTCH` are cloned later in the chain. The setting is local by design. After the format, the Stop-hook gate stays inert with only a one-line note. | plan.md:53, :105, :110, :242; `AI/README.md:17` | Add both `git config require-check.trusted true` commands to the post-install row, after the clones. |
+| 5 | Gaps: publish | minor | Stage 3 says each old `.git` loses its `origin`, "so no old clone can push private history" into the public repo. The nested `SYS/.git/modules/.../notch-repo` keeps its own `origin` with the public repo's URL and the full old `NOTCH` history. The check `git remote -v` does not look inside it. | plan.md:111; `git config --file .git/modules/dotfiles/quickshell/.config/quickshell/notch-repo/config --get remote.origin.url` | Remove that nested `origin` too, or delete `modules/` from the historical copy, since the historical `NOTCH` repo already holds that history. Add it to the check. |
+| 6 | Contradiction: docs | minor | The fallback on a fresh install is a `git revert`. `NOTCH/docs/development.md` still gives `notch-cutover.sh rollback` as the way back, and that command depends on local backups a fresh machine lacks (review 1 #8). Row 103 does not update it. | plan.md:103, :177; `NOTCH/docs/development.md:68-92`; `plan-review-1.md` finding 8 | Add one paragraph to that doc in row 103: on a fresh install, use `git revert`, emergency-only. |
+| 7 | Gaps: recovery | minor | The checklist saves the `quickshell-git` package and the engram binary, but no step says when or how to use them. `recovery.md` still installs the latest engram, and bootstrap still builds `quickshell-git`. A failure at first boot leaves these artifacts on the disk with no procedure. | plan.md:110, :113; `AI/docs/recovery.md:41`; `bootstrap.sh:246` | Add two post-install lines: `pacman -U` the saved package if the build fails or the bar does not start, and use the saved binary if a restore fails on the latest engram. |
+| 8 | Gaps: data | minor | Transcripts get `age` because they may hold secrets, but the `Documents` `tar` goes to the disk unencrypted. It holds at least one `.env` by filename, and review 1 named `db.sql` there. | plan.md:78, :88; `fd` count of `.env*` under `~/Documents` (1; not opened); `plan-review-1.md` finding 1 | See question 1. |
+| 9 | Gaps: restore | minor | The chain clones `AI`, `NOTCH` and `MODELS`, then restores "the rest" from a `Documents` archive that also contains them. Row 110 asks for exact commands only for `~/Files` and `~/Music`. A plain extract would overwrite the fresh clones, including `.git` and the just-set trust setting. | plan.md:53, :78, :110 | Add the exact `tar -x` command, with those repos excluded, and a separate step for picking uncommitted work from them. |
+| 10 | Gaps: data | minor | The inventory has no catch-all, and several items review 1 named have no row: `/var/lib/fprint`, `.local/share/keyrings`, `.config/rclone` and `/var/lib/iwd`. Bootstrap installs the fingerprint PAM services, the current post-install guide has no enrolment step, and the notch security view comes after the reinstall. | plan.md:72-93, :147; `bootstrap.sh:398-401`; `rg fprintd-enroll backup/references/post-install.md` (no match); `plan-review-1.md` finding 1 | Add a row: "anything not listed is dropped; the user has read this list". Add `fprintd-enroll` to the post-install doc. |
+| 11 | Gaps: publish | minor | The plan licenses "the user's own code" as MIT, but the old bar kept in `default/` is described as "Caelestia-compatible", and `dotfiles/README.md` cites Caelestia and end-4 patterns. The tracked Caelestia theme files also stay. The by-eye list names vendored code, not adapted code. `gh` returned no licence data for either upstream, so I could not confirm their terms or whether code was copied. | plan.md:111, :231; `default/components/Anim.qml:3`; `default/services/Notifs.qml:8`; `dotfiles/README.md:73`; `dotfiles/spicetify/.config/spicetify/Themes/caelestia/color.ini`; `dotfiles/betterdiscord/.config/BetterDiscord/themes/caelestia.theme.css` | Add a provenance check for `default/` and the Caelestia-named themes to stage 3, and check the upstream licences by hand. See question 2. |
+| 12 | Gaps: stale text and owners | minor | Row 105 still installs `git-filter-repo`, although new repos replaced the rewrite. Stage 0 needs `age`, which is not installed on this machine, and row 99 does not install it. The note in `AI/docs/local-workers.md` from review 4's question 2 has no scope row, and the file has no such note today. | plan.md:99, :105, :193, :250; `pacman -Q age` (not found); `rg history docs/local-workers.md` (no match) | Drop `git-filter-repo` unless another use is named. Add "install `age`" to row 99, and add the note to row 111. |
+| 13 | Review status | minor | Reviews 1 to 4 have matching resolutions, and review 4 #1-#3 and #5-#11 and its risks have matching plan text. Review 4 #4 is partial (finding 4). Confirmed: the MUST sum of 19.35; `AI` and `NOTCH` have one worktree each; `default/modules/notch` is now tracked (6 files), so the bar it imports survives a fresh clone; `AI/install.sh` writes no new paths into `SYS` other than the two already handled, `~/.local/bin` and `~/.config/systemd/user`. | plan.md:164-251; `git worktree list`; `git ls-files`; `AI/install.sh:40,206-211,326-331,402-415` | None beyond the findings above. |
+
+## Scope vs deadline
+| Item | Est. dev-days | Cut (MUST/SHOULD/LATER) |
+|---|---|---|
+| Stage 0, including installing `age` | 0.5 | MUST |
+| Vesktop ignores, dirty files, unpushed commits | 0.1 | MUST |
+| Notch 19, 27, 28 | 2.25 | MUST |
+| Notch 24, 29, 33, 15, webapps (user decision) | 5.25 | MUST |
+| Cutover, C1, root and revert structure, fallback docs | 1 | MUST |
+| Minimal `SYS` gate and flow locations (new, finding 1) | 0.25 | MUST |
+| Chain path doc | 0.75 | MUST |
+| Packages and "live" proof | 0.5 | MUST |
+| Fresh clone, failure handling, re-runs | 1.25 | MUST |
+| Flags and `--no-gpu` advice | 0.25 | MUST |
+| Ollama and NPU | 0.25 | MUST |
+| Hook removal | 0.25 | MUST |
+| Post-install doc, with findings 4, 7, 9 and 10 | 0.25 | MUST |
+| Stage 3 publish, with findings 2, 5 and 11 | 3 | MUST |
+| Stage 4 VM pass | 2.5 | MUST |
+| Reinstall checklist | 0.25 | MUST |
+| Reinstall and first-boot checks | 1 | MUST |
+| Docs wording cleanup (rank 1: supports demo 1) | 0.25 | SHOULD |
+| pi and local worker pieces | 0.25 | LATER |
+| CI or repeatable `SYS` test | 1 | LATER |
+
+Total MUST: 19.6 dev-days vs available: open-ended (no deadline, solo) -> fits
+
+## Unnamed risks
+- Most `SYS` stories hit high-risk item 5 (install scripts) or 6 (no test would catch it), so each needs a fresh verifier, and the stage 2 estimates do not clearly include that overhead — medium — Group stage 2 into a few stories, and expect the estimate to grow.
+- The checklist must save `quickshell-git` from the final VM run, but bootstrap enables `ufw` with deny-incoming, so `scp` into the VM may fail just before the format — low to medium — Copy it out from inside the VM to a host share, or with `virt-copy-out` while the VM is off, and test this once during the first pass.
+- `monitors.conf` names only `eDP-1` at 2880x1800 and scale 2, while a VM display has another name, so layout differences could read as C1 failures — low — Treat exact layout and scale as first-boot checks, not VM checks.
+- `dotfiles-history` keeps a `.gitmodules` pointing at the public `quickshell-notch`, which lacks the old pinned commits, so `git submodule update` fails in a historical checkout — low likelihood, low damage — Add a line to the README record pointing to `quickshell-notch-history`.
+
+## Questions for the user (max 5)
+1. Should the `Documents` archive be encrypted with `age`, or should `.env` files and database dumps be moved into an encrypted archive? — The disk is unencrypted, and the reason for encrypting transcripts also applies here. — Recommendation: keep the plain `tar` for ordinary files, for easy restore, and put the few sensitive files in the existing `age` archive.
+2. If the provenance check finds copied code in `default/` or the Caelestia-named themes under a licence incompatible with MIT, what should happen? — Those files would be mislabelled in a public repo, and the `git revert` fallback depends on `default/`. — Recommendation: keep `default/`, add a separate licence file and notice for that folder and those themes, and leave MIT for the rest. Remove them once the fallback is retired.
+
+Technical recommendations I resolved myself: add a minimal `SYS` `make check`; use a narrow gitleaks allow rule for the Yazi findings; use `make ci` for `NOTCH` in a partial pass; set the trust setting in post-install; remove the nested submodule `origin`; use `git revert` as the documented fallback on a fresh install.
+
+Plan reviewed: /home/deadlock/Documents/MISC/DOTFILES IA/docs/plans/clean-install/plan.md
