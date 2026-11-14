@@ -1,9 +1,19 @@
 # Verification harness: agent output is accepted when `make check` passes.
 # `check` runs every step and prints a summary; the sub-targets run one area.
-.PHONY: check lint validate test eval mutate
+.PHONY: check check-fast lint validate test eval mutate
 
 check:
 	@bash scripts/check.sh
+
+# The fast tier the require-check Stop hook runs between turns: static checks
+# only, no tests or bench. `check` stays the gate for a story, a ship and CI.
+check-fast:
+	@bash scripts/check-shell.sh
+	@bash scripts/check-json.sh
+	@bash scripts/check-structure.sh
+	@bash scripts/check-settings.sh
+	@bash scripts/check-skills.sh
+	@bash scripts/check-workflows.sh
 
 lint:
 	@bash scripts/check-shell.sh
