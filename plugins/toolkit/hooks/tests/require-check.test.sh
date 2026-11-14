@@ -312,6 +312,11 @@ assert 'a failing check-fast names its target' \
   grep -q 'make check-fast failed — fix these before finishing:' <<<"$LAST_STDERR"
 assert 'a failing check-fast shows the tail of its output' grep -q 'fast-100' <<<"$LAST_STDERR"
 
+repo=$(new_repo fast-only)
+printf 'check-fast:\n\ttouch ran-fast\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a Makefile with only check-fast still gates the stop' "$(payload "$repo")"
+assert 'check-fast alone runs' test -e "$repo/ran-fast"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
