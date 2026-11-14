@@ -63,8 +63,10 @@ jobs:
     timeout-minutes: 10
     steps:
       # git first, so checkout makes a real clone; the rest from docs/recovery.md.
+      # -Syu, not -Sy: syncing without upgrading leaves a partial upgrade that
+      # breaks when a library bumps its soname (openssl 4.1, 2026-11-14).
       - name: Install git
-        run: pacman -Sy --noconfirm --needed git
+        run: pacman -Syu --noconfirm --needed git
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install the packages docs/recovery.md lists
         # One package per word: the split is the point.
