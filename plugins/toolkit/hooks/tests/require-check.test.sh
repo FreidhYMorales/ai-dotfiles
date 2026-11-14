@@ -304,6 +304,14 @@ expect 0 'a passing check-fast exits 0' "$(payload "$repo")"
 assert 'check-fast runs when the Makefile defines it' test -e "$repo/ran-fast"
 assert 'make check does not run when check-fast exists' test ! -e "$repo/ran-check"
 
+repo=$(new_repo fast-failing)
+# shellcheck disable=SC2016 # $$ is make syntax, expanded by the recipe shell.
+printf 'check:\n\ttrue\ncheck-fast:\n\tfor i in $$(seq 1 100); do echo "fast-$$i"; done\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a failing check-fast blocks' "$(payload "$repo")"
+assert 'a failing check-fast names its target' \
+  grep -q 'make check-fast failed — fix these before finishing:' <<<"$LAST_STDERR"
+assert 'a failing check-fast shows the tail of its output' grep -q 'fast-100' <<<"$LAST_STDERR"
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
