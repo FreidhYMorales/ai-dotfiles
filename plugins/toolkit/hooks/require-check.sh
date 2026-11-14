@@ -52,9 +52,13 @@ targets=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
        /^check-fast:/ && !skip { fast = 1 }
        { skip = 0 }
        END { print (check ? "check" : "") " " (fast ? "check-fast" : "") }')
-[[ $targets == check* ]] || exit 0
-target=check
-[[ $targets == *check-fast ]] && target=check-fast
+if [[ $targets == *check-fast ]]; then
+  target=check-fast
+elif [[ $targets == check* ]]; then
+  target=check
+else
+  exit 0
+fi
 
 # /flow:pair commits a failing test on purpose before the code that makes it
 # pass. While that red test is committed it writes a marker (branch name, then
