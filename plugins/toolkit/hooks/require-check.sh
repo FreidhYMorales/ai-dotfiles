@@ -46,12 +46,16 @@ if [[ $(git -C "$dir" config --local --get require-check.trusted 2>/dev/null) !=
   exit 0
 fi
 
-# Detect a `check` target from make's database without running any recipe:
-# the goal `.DEFAULT` has no recipe, and -q never executes commands.
+# Detect `check` and `check-fast` from make's database without running any
+# recipe: the goal `.DEFAULT` has no recipe, and -q never executes commands.
+# `check-fast` counts only with a recipe or prerequisites of its own, so one
+# listed only in .PHONY never hides a red `check`.
 targets=$(make -C "$dir" -f "$makefile" -npq .DEFAULT 2>/dev/null |
   awk '/^# Not a target:/ { skip = 1; next }
        /^check:/ && !skip { check = 1 }
-       /^check-fast:/ && !skip { fast = 1 }
+       /^check-fast:/ && !skip { entry = 1; if ($0 !~ /^check-fast:[[:space:]]*$/) fast = 1 }
+       entry && /^#  recipe to execute/ { fast = 1 }
+       /^$/ { entry = 0 }
        { skip = 0 }
        END { print (check ? "check" : "") " " (fast ? "check-fast" : "") }')
 if [[ $targets == *check-fast ]]; then
