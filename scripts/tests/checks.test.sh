@@ -84,6 +84,20 @@ printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/packs/lib/bad.sh"
 expect 1 'failing script under packs/lib/ is still linted' check-shell.sh "$root"
 output_has 'names the packs/lib file' 'packs/lib/bad.sh'
 
+root=$(fixture shell-many)
+mkdir -p "$root/many"
+for i in 1 2 3 4 5; do printf '#!/usr/bin/env bash\necho %s\n' "$i" >"$root/many/good$i.sh"; done
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/many/bad.sh"
+expect 1 'one bad script among many sane ones fails the step' check-shell.sh "$root"
+output_has 'names the bad script among many' 'ERROR shellcheck many/bad.sh'
+good_count=$(grep -c '^ok    shellcheck ' <<<"$LAST_OUT")
+if [[ $good_count -eq 7 ]]; then
+  printf 'PASS  every sane script is reported ok (7)\n'
+else
+  printf 'FAIL  every sane script is reported ok: want 7, got %s\n%s\n' "$good_count" "$LAST_OUT"
+  failures=$((failures + 1))
+fi
+
 echo "== check-json =="
 root=$(fixture json-bad)
 printf '{"a": 1,}\n' >"$root/plugins/p/broken.json"
