@@ -49,6 +49,16 @@ expect 'a failing check at executionNum 0 continues with the failure tail' \
   '.decision == "continue" and (.reason | startswith("make check failed")) and (.reason | contains("lint: broken thing"))' \
   "$(stop_payload "$red" NO_TOOL_CALL 0)"
 
+echo "== agy: a failing check-fast keeps the turn going =="
+fast="$TMP_ROOT/fast"
+mkdir -p "$fast"
+git -C "$fast" init -q
+git -C "$fast" config require-check.trusted true
+printf 'check:\n\ttrue\ncheck-fast:\n\t@echo "lint: fast thing"; exit 1\n' >"$fast/Makefile"
+expect 'a failing check-fast continues with its own failure tail' \
+  '.decision == "continue" and (.reason | startswith("make check-fast failed")) and (.reason | contains("lint: fast thing"))' \
+  "$(stop_payload "$fast" NO_TOOL_CALL 0)"
+
 echo "== agy: a passing make check lets agy stop =="
 green=$(repo green 0)
 expect 'a passing check lets agy stop' '. == {decision: "stop"}' "$(stop_payload "$green" NO_TOOL_CALL 0)"

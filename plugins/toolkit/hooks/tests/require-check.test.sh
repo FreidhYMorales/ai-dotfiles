@@ -296,6 +296,82 @@ write_marker "$wt" story/03-x "$sha"
 expect 0 'marker in a linked worktree git dir is honoured' "$(payload "$wt")"
 expect 2 'worktree marker does not leak to the main checkout' "$(payload "$repo")"
 
+echo "== check-fast tier =="
+
+repo=$(new_repo fast-preferred)
+printf 'check:\n\ttouch ran-check\ncheck-fast:\n\ttouch ran-fast\n' >"$repo/Makefile"
+expect 0 'a passing check-fast exits 0' "$(payload "$repo")"
+assert 'check-fast runs when the Makefile defines it' test -e "$repo/ran-fast"
+assert 'make check does not run when check-fast exists' test ! -e "$repo/ran-check"
+
+repo=$(new_repo fast-failing)
+# shellcheck disable=SC2016 # $$ is make syntax, expanded by the recipe shell.
+printf 'check:\n\ttrue\ncheck-fast:\n\tfor i in $$(seq 1 100); do echo "fast-$$i"; done\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a failing check-fast blocks' "$(payload "$repo")"
+assert 'a failing check-fast names its target' \
+  grep -q 'make check-fast failed — fix these before finishing:' <<<"$LAST_STDERR"
+assert 'a failing check-fast shows the tail of its output' grep -q 'fast-100' <<<"$LAST_STDERR"
+
+repo=$(new_repo fast-only)
+printf 'check-fast:\n\ttouch ran-fast\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a Makefile with only check-fast still gates the stop' "$(payload "$repo")"
+assert 'check-fast alone runs' test -e "$repo/ran-fast"
+
+# A check-fast with no rule of its own must not shadow a failing make check.
+repo=$(new_repo fast-phony-only)
+printf '.PHONY: check check-fast\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast listed only in .PHONY does not hide a red check' "$(payload "$repo")"
+assert 'make check runs when check-fast has no rule' test -e "$repo/ran-check"
+
+repo=$(new_repo fast-prereq-only)
+printf 'all: check-fast\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast named only as a prerequisite does not hide a red check' "$(payload "$repo")"
+assert 'make check runs when check-fast is not a target' test -e "$repo/ran-check"
+
+repo=$(new_repo fast-deps)
+printf 'check:\n\ttrue\ncheck-fast: lint\nlint:\n\ttouch ran-lint\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast built from prerequisites runs them' "$(payload "$repo")"
+assert 'the prerequisite of check-fast ran' test -e "$repo/ran-lint"
+
+echo "== messages name the target =="
+
+repo=$(new_untrusted_repo fast-untrusted)
+printf 'check-fast:\n\texit 1\n' >"$repo/Makefile"
+expect 0 'untrusted repo with check-fast does not block' "$(payload "$repo")"
+assert 'untrusted message names both targets' message_has 'neither make check nor make check-fast was run' "$LAST_STDOUT"
+
+repo=$(new_repo fast-still-red)
+printf 'check-fast:\n\techo fast-red\n\texit 1\n' >"$repo/Makefile"
+expect 0 'second stop with a red check-fast does not block again' \
+  "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop says make check-fast is still red' message_has 'make check-fast is still red' "$LAST_STDOUT"
+
+repo=$(red_repo fast-marker)
+printf 'check-fast:\n\texit 1\n' >"$repo/Makefile"
+git -C "$repo" add Makefile
+git -C "$repo" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm fast
+write_marker "$repo" story/03-x "$(git -C "$repo" rev-parse HEAD)"
+expect 0 'red marker with check-fast does not block' "$(payload "$repo")"
+assert 'red marker message names check-fast' message_has 'make check-fast is expected to fail' "$LAST_STDOUT"
+
+# A stub `timeout` records its limit and reports a timeout (exit 124) at once.
+stub="$TMP_ROOT/stub-timeout"
+mkdir -p "$stub"
+# shellcheck disable=SC2016 # $1 is the stub's own argument, written literally.
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1" >"%s/limit"\nexit 124\n' "$stub" >"$stub/timeout"
+chmod +x "$stub/timeout"
+repo=$(new_repo fast-timeout)
+printf 'check-fast:\n\ttrue\n' >"$repo/Makefile"
+expect 2 'a check-fast timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
+assert 'check-fast runs under a 60 s limit' test "$(<"$stub/limit")" = 60
+assert 'timeout message names check-fast and its limit' \
+  grep -q 'make check-fast timed out after 60s' <<<"$LAST_STDERR"
+
+repo=$(new_repo check-timeout)
+write_makefile "$repo" 'true'
+expect 2 'a check timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
+assert 'check keeps its 300 s limit' test "$(<"$stub/limit")" = 300
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
