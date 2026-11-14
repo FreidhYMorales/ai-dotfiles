@@ -317,6 +317,44 @@ printf 'check-fast:\n\ttouch ran-fast\n\texit 1\n' >"$repo/Makefile"
 expect 2 'a Makefile with only check-fast still gates the stop' "$(payload "$repo")"
 assert 'check-fast alone runs' test -e "$repo/ran-fast"
 
+echo "== messages name the target =="
+
+repo=$(new_untrusted_repo fast-untrusted)
+printf 'check-fast:\n\texit 1\n' >"$repo/Makefile"
+expect 0 'untrusted repo with check-fast does not block' "$(payload "$repo")"
+assert 'untrusted message names both targets' message_has 'neither make check nor make check-fast was run' "$LAST_STDOUT"
+
+repo=$(new_repo fast-still-red)
+printf 'check-fast:\n\techo fast-red\n\texit 1\n' >"$repo/Makefile"
+expect 0 'second stop with a red check-fast does not block again' \
+  "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')"
+assert 'second stop says make check-fast is still red' message_has 'make check-fast is still red' "$LAST_STDOUT"
+
+repo=$(red_repo fast-marker)
+printf 'check-fast:\n\texit 1\n' >"$repo/Makefile"
+git -C "$repo" add Makefile
+git -C "$repo" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null commit -qm fast
+write_marker "$repo" story/03-x "$(git -C "$repo" rev-parse HEAD)"
+expect 0 'red marker with check-fast does not block' "$(payload "$repo")"
+assert 'red marker message names check-fast' message_has 'make check-fast is expected to fail' "$LAST_STDOUT"
+
+# A stub `timeout` records its limit and reports a timeout (exit 124) at once.
+stub="$TMP_ROOT/stub-timeout"
+mkdir -p "$stub"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1" >"%s/limit"\nexit 124\n' "$stub" >"$stub/timeout"
+chmod +x "$stub/timeout"
+repo=$(new_repo fast-timeout)
+printf 'check-fast:\n\ttrue\n' >"$repo/Makefile"
+expect 2 'a check-fast timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
+assert 'check-fast runs under a 60 s limit' test "$(<"$stub/limit")" = 60
+assert 'timeout message names check-fast and its limit' \
+  grep -q 'make check-fast timed out after 60s' <<<"$LAST_STDERR"
+
+repo=$(new_repo check-timeout)
+write_makefile "$repo" 'true'
+expect 2 'a check timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
+assert 'check keeps its 300 s limit' test "$(<"$stub/limit")" = 300
+
 echo
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
