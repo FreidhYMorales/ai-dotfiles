@@ -317,6 +317,22 @@ printf 'check-fast:\n\ttouch ran-fast\n\texit 1\n' >"$repo/Makefile"
 expect 2 'a Makefile with only check-fast still gates the stop' "$(payload "$repo")"
 assert 'check-fast alone runs' test -e "$repo/ran-fast"
 
+# A check-fast with no rule of its own must not shadow a failing make check.
+repo=$(new_repo fast-phony-only)
+printf '.PHONY: check check-fast\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast listed only in .PHONY does not hide a red check' "$(payload "$repo")"
+assert 'make check runs when check-fast has no rule' test -e "$repo/ran-check"
+
+repo=$(new_repo fast-prereq-only)
+printf 'all: check-fast\ncheck:\n\ttouch ran-check\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast named only as a prerequisite does not hide a red check' "$(payload "$repo")"
+assert 'make check runs when check-fast is not a target' test -e "$repo/ran-check"
+
+repo=$(new_repo fast-deps)
+printf 'check:\n\ttrue\ncheck-fast: lint\nlint:\n\ttouch ran-lint\n\texit 1\n' >"$repo/Makefile"
+expect 2 'a check-fast built from prerequisites runs them' "$(payload "$repo")"
+assert 'the prerequisite of check-fast ran' test -e "$repo/ran-lint"
+
 echo "== messages name the target =="
 
 repo=$(new_untrusted_repo fast-untrusted)
