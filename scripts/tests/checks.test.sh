@@ -245,6 +245,26 @@ expect 1 'any failing step fails the aggregate' check.sh "$root"
 output_has 'summary lists json step' 'FAILED: json'
 output_has 'summary lists skills step' 'FAILED: skills'
 
+echo "== make check-fast (this repo) =="
+# The fast tier the Stop hook runs: the six static steps, never tests or bench.
+fast_recipe=$(make -C "$REPO" -n check-fast 2>&1)
+for s in check-shell.sh check-json.sh check-structure.sh check-settings.sh check-skills.sh check-workflows.sh; do
+  if grep -q "scripts/$s" <<<"$fast_recipe"; then
+    printf 'PASS  check-fast runs %s\n' "$s"
+  else
+    printf 'FAIL  check-fast runs %s\n%s\n' "$s" "$fast_recipe"
+    failures=$((failures + 1))
+  fi
+done
+for s in run-tests.sh check-bench.sh check.sh; do
+  if grep -q "scripts/$s" <<<"$fast_recipe"; then
+    printf 'FAIL  check-fast does not run %s\n%s\n' "$s" "$fast_recipe"
+    failures=$((failures + 1))
+  else
+    printf 'PASS  check-fast does not run %s\n' "$s"
+  fi
+done
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
