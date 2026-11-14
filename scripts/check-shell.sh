@@ -22,8 +22,15 @@ if [[ ${#scripts[@]} -eq 0 ]]; then
 fi
 
 cd "$ROOT" || exit 1
+# Lint the scripts in parallel, one process each; results print in file order.
+declare -A failed=()
+while IFS= read -r -d '' f; do failed[$f]=1; done < <(
+  # shellcheck disable=SC2016 # $1 is expanded by the per-script bash, not here.
+  printf '%s\0' "${scripts[@]}" |
+    xargs -0 -P "$(nproc)" -I{} bash -c 'shellcheck -x "$1" >&2 || printf "%s\0" "$1"' _ {}
+)
 for f in "${scripts[@]}"; do
-  if shellcheck -x "$f" >&2; then ok "shellcheck $f"; else err "shellcheck $f"; fi
+  if [[ -n ${failed[$f]:-} ]]; then err "shellcheck $f"; else ok "shellcheck $f"; fi
 done
 
 if command -v shfmt >/dev/null 2>&1; then
