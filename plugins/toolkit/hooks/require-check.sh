@@ -106,7 +106,7 @@ fi
   if [[ $status -eq 124 ]]; then
     echo "make check timed out after 300s — fix these before finishing:"
   else
-    echo "make check failed — fix these before finishing:"
+    echo "make $target failed — fix these before finishing:"
   fi
   tail -n 60 <<<"$output"
 } >&2
