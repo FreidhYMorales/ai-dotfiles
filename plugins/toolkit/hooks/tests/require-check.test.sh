@@ -341,6 +341,7 @@ assert 'red marker message names check-fast' message_has 'make check-fast is exp
 # A stub `timeout` records its limit and reports a timeout (exit 124) at once.
 stub="$TMP_ROOT/stub-timeout"
 mkdir -p "$stub"
+# shellcheck disable=SC2016 # $1 is the stub's own argument, written literally.
 printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1" >"%s/limit"\nexit 124\n' "$stub" >"$stub/timeout"
 chmod +x "$stub/timeout"
 repo=$(new_repo fast-timeout)
