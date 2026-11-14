@@ -249,7 +249,7 @@ echo "== make check-fast (this repo) =="
 # The fast tier the Stop hook runs: the six static steps, never tests or bench.
 fast_recipe=$(make -C "$REPO" -n check-fast 2>&1)
 for s in check-shell.sh check-json.sh check-structure.sh check-settings.sh check-skills.sh check-workflows.sh; do
-  if grep -q "scripts/$s" <<<"$fast_recipe"; then
+  if grep -qF "scripts/$s" <<<"$fast_recipe"; then
     printf 'PASS  check-fast runs %s\n' "$s"
   else
     printf 'FAIL  check-fast runs %s\n%s\n' "$s" "$fast_recipe"
@@ -257,7 +257,7 @@ for s in check-shell.sh check-json.sh check-structure.sh check-settings.sh check
   fi
 done
 for s in run-tests.sh check-bench.sh check.sh; do
-  if grep -q "scripts/$s" <<<"$fast_recipe"; then
+  if grep -qF "scripts/$s" <<<"$fast_recipe"; then
     printf 'FAIL  check-fast does not run %s\n%s\n' "$s" "$fast_recipe"
     failures=$((failures + 1))
   else
