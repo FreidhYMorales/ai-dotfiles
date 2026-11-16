@@ -103,6 +103,17 @@ assert 'the focused test falls back to the Test command' \
 red_line=$(grep -E '^   1\. Write the test;' "$SKILL" 2>/dev/null)
 assert 'red runs the focused test' grep -qF 'run it with the focused test' <<<"$red_line"
 
+echo "== the full suite runs on the final tree =="
+check_line=$(grep -E '^6\. \*\*Check\.\*\*' "$SKILL" 2>/dev/null)
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'check runs the Test command once on the final tree' \
+  grep -qF 'run the `Test command:` once on the final tree' <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'check carries the long-run wording' \
+  grep -qF '(allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result)' <<<"$check_line"
+assert 'check reruns after a fix, before the recheck and before the merge offer' \
+  grep -qF "again after any step-6 fix, before the verifier's recheck and before the merge offer" <<<"$check_line"
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
