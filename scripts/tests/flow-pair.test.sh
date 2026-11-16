@@ -114,6 +114,16 @@ assert 'check carries the long-run wording' \
 assert 'check reruns after a fix, before the recheck and before the merge offer' \
   grep -qF "again after any step-6 fix, before the verifier's recheck and before the merge offer" <<<"$check_line"
 
+echo "== a green full run is not repeated =="
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'a full run repeats only after a change, from its recorded HEAD' \
+  grep -qF 'A full run is repeated only when something changed since the last green full run: record that run'"'"'s `HEAD`, and rerun when the tree is dirty or `git diff --name-only <sha>` lists anything besides the story file and the backlog' <<<"$check_line"
+assert 'the verifier run counts only with its command and pass line' \
+  grep -qF "the verifier's own run counts only when its report shows the command and its pass line" <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the docs close commit does not force a rerun' \
+  grep -qF 'the `docs:` close commit does not invalidate it' <<<"$check_line"
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
