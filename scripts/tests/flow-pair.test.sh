@@ -97,6 +97,11 @@ assert 'green no longer loops on the Test command' \
   test -n "$green_line" -a -z "$(grep -F 'the `Test command:` until green' <<<"$green_line")"
 assert 'refactor reruns the focused test' grep -qF 'the focused test reruns after it' <<<"$refactor_line"
 assert 'do N keeps the focused test' grep -qF 'green each on the focused test' <<<"$do_n_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the focused test falls back to the Test command' \
+  has "$SKILL" 'The focused test is the `Single test:` command, or the `Test command:` when the backlog has no `Single test:` or it is `none`.'
+red_line=$(grep -E '^   1\. Write the test;' "$SKILL" 2>/dev/null)
+assert 'red runs the focused test' grep -qF 'run it with the focused test' <<<"$red_line"
 
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
