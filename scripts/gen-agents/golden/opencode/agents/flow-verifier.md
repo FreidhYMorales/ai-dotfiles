@@ -47,6 +47,8 @@ The caller gives you the story ID and the plan folder. Read all of these before 
 5. Assertions follow `strict-tdd.md` (no banned patterns, expected values from the criteria).
 6. When the `Risk:` line names item 2, walk the security checklist in `high-risk.md`.
 
+The `Test command:` may take minutes: allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result.
+
 ## Report
 
 Return exactly this shape:
