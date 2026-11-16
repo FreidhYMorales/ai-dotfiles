@@ -279,6 +279,25 @@ for s in run-tests.sh check-bench.sh check.sh; do
   fi
 done
 
+echo "== check-shell, changed-files mode =="
+# changed_fixture NAME: a fixture with one commit holding a script shellcheck
+# rejects (old/bad.sh), and origin/main pointing at that commit.
+changed_fixture() {
+  local root
+  root=$(fixture "$1")
+  mkdir -p "$root/old"
+  printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/old/bad.sh"
+  git -C "$root" add -A
+  git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m base
+  git -C "$root" update-ref refs/remotes/origin/main HEAD
+  printf '%s\n' "$root"
+}
+
+root=$(changed_fixture changed-only)
+printf '#!/usr/bin/env bash\necho new\n' >"$root/new.sh"
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode lints only the changed script' check-shell.sh "$root"
+output_has 'changed mode reports the changed script' 'ok    shellcheck new.sh'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
