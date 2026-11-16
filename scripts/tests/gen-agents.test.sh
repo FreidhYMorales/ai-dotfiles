@@ -185,6 +185,17 @@ for target in opencode antigravity; do
     grep -qE '^7\. \*\*Done\.\*\*.*write `make eval pending \(needs Claude\)` in the story log' "$OUT/$target/skills/flow-pair/SKILL.md"
 done
 
+echo "== generated pair loops on the focused test =="
+# Story tiered-checks/04: the generated copies carry the focused-test loop
+# and the single full run on the final tree.
+for target in opencode antigravity; do
+  assert "$target pair reruns the focused test until green" \
+    grep -qF 'rerun the focused test until green' "$OUT/$target/skills/flow-pair/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$target pair runs the Test command once on the final tree" \
+    grep -qE '^6\. \*\*Check\.\*\*.*run the `Test command:` once on the final tree' "$OUT/$target/skills/flow-pair/SKILL.md"
+done
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
