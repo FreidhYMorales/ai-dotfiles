@@ -84,6 +84,20 @@ assert 'scaffold seeds a high-risk story' has_re "$CASE/scaffold.sh" 'Risk: item
 assert 'grader expects NEEDS DECISION' has "$CASE/graders/needs-decision.md" 'NEEDS DECISION'
 assert 'grader expects the story left open' has "$CASE/graders/story-open.md" '[x]'
 
+echo "== steps loop on the focused test =="
+# Story tiered-checks/04: red, green, refactor and "do N" run the focused
+# test; the full Test command waits for the final tree in step 6.
+green_line=$(grep -E '^   3\. Minimal code to pass' "$SKILL" 2>/dev/null)
+refactor_line=$(grep -E '^   5\. Optional `refactor' "$SKILL" 2>/dev/null)
+do_n_line=$(grep -E '^   "do N" runs' "$SKILL" 2>/dev/null)
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'green reruns the focused test' grep -qF 'rerun the focused test' <<<"$green_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'green no longer loops on the Test command' \
+  test -n "$green_line" -a -z "$(grep -F 'the `Test command:` until green' <<<"$green_line")"
+assert 'refactor reruns the focused test' grep -qF 'the focused test reruns after it' <<<"$refactor_line"
+assert 'do N keeps the focused test' grep -qF 'green each on the focused test' <<<"$do_n_line"
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
