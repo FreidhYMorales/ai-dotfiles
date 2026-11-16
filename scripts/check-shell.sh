@@ -7,6 +7,15 @@ set -u
 # shellcheck source=scripts/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+# candidates: every repo file, or with CHECK_SHELL_CHANGED=1 only the changed ones.
+candidates() {
+  if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then
+    git -C "$ROOT" ls-files --others --exclude-standard
+  else
+    repo_files
+  fi
+}
+
 scripts=()
 while IFS= read -r f; do
   path="$ROOT/$f"
@@ -14,7 +23,7 @@ while IFS= read -r f; do
   if [[ $f == *.sh ]] || head -n1 "$path" | rg -q '^#!.*\b(ba)?sh\b'; then
     scripts+=("$f")
   fi
-done < <(repo_files)
+done < <(candidates)
 
 if [[ ${#scripts[@]} -eq 0 ]]; then
   ok "no shell scripts found"
