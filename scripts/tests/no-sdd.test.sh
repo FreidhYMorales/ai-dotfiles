@@ -26,22 +26,23 @@ assert 'README names no sdd' no_sdd "$ROOT/README.md"
 assert 'multi-agent doc names no sdd' no_sdd "$ROOT/docs/multi-agent.md"
 assert 'upstream list names no sdd' no_sdd "$ROOT/upstreams.json"
 
+# at_least MIN VERSION: true when VERSION is MIN or newer (the retirement bump happened).
+at_least() { [[ -n $2 && $(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1) == "$1" ]]; }
+
 echo "== flow names no sdd and counts no files =="
 FLOW="$ROOT/plugins/flow"
 assert 'high-risk list names no sdd' no_sdd "$FLOW/skills/pair/references/high-risk.md"
 for skill in plan research foundation; do
   assert "$skill delegates by understanding, not 4+ files" test -f "$FLOW/skills/$skill/SKILL.md" -a -z "$(grep -F '4+ files' "$FLOW/skills/$skill/SKILL.md")"
 done
-assert 'flow plugin is 0.10.1' test "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")" = 0.10.1
-assert 'marketplace lists flow 0.10.1' \
-  test "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")" = 0.10.1
+assert 'flow plugin is at least 0.11.0' at_least 0.11.0 "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")"
+assert 'marketplace lists flow at least 0.11.0' \
+  at_least 0.11.0 "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")"
 
 echo "== toolkit skills name no sdd =="
 TOOLKIT="$ROOT/plugins/toolkit"
 assert 'work-unit-commits names no sdd' no_sdd "$TOOLKIT/skills/work-unit-commits/SKILL.md"
 assert 'chained-pr names no sdd' no_sdd "$TOOLKIT/skills/chained-pr/SKILL.md"
-# at_least MIN VERSION: true when VERSION is MIN or newer (the retirement bump happened).
-at_least() { [[ -n $2 && $(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1) == "$1" ]]; }
 assert 'toolkit plugin is at least 0.14.0' at_least 0.14.0 "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")"
 assert 'marketplace lists toolkit at least 0.14.0' \
   at_least 0.14.0 "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")"
