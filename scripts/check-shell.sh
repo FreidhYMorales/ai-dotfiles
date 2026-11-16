@@ -10,7 +10,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # candidates: every repo file, or with CHECK_SHELL_CHANGED=1 only the changed ones.
 candidates() {
   if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then
-    git -C "$ROOT" ls-files --others --exclude-standard
+    {
+      git -C "$ROOT" diff --name-only HEAD
+      git -C "$ROOT" ls-files --others --exclude-standard
+    } | sort -u
   else
     repo_files
   fi
