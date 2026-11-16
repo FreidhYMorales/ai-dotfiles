@@ -55,11 +55,11 @@ Run only when the user types `/flow:pair NN`. You drive (write tests and code), 
 4. **Mode C step** (default), one test from the list:
    1. Write the test; run it with `Single test:` and show the real failing output (red for the right reason).
    2. Commit `test(<scope>): <behaviour>` (named paths), then write the marker: `printf '%s\n%s\n' "$(git branch --show-current)" "$(git rev-parse HEAD)" >"$(git rev-parse --git-path flow-pair-red)"`. `require-check` then reports the red state instead of blocking.
-   3. Minimal code to pass; run the test and the `Test command:` until green.
+   3. Minimal code to pass; rerun the focused test until green; the `Test command:` waits for step 6.
    4. Tamper check, remove the marker, commit `feat|fix(<scope>): <outcome>`.
-   5. Optional `refactor(<scope>): …` while green, tests rerun after it.
+   5. Optional `refactor(<scope>): …` while green; the focused test reruns after it.
    6. Short status, then ask: `✅ "<test>" passes. <one line> (<file:line>). Decided: <call or none>. Continue with "<next test>"?`
-   "do N" runs N full steps (test → code → green each), never N tests then the code.
+   "do N" runs N full steps (test → code → green each on the focused test), never N tests then the code.
 5. **Mode B** (only when the story is small and `Risk: none`): run step 4 cycles back to back until the list is done or a stop rule fires; same commits; one summary at the end with the `Risk:` line.
 6. **Check.** All tests green and the `Test command:` passes. Walk the manual criteria with the user. High-risk story (any item): invoke the `flow:verifier` agent on the story diff, passing the story ID, the plan folder and the absolute paths of `references/strict-tdd.md` and `references/high-risk.md` (this skill's base directory); if it is not available, say so and recommend `/toolkit:judgment-day`. Before every verifier run, save `git for-each-ref` and `git rev-parse HEAD`, and compare them after it: any difference is NEEDS DECISION whatever the verdict says; name the refs that moved and repair nothing. On `FAIL`, apply one correction batch (each fix as its own red→green step), then ask for one recheck; a second FAIL ends with NEEDS DECISION: stop and show both reports. `NEEDS DECISION` from the verifier goes straight to the user; so does an empty report or one with no `Verdict:` line: that is NEEDS DECISION, never PASS, and the story stays open. `Risk: none`: no verifier, whatever the size.
 7. **Done.** In the backlog set the line to `[x] <sha>` (sha = last code commit); append to the story `## Log` the evidence (commits, test output tail, verifier result; for skill stories the `make eval` result) and the `Risk:` line; commit `docs(<scope>): close story NN` with named paths. Save one engram summary (topic `story/<feature>/NN`).
