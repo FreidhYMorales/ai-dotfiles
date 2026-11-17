@@ -46,6 +46,13 @@ assert 'apply uses the long-run wording' \
 assert 'a red full run rejects the change or Claude fixes it' \
   line_has "$APPLY" 'when it is red, report the change as rejected or fix it yourself'
 
+RUNS='^- One task per worker run'
+
+echo "== pi runs once per task, with no retry =="
+assert 'pi runs once per task' line_has "$RUNS" 'pi runs once per task'
+assert 'a second run is a new task, not a retry that feeds back the failure' \
+  line_has "$RUNS" 'a second run is a new task, not a retry that feeds back the failure'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
