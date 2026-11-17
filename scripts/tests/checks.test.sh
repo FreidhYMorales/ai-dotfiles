@@ -310,6 +310,10 @@ git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m branch
 CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints a script committed on the branch only' check-shell.sh "$root"
 output_has 'changed mode names the committed script' 'ERROR shellcheck branch.sh'
 
+root=$(changed_fixture changed-none)
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode passes with no changed script' check-shell.sh "$root"
+output_has 'changed mode says no script changed' 'no changed shell scripts'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
