@@ -48,7 +48,7 @@ They also delete or weaken existing tests (4 of 13 passing patches; see `docs/lo
 
 ## Execution Steps
 
-1. Write the task as a prompt: the behavior wanted (not the implementation), the files it may change, and the exact command that must pass.
+1. Write the task as a prompt: the behavior wanted (not the implementation), the files it may change, and the exact command that must pass: the backlog's `Single test:` command filled in for the task, the `Test command:` when the backlog has no `Single test:` or it is `none`, or `make check` when there is no backlog; never the full suite.
 2. Clone outside HOME so pi-box accepts it: `git clone -q --no-hardlinks <repo> <scratchpad>/worker && cd <scratchpad>/worker`.
 3. Run: `timeout 1200 pi-box --provider ollama --model <model> --no-session -p "<prompt>"`. Run it in the background; it takes minutes.
 4. Review `git status --short` and `git diff`: scope, size, no unrelated edits.
