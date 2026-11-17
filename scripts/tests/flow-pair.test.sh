@@ -124,6 +124,29 @@ assert 'the verifier run counts only with its command and pass line' \
 assert 'the docs close commit does not force a rerun' \
   grep -qF 'the `docs:` close commit does not invalidate it' <<<"$check_line"
 
+echo "== a red final suite starts a regression round =="
+# Story tiered-checks/05: regressions in existing tests are fixed inside
+# step 6, one fix: per failing test, with no new test: commit.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'a red final suite on tests the story did not add starts a regression round' \
+  grep -qF 'If it is red on tests the story did not add, run a regression round: for each failing existing test, show its output (no `test:` commit, no red marker), commit one `fix:`, rerun that test file and log the `fix:` in the story `## Log` naming the test it turns green' <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the round ends with the Test command under the repeat rule' \
+  grep -qF 'After the round, run the `Test command:` again under the repeat rule below.' <<<"$check_line"
+assert 'an existing test that must change in the round is stop rule 3' \
+  grep -qF 'In the round, an existing test that must change, be skipped or be deleted is stop rule 3' <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'a full run still red after the round is stop rule 4' \
+  grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$check_line"
+for host in opencode antigravity; do
+  gen_check=$(grep -E '^6\. \*\*Check\.\*\*' "$ROOT/scripts/gen-agents/golden/$host/skills/flow-pair/SKILL.md" 2>/dev/null)
+  assert "generated $host pair carries the regression round in step 6" \
+    grep -qF 'If it is red on tests the story did not add, run a regression round' <<<"$gen_check"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "generated $host pair carries the round's stop rules" \
+    grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$gen_check"
+done
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"

@@ -14,7 +14,7 @@
 02. [x] 793f8e9 As a developer, I want check-fast to lint only the scripts my branch changed so that a small edit stays under 10 s even on a loaded machine. Requires: #01
 03. [x] cd47f8a As a developer, I want a check-fast timeout reported without blocking the turn so that a slow machine never makes the agent fix healthy code. Requires: #01
 04. [x] da51db6 As a developer, I want /flow:pair to loop on the focused test and run the full suite once on the final tree so that TDD does not wait on the suite at every step.
-05. [~] As a developer, I want a red final suite in /flow:pair to become a regression round so that late regressions get fixed without breaking Strict TDD. Requires: #04
+05. [x] 94ae6eb As a developer, I want a red final suite in /flow:pair to become a regression round so that late regressions get fixed without breaking Strict TDD. Requires: #04
 06. [ ] As a developer, I want ship to run make check once so that shipping does not repeat the full suite.
 07. [ ] As a developer, I want the docs, agent rules and new-repo templates to teach the two tiers so that agents stop running the full suite every turn. Requires: #01
 08. [ ] As a developer of the notch, I want a check-fast tier there and the hook trusted so that the notch gets a gate between turns without grabbing the keyboard. Requires: #01, #07

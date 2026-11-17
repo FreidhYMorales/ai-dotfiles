@@ -66,6 +66,13 @@ for agent in "$AGENT" "$OPENCODE_AGENT"; do
   long_run='The `Test command:` may take minutes: allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result.'
   assert "$name: checks carry the long-run wording as its own line" grep -qxF -- "$long_run" <<<"$checks"
   assert "$name: Hard Rules hold no long-run wording" test -n "$hard_rules" -a -z "$(grep -F '600000' <<<"$hard_rules")"
+  # Story tiered-checks/05: check 3 accepts a regression-round fix: only
+  # when the story log names the existing test it turns green.
+  check3=$(grep -E '^3\. Commit order:' <<<"$checks")
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$name: check 3 accepts a logged regression-round fix" \
+    grep -qF 'A regression-round `fix(...)` commit needs no new `test(...)` commit only when the story `## Log` names the existing test it turns green.' <<<"$check3"
+  assert "$name: Hard Rules hold no regression-round wording" test -n "$hard_rules" -a -z "$(grep -Fi 'regression' <<<"$hard_rules")"
 done
 
 echo "== agent: report shape pair parses =="
