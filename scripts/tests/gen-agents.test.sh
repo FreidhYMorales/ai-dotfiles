@@ -122,8 +122,8 @@ echo "== OpenCode rules =="
 # the make check gate and the raw support-file names; pause is a hook (#20).
 assert 'AGENTS.md matches golden' same_as_golden opencode/AGENTS.md
 # shellcheck disable=SC2016 # literal markdown backticks
-assert 'OpenCode rules run make check before done' \
-  grep -qF 'Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes' "$OUT/opencode/AGENTS.md"
+assert 'OpenCode rules run make check-fast before done' \
+  grep -qF 'Before saying work is done, when the tree has uncommitted changes, run `make check-fast` from the git root if the root Makefile has a `check-fast` target' "$OUT/opencode/AGENTS.md"
 assert 'OpenCode rules skip the gate on a red marker' grep -qF 'flow-pair-red' "$OUT/opencode/AGENTS.md"
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'OpenCode rules map support-file names' \
