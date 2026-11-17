@@ -425,8 +425,8 @@ install_opencode() {
 merge_agy_hooks() {
   local target="$GEMINI_CONFIG_DIR/hooks.json" current='{}' merged
   [[ -f "$target" ]] && current=$(<"$target")
-  # Stop's 330 s timeout covers require-check's 300 s make check; SessionStart's
-  # 15 s covers its three hooks' 5 + 2 + 5 s.
+  # Stop's 330 s timeout covers require-check's 300 s make check fallback; check-fast stops at 60 s.
+  # SessionStart's 15 s covers its three hooks' 5 + 2 + 5 s.
   merged=$(jq --arg pre "bash '$REPO_DIR/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
     --arg stop "bash '$REPO_DIR/plugins/toolkit/hooks/agy/require-check.sh'" \
     --arg start "bash '$REPO_DIR/plugins/toolkit/hooks/agy/session-start.sh'" \
