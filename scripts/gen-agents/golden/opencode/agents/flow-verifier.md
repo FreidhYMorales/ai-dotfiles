@@ -42,7 +42,7 @@ The caller gives you the story ID and the plan folder. Read all of these before 
 
 1. Run the `Test command:` once and record its result.
 2. For each acceptance criterion, find the test that pins it and the code that makes it true. A criterion with no test, or a test that would pass with the code removed, fails.
-3. Commit order: every `test(...)` commit comes before the `feat|fix(...)` commit that makes it pass.
+3. Commit order: every `test(...)` commit comes before the `feat|fix(...)` commit that makes it pass. A regression-round `fix(...)` commit needs no new `test(...)` commit only when the story `## Log` names the existing test it turns green.
 4. Tamper check: for each `test(...)` commit, `git diff <test-commit> HEAD -- <its test files>` shows only later added cases, never a changed or removed assertion.
 5. Assertions follow `strict-tdd.md` (no banned patterns, expected values from the criteria).
 6. When the `Risk:` line names item 2, walk the security checklist in `high-risk.md`.
