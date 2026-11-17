@@ -333,6 +333,13 @@ printf '#!/usr/bin/env bash\n# shellcheck disable=SC2034\nGREETING=hello\n' >"$r
 CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints every script when a sourced lib changed' check-shell.sh "$root"
 output_has 'changed mode reaches an unchanged script after a lib change' 'ERROR shellcheck old/bad.sh'
 
+# No commit yet: the staged scripts are neither untracked nor diffable with HEAD.
+root=$(fixture changed-no-head)
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/staged.sh"
+git -C "$root" add -A
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints every script in a repo with no HEAD' check-shell.sh "$root"
+output_has 'changed mode reaches a staged script with no HEAD' 'ERROR shellcheck staged.sh'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
