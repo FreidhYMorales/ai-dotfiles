@@ -303,6 +303,13 @@ printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/plugins/p/hooks/h.sh"
 CHECK_SHELL_CHANGED=1 expect 1 'changed mode fails on a lint error in a changed script' check-shell.sh "$root"
 output_has 'changed mode names the failing changed script' 'ERROR shellcheck plugins/p/hooks/h.sh'
 
+root=$(changed_fixture changed-committed)
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/branch.sh"
+git -C "$root" add branch.sh
+git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m branch
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints a script committed on the branch only' check-shell.sh "$root"
+output_has 'changed mode names the committed script' 'ERROR shellcheck branch.sh'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
