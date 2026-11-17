@@ -36,6 +36,16 @@ assert 'the prompt falls back to make check when there is no backlog' \
 assert 'the prompt never hands the worker the full suite' \
   line_has "$PROMPT" 'never the full suite'
 
+APPLY='^6\. Apply:'
+
+echo "== after applying, the full suite runs once =="
+assert 'apply reruns the full Test command: once on the applied tree' \
+  line_has "$APPLY" 'rerun the full `Test command:` (or `make check`) once on the applied tree'
+assert 'apply uses the long-run wording' \
+  line_has "$APPLY" 'allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result'
+assert 'a red full run rejects the change or Claude fixes it' \
+  line_has "$APPLY" 'when it is red, report the change as rejected or fix it yourself'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
