@@ -126,6 +126,12 @@ assert 'lists all three, slowest first' test "$REPORT" = $'scripts/tests/f1.test
 assert 'each listed file shows its time in seconds' test "$TIMED" = 3
 assert 'exit 1 is unchanged' test "$CODE" -eq 1
 
+echo "== under TEST_SHARD only that shard's files are reported =="
+# Files are taken in path order: shard 1/2 runs s1, s3, s5, s7.
+report "$TMP/seven" 1/2
+assert 'lists only shard 1/2 files, slowest first' test "$REPORT" = $'scripts/tests/s7.test.sh\nscripts/tests/s5.test.sh\nscripts/tests/s3.test.sh\nscripts/tests/s1.test.sh'
+assert 'each listed file shows its time in seconds' test "$TIMED" = 4
+
 if [[ $failures -gt 0 ]]; then
   printf '%d case(s) failed\n' "$failures"
   exit 1
