@@ -346,6 +346,21 @@ printf '#!/usr/bin/env bash\necho new\n' >"$root/new.sh"
 CHECK_SHELL_CHANGED=1 expect 0 'changed mode with no origin/main lints only uncommitted work' check-shell.sh "$root"
 output_has 'changed mode with no origin/main reports the uncommitted script' 'ok    shellcheck new.sh'
 
+# The check-fast recipe ($fast_recipe, above) switches the mode on for the
+# shell step only, inline, so no other step and no later make call inherits it.
+if grep -qxF 'CHECK_SHELL_CHANGED=1 bash scripts/check-shell.sh' <<<"$fast_recipe"; then
+  printf 'PASS  check-fast runs check-shell.sh in changed mode\n'
+else
+  printf 'FAIL  check-fast runs check-shell.sh in changed mode\n%s\n' "$fast_recipe"
+  failures=$((failures + 1))
+fi
+if [[ $(grep -c 'CHECK_SHELL_CHANGED' <<<"$fast_recipe") -eq 1 ]]; then
+  printf 'PASS  check-fast sets changed mode on the shell step only\n'
+else
+  printf 'FAIL  check-fast sets changed mode on the shell step only\n%s\n' "$fast_recipe"
+  failures=$((failures + 1))
+fi
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
