@@ -36,3 +36,7 @@ Risk: none
 
 - L1 request: /flow:story 10
 - Stopped in test 1: the code prints the report correctly, but the committed test's parser (`report`, `5b3b291`) reads every line after the header, including `finish`'s `tests: ok`, so it cannot go green without editing the committed test.
+- L2 user: approved the parser fix as a separate `test:` commit; mode B.
+- Commits: 5b3b291 test (report), 2nd test commit narrows the parser to the indented report lines (expectations unchanged, still red against main), a358069 feat (runner records wall time per file, prints up to five slowest after the results), a99b016 test (failing run with three files), bb6a7f5 test (TEST_SHARD covers only its files). Tests 2 and 3 passed on first run against the feat; both shown red against main's runner.
+- Evidence: `bash scripts/tests/run-tests.test.sh` all cases passed; `make check` on bb6a7f5: "All checks passed (8 steps)", slowest: install-agy-skills 79.5s, install-opencode 59.3s, install-claude 55.2s, gen-agents 52.2s, install-agy 50.5s.
+- Risk: none
