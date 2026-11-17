@@ -1,0 +1,30 @@
+# Plan review: retire-antigravity
+Verdict: PASS WITH CHANGES
+Summary: All five plan-review-2 findings are fixed in the plan (the Installer row's ai-update triage, `regen-agy` turned into a `no_install` check, the `no-agy` self-exclusion and guard, `at_least 0.22.0`, and the `no-agy` timing). The plan-review-1 resolutions also still hold against the code. I found two new major problems, both in the Installer row. First, it deletes a `port-docs.test.sh` range that also holds OpenCode assertions. Second, its auto-detect RED expects an exact output line that depends on the host, so it would fail in CI.
+
+## Findings
+| # | Category | Severity (blocker/major/minor) | Finding | Evidence | Suggested fix |
+|---|---|---|---|---|---|
+| 1 | Technical correctness (test scope) | major | The Installer row says "`port-docs.test.sh:47-55` [is] deleted with the text [it pins]". That range is not agy-only. Line 48 (`the header has an OpenCode section`), line 50 (`the header links no raw skills`) and lines 51-53 (the OpenCode header pieces loop) pin OpenCode's install.sh header. Deleting the range literally drops that coverage of the installer. This is the same kind of mistake as plan-review-2 #1. The range also stops at :55 and leaves the `done` at :56 behind. | Plan "Scope" row 1; `scripts/tests/port-docs.test.sh:46-56` | Delete only :47 (`agy=` awk), :49 and :54-56. Keep :45-46, :48 and :50-53. The OpenCode section of the header still ends at the next `#   - ` heading, so its awk keeps working. |
+| 2 | Technical correctness (RED test) | major | This RED asserts the exact line `done. Active targets: claude opencode.`: "with `agy` on `PATH` and `~/.gemini/antigravity-cli` present, a target-less install ends with `done. Active targets: claude opencode.`". Auto-detection finds `opencode` through the host `PATH` (`install-lib.sh:54` prepends `$home/bin` to the host `PATH`), and the sandbox has no `opencode` stub. This machine has `~/.opencode/bin/opencode`, so the test passes here. CI installs `claude` but not `opencode`, so CI prints `claude` and the test fails. The Screens example has the same host dependence. | Plan "Scope" row 1 and "Screens"; `install.sh:548-556`; `scripts/tests/install-lib.sh:13-46,54`; `.github/workflows/check.yml` (no opencode install) | For auto-detect, assert that the `^done\. Active targets:` line does not contain `antigravity`. Then add a deterministic RED: `--target all` ends with `done. Active targets: claude opencode.` (see #3). The other option is an `opencode` stub in that case's sandbox `bin/`. |
+| 3 | Gap (RED coverage) | minor | The rule "`all` means `claude opencode`" is a CLI contract (high-risk item 3), but it has no RED. Today `all` is used only as a setup step (`install-uninstall.test.sh:22,111,141,168`, `install-claude.test.sh:164`), and nothing asserts which targets it resolves to. | Plan "Screens" rules; `install.sh:534-537` | Add one assertion to the Installer RED: `install --target all` prints `done. Active targets: claude opencode.` |
+| 4 | Contradiction (history policy) | minor | The plan says history stays as written, but the Docs row edits `README.md:125-126`, which are closed `[x]` roadmap items. `no-agy` forces that edit. `port-docs.test.sh:37-41` pins line 126 (`Port the Claude-only parts`, checked off, `judgment-day.*v2`), so the rewording must keep those phrases, and the plan does not say so. | Plan "Scope" row 4; `README.md:125-126`; `scripts/tests/port-docs.test.sh:37-41` | Add to the Docs row: reword :125-126 to name OpenCode only, and keep the phrases `- [x] Port the Claude-only parts` and `judgment-day ... v2`. |
+| 5 | Gap (test triage) | minor | The `install-uninstall.test.sh:160-173` triage mixes deletion and rewriting. :160-161 (the hooks-key dry-run line) must be deleted. :165-175 must be kept and rewritten to OpenCode-only filters, because it is the only test that `--uninstall --target claude` leaves OpenCode links alone. "agy cases leave … :160-173" reads as deletion. | Plan "Scope" row 1; `scripts/tests/install-uninstall.test.sh:160-175` | Say it explicitly: delete :160-161; rewrite :165-175 (title, `.gemini` filters, labels) and keep the case. |
+
+## Scope vs deadline
+| Item | Est. dev-days | Cut (MUST/SHOULD/LATER) |
+|---|---|---|
+| Installer (install.sh, ai-update, 7 test files, fake agy removal, port-docs/tiered-docs assertions narrowed per #1, deterministic RED per #2/#3, verifier for items 3 and 5) | 0.8 | MUST |
+| Generator (gen.sh, models.json, 26 goldens, 4 rewritten gen-agents cases, 3 other test files, OpenCode golden diff gate) | 0.4 | MUST |
+| Toolkit (delete adapters and 3 tests, bump to 0.22.0 in both manifests, `no-sdd` case, rerun install) | 0.15 | MUST |
+| Docs (multi-agent.md rewrite, README incl. #4, .gitignore, idea 20, #47, idea 29, no-agy test) | 0.4 | MUST |
+
+Total MUST: 1.75 dev-days vs available: open-ended (solo, before the reinstall) -> fits
+
+## Unnamed risks
+- Local and CI sandboxes differ more than the plan assumes. Install tests inherit the host `PATH`, and this machine has a real `agy` (`~/.local/bin/agy`) and `opencode`, while CI has neither. A test that passes locally can fail in CI, or the reverse. Finding #2 is one instance. — medium — Do not assert anything that depends on which agents the host has installed. Stub or explicitly target what the test needs.
+- The `no-agy` scan matches the substring `agy` case-insensitively, so rewritten docs could trip it with an unrelated word. Today there is no false hit outside the files the plan already edits (checked with `git ls-files | rg -v '^docs/plans/|^docs/ideas.md|^packs/vendor/' | xargs rg -il 'agy|antigravity|\.gemini'`; every hit is a listed file). — low — If it happens, switch to `\bagy\b`.
+- The Toolkit story deletes the adapters while the live `~/.gemini/config/hooks.json` still runs them. — low — Already accepted in "Data gaps". Do not launch agy before the reinstall.
+
+## Questions for the user (max 5)
+None. The product questions are already answered in the plan, and every finding above is technical with a fix stated.

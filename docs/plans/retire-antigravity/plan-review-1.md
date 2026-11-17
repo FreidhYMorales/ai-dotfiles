@@ -1,0 +1,35 @@
+# Plan review: retire-antigravity
+Verdict: PASS WITH CHANGES
+Summary: The plan matches the code. Its file:line citations are accurate (install.sh:552-554, bin/ai-update:378, gen-agents.test.sh:237-248/268/419/438-441, pack-hint.test.sh:350-351), and no OpenCode golden contains agy text. The main problem is the scope rows: they are not independent. Some test files assigned to the Docs row assert on install.sh text, and the rows have no stated order, so a story can leave `make check` red. The plan also names no RED test for three of the four rows, although Strict TDD is on.
+
+## Findings
+| # | Category | Severity | Finding | Evidence | Suggested fix |
+|---|---|---|---|---|---|
+| 1 | Contradiction (row vs row) | major | The Installer row deletes the install.sh header section, `merge_agy_hooks` and its timeout comment. But the tests that pin that text are assigned to the Docs row. `port-docs.test.sh:47-55` asserts that the install.sh header has an `#   - Antigravity:` section. `tiered-docs.test.sh:51-53` asserts the agy Stop-timeout comment at `install.sh:428`. The installer story therefore turns `make check` red until the docs story lands. | Plan "Scope" rows 1 and 4; `scripts/tests/port-docs.test.sh:47-55`; `scripts/tests/tiered-docs.test.sh:51-53`; `install.sh:428` | Move the install.sh-pinning assertions of port-docs and tiered-docs into the Installer row. Keep only the README and multi-agent.md assertions in Docs. |
+| 2 | Gap (ordering) | major | The plan gives no order between the Installer and Generator rows. If Generator lands first, `install_antigravity` still calls `link_rules antigravity` and `link_generated antigravity`. Those link to a build subdir that no longer exists, so `install-agy*.test.sh` and `install-fresh.test.sh:76-77` fail. Only the Toolkit row states a dependency. | Plan "Scope"; `install.sh:476-482` | State the order: Installer, then Generator, then Toolkit, then Docs. Or say in each row that it must leave `make check` green on its own. |
+| 3 | Gap (Strict TDD) | major | Only the Installer row names new failing tests. Generator, Toolkit and Docs are deletions with no RED step, and strict TDD is enabled globally. | Plan "Scope" rows 2-4; `~/.claude/CLAUDE.md` "Strict TDD: enabled" | Name one RED per row. Generator: gen output has no `antigravity/` dir. Toolkit: `plugins/toolkit/hooks/agy` is absent and the versions are 0.22.0. Docs: README and multi-agent.md name no Antigravity, `agy` or `.gemini`. |
+| 4 | Gap (acceptance) | minor | There is no repo-wide "agy is gone" check. A plain grep also hits vendored files (`packs/vendor/archify/*` mention Gemini brand marks) and the leftover `ANTIGRAVITY_CONFIG_DIR` in `ai-update.test.sh:128`. | `rg -il 'agy\|antigravity\|gemini'` output; `scripts/tests/ai-update.test.sh:128` | Add a demo priority or test: `rg -i 'agy\|antigravity\|\.gemini'` outside `docs/plans/`, `docs/ideas.md` and `packs/vendor/` returns nothing. |
+| 5 | Technical correctness | minor | "Core model" says the generated output is `build/opencode/`. The real path is `build/agents/opencode/` (`BUILD_DIR` defaults to `$REPO_DIR/build/agents`). | Plan "Core model"; `install.sh:60` | Correct the path. |
+| 6 | Gap | minor | The "Data gaps" row for `install-uninstall.test.sh:25,170` is left open. It is effectively resolved: Claude plus OpenCode give far more than 10 links, and OpenCode alone (skills, agents, commands) gives more than 5. The `rg -e "^$home/.gemini/"` filters at :169/:173 and the test names/comments at :4/:165 also need editing. | Plan "Data gaps & assumptions"; `scripts/tests/install-uninstall.test.sh:4,165-173` | Mark it resolved. Add the `.gemini` filter and wording cleanup to the Installer row. |
+| 7 | Contradiction (history vs open items) | minor | "History stays as written", but two items are still open or parked, not history. Idea 20 (pending) names "agy's `toolkit` hooks key" and `unmerge_agy_hooks`. multi-agent-port backlog #47 is parked on an agy decision. | `docs/ideas.md:227-231`; `docs/plans/multi-agent-port/backlog.md:59` | In the Docs row, narrow idea 20 to the plugins/marketplace part. Mark #47 dropped (superseded by retire-antigravity). |
+| 8 | Gap (lost coverage) | minor | Deleting `gen-agents.test.sh:237-248` is correct, because `opencode_agent` never maps tools. But it leaves nothing that fails when a Claude agent gains a tool OpenCode cannot deny or permit. | `scripts/gen-agents/gen.sh` `opencode_agent`; `gen-agents.test.sh:237-248` | Accept it and note the decision in the plan. Do not add new behaviour. |
+| 9 | Gap (uninstall) | minor | After the change, `./install.sh --uninstall` can no longer remove the `~/.gemini` links or the `toolkit` hooks key. The links will dangle once the build swap deletes the old `build/agents.*` generation. This is accepted only implicitly. | `install.sh:280-284` (old generation removed), `install.sh:646-650` | Add one line to "Data gaps": `~/.gemini` links dangle after the first new install. Accepted until the reinstall. |
+
+## Scope vs deadline
+| Item | Est. dev-days | Cut (MUST/SHOULD/LATER) |
+|---|---|---|
+| Installer (install.sh, ai-update, 7 test files, 2 new cases, the port-docs/tiered-docs install.sh assertions from finding 1, verifier pass for items 3 and 5) | 0.7 | MUST |
+| Generator (gen.sh, models.json, goldens, 5 test files) | 0.4 | MUST |
+| Toolkit (delete adapters and tests, version bump, rerun install) | 0.15 | MUST |
+| Docs (multi-agent.md has 54 agy mentions, README, .gitignore, idea 20 and #47 cleanup) | 0.4 | MUST |
+Total MUST: 1.65 dev-days vs available: open-ended (solo, before the reinstall) -> fits
+
+## Unnamed risks
+- ~/.gemini comes back after the reinstall (restored from a home backup or dotfile sync), with a `toolkit` key pointing at deleted adapters — low — the first agy run would show hook errors. Confirm the reinstall is a clean home, or note a one-line manual `jq 'del(.toolkit)'`.
+- A mid-sequence story leaves `make check` red, and the require-check Stop gate then blocks every turn — medium without the order fix — apply findings 1 and 2.
+- Hand-regenerating the goldens (`rm -rf golden && gen.sh golden`, from verify.sh:6) with a different `GEN_REPO_PATH` silently rewrites the OpenCode goldens — low — keep demo priority 3 (`git diff main -- scripts/gen-agents/golden/opencode` empty) as a hard gate in the Generator story.
+- Removing the fake `agy` from `install-lib.sh` changes what every target-less install test exercises. A test could pass vacuously if it was asserting agy-side effects — low — the Installer story reviews each changed assertion, not just the deletions.
+
+## Questions for the user (max 5)
+1. Will the reinstall start from an empty home, or restore `~/.gemini` from a backup? — It decides whether "no cleanup" is safe. — Recommendation: if it may be restored, add a manual cleanup note to the docs and keep the code out of scope.
+2. Should idea 20 and multi-agent-port backlog #47 be updated (narrowed and dropped), or left as written? — The plan's "history stays" rule covers them, but they are open items. — Recommendation: narrow idea 20 and drop #47 in the Docs story.

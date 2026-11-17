@@ -32,6 +32,7 @@ Triage log for ideas outside current scope. One row per idea; details below.
 | 26 | A verifier that keeps its shell and a caller that cannot widen it | pending | backlog | 0.5 | 2026-11-05 | [26](#26-a-verifier-that-keeps-its-shell-and-a-caller-that-cannot-widen-it) |
 | 27 | What makes make check exceed 300 s with a bench change | SPIKE (absorbed by 28) | backlog | up to 1 h | 2026-11-05 | [27](#27-what-makes-make-check-exceed-300-s-with-a-bench-change) |
 | 28 | Tiered checks: a fast hook between turns, the full suite at ship and CI | GO | v1 (before clean-install stage 2) | 1.5–2.5 | 2026-11-12 | [28](#28-tiered-checks-a-fast-hook-between-turns-the-full-suite-at-ship-and-ci) |
+| 29 | Retire Antigravity: support only Claude Code and OpenCode | GO | v1 (before the system reinstall) | 1–1.5 | 2026-11-17 | [29](#29-retire-antigravity-support-only-claude-code-and-opencode) |
 
 ---
 
@@ -302,3 +303,12 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Recommendation: GO, with idea 27 as the first story (measure each step). Tradeoff: a broken test can go unnoticed for several turns, until `ship` or CI.
 - Decision: GO (user, 2026-11-12). Budget for the hook: about 10 s.
 - Plan: `docs/plans/tiered-checks/plan.md`. A repo opts in by defining a `check-fast` target; without it the hook runs `make check`. A `check-fast` timeout (60 s) is reported without blocking; a real failure blocks; when the tree is dirty, a green hook means the fast tier passed on the branch's changes; a clean tree runs nothing. Idea 27 is no longer the first story (only its slow-test report remains), and there is no parallel test runner (`scripts/run-tests.sh` is already parallel).
+
+## 29. Retire Antigravity: support only Claude Code and OpenCode
+
+- Idea: drop Antigravity (agy) support from the repo and keep only Claude Code and OpenCode.
+- Raised during: triage of "speed up the install tests" (2026-11-17), after story tiered-checks/10's slowest-files report (`install-agy-skills` 79.5 s, `install-agy` 50.5 s). Motivation: less to maintain; the slow agy install tests go away as a side effect. The original speed-up idea was dropped: since tiered checks the full suite only runs at a story's end and at ship.
+- Findings: 29 files outside `docs/plans/` name agy: the hook adapters in `plugins/toolkit/hooks/agy/` and their 3 tests, 26 goldens under `scripts/gen-agents/golden/antigravity`, branches in `install.sh`, `scripts/gen-agents/gen.sh`, `scripts/gen-agents/models.json`, `bin/ai-update`, `README.md`, `docs/multi-agent.md`, and about 12 test files (`install-agy.test.sh` and `install-agy-skills.test.sh` whole). OpenCode shares `gen.sh` and `scripts/tests/install-lib.sh`.
+- Score: feasibility high (removal only, no external dependency); complexity medium (OpenCode output must stay byte for byte); effort 1–1.5 d; value medium-high (one target fewer per skill change, the two slowest install tests go); risk medium (installer, item 5; OpenCode regressions caught by its goldens); no dependencies (no open stories); fit now, before the system reinstall; displaces nothing (makes the agy parts of the closed multi-agent-port and tiered-checks plans obsolete).
+- Recommendation: GO via `/flow:plan`. Tradeoff: 1–1.5 d, and returning to agy means rebuilding the adapters from git history.
+- Decision: GO (user, 2026-11-17). The installer only stops installing agy; it does not remove what is already under `~/.gemini/` (the user is reinstalling the system).
