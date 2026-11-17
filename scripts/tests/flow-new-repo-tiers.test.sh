@@ -62,6 +62,15 @@ echo "== foundation and bootstrap skills require both targets =="
 assert 'foundation requires check-fast' file_has "$FLOW/foundation/SKILL.md" "$FOUNDATION_RULE"
 assert 'bootstrap creates check-fast' file_has "$FLOW/bootstrap/SKILL.md" "$BOOTSTRAP_RULE"
 
+GOLDEN="${GOLDEN_DIR:-$ROOT/scripts/gen-agents/golden}"
+echo "== the generated OpenCode and Antigravity copies carry both targets =="
+for target in opencode antigravity; do
+  assert "$target foundation requires check-fast" \
+    file_has "$GOLDEN/$target/skills/flow-foundation/SKILL.md" "$FOUNDATION_RULE"
+  assert "$target bootstrap creates check-fast" \
+    file_has "$GOLDEN/$target/skills/flow-bootstrap/SKILL.md" "$BOOTSTRAP_RULE"
+done
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
