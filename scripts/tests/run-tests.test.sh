@@ -83,6 +83,55 @@ for bad in 3/2 0/2 x 1/0; do
   assert "TEST_SHARD=$bad: the error names TEST_SHARD" rg -qF TEST_SHARD <<<"$ERR"
 done
 
+# slow_repo NAME SPEC...: a fake repo at $TMP/NAME whose test files are
+# scripts/tests/<file>.test.sh, one per SPEC "file:seconds[:exit]"; each sleeps
+# that long, then exits with that status (default 0).
+slow_repo() {
+  local repo=$TMP/$1 spec f s e
+  shift
+  mkdir -p "$repo/scripts/tests"
+  for spec in "$@"; do
+    IFS=: read -r f s e <<<"$spec"
+    printf '#!/usr/bin/env bash\nsleep %s\nexit %s\n' "$s" "${e:-0}" >"$repo/scripts/tests/$f.test.sh"
+  done
+  git -C "$repo" init -q
+  git -C "$repo" add .
+}
+
+# report REPO [SHARD]: run run-tests.sh on REPO; set CODE and REPORT (the
+# paths listed after "slowest test files:", in order) and fail any listed line
+# without a time in seconds.
+report() {
+  local out
+  out=$(TEST_SHARD=${2:-} bash "$ROOT/scripts/run-tests.sh" "$1" 2>/dev/null)
+  CODE=$?
+  local block
+  # The report's lines are the indented ones after the header.
+  block=$(awk 'f && /^  / ; /^slowest test files:$/ {f=1}' <<<"$out")
+  REPORT=$(awk '{print $2}' <<<"$block")
+  TIMED=$(rg -c '^  [0-9]+\.[0-9]s  scripts/tests/[a-z0-9]+\.test\.sh$' <<<"$block" || echo 0)
+}
+
+echo "== the five slowest test files are reported, slowest first =="
+slow_repo seven s1:0 s2:0.3 s3:0.6 s4:0.9 s5:1.2 s6:1.5 s7:1.8
+report "$TMP/seven"
+assert 'lists the five slowest, slowest first' test "$REPORT" = $'scripts/tests/s7.test.sh\nscripts/tests/s6.test.sh\nscripts/tests/s5.test.sh\nscripts/tests/s4.test.sh\nscripts/tests/s3.test.sh'
+assert 'each listed file shows its time in seconds' test "$TIMED" = 5
+assert 'exit 0' test "$CODE" -eq 0
+
+echo "== fewer than five files, one failing: every file is reported =="
+slow_repo three f1:0.6 f2:0:1 f3:0.3
+report "$TMP/three"
+assert 'lists all three, slowest first' test "$REPORT" = $'scripts/tests/f1.test.sh\nscripts/tests/f3.test.sh\nscripts/tests/f2.test.sh'
+assert 'each listed file shows its time in seconds' test "$TIMED" = 3
+assert 'exit 1 is unchanged' test "$CODE" -eq 1
+
+echo "== under TEST_SHARD only that shard's files are reported =="
+# Files are taken in path order: shard 1/2 runs s1, s3, s5, s7.
+report "$TMP/seven" 1/2
+assert 'lists only shard 1/2 files, slowest first' test "$REPORT" = $'scripts/tests/s7.test.sh\nscripts/tests/s5.test.sh\nscripts/tests/s3.test.sh\nscripts/tests/s1.test.sh'
+assert 'each listed file shows its time in seconds' test "$TIMED" = 4
+
 if [[ $failures -gt 0 ]]; then
   printf '%d case(s) failed\n' "$failures"
   exit 1

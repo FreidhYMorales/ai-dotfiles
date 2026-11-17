@@ -39,8 +39,11 @@ trap 'rm -rf "$results"' EXIT
 pids=()
 for i in "${!files[@]}"; do
   (
+    start=${EPOCHREALTIME/[.,]/}
     cd "$ROOT" && bash "${files[i]}" >"$results/$i.out" 2>&1
     echo $? >"$results/$i.status"
+    # Wall time in tenths of a second, rounded.
+    echo $(((${EPOCHREALTIME/[.,]/} - start + 50000) / 100000)) >"$results/$i.time"
   ) &
   pids+=($!)
 done
@@ -56,5 +59,12 @@ for i in "${!files[@]}"; do
     tail -n 40 "$results/$i.out" >&2
     err "test failed: ${files[i]}"
   fi
+done
+
+echo "slowest test files:"
+for i in "${!files[@]}"; do
+  printf '%s %s\n' "$(<"$results/$i.time")" "${files[i]}"
+done | sort -k1,1nr -k2 | head -n 5 | while read -r t f; do
+  printf '  %d.%ds  %s\n' $((t / 10)) $((t % 10)) "$f"
 done
 finish tests
