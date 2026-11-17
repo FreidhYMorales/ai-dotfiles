@@ -37,7 +37,7 @@ Load when finished work must reach the remote: the user says ship / commit and p
 2. `git status --short` and `git diff --stat`; group changes into work units.
 3. Show the planned commits (type, scope, subject) and the push target. Ask once unless already approved.
 4. Commit each unit; then push.
-5. Find the run for the pushed SHA (`gh run list --commit <sha>`), then `gh run watch <id> --exit-status`. Use a long timeout or run it in the background.
+5. When `gh workflow list --all` shows an `active` workflow, find the run for the pushed SHA (`gh run list --commit <sha>`), then `gh run watch <id> --exit-status`; use a long timeout or run it in the background; otherwise follow the "No active workflow" gate.
 6. Save a short engram note: commits, SHA, CI result.
 
 ## Output Contract
