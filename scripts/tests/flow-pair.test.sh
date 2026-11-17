@@ -124,6 +124,13 @@ assert 'the verifier run counts only with its command and pass line' \
 assert 'the docs close commit does not force a rerun' \
   grep -qF 'the `docs:` close commit does not invalidate it' <<<"$check_line"
 
+echo "== a red final suite starts a regression round =="
+# Story tiered-checks/05: regressions in existing tests are fixed inside
+# step 6, one fix: per failing test, with no new test: commit.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'a red final suite on tests the story did not add starts a regression round' \
+  grep -qF 'If it is red on tests the story did not add, run a regression round: for each failing existing test, show its output (no `test:` commit, no red marker), commit one `fix:`, rerun that test file and log the `fix:` in the story `## Log` naming the test it turns green' <<<"$check_line"
+
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
   assert "strict-tdd covers \"$s\"" has "$TDD" "$s"
