@@ -22,10 +22,11 @@ sourced_files() {
 }
 
 # candidates: every repo file, or with CHECK_SHELL_CHANGED=1 only the changed
-# ones; a changed sourced lib can break any script, so it brings back every file.
+# ones; a changed sourced lib can break any script, so it brings back every
+# file, and so does a repo with no HEAD, where nothing can be diffed.
 candidates() {
   local changed
-  if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then
+  if [[ -n ${CHECK_SHELL_CHANGED:-} ]] && git -C "$ROOT" rev-parse --verify --quiet HEAD >/dev/null; then
     changed=$(changed_files)
     if ! rg --quiet --fixed-strings --line-regexp --file <(sourced_files) <<<"$changed"; then
       printf '%s\n' "$changed"
