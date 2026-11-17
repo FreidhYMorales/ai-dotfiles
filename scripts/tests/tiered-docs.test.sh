@@ -45,6 +45,11 @@ echo "== docs/multi-agent.md: the agy Stop gate runs the fast tier =="
 assert 'the Hooks row names check-fast with the make check fallback' \
   line_has "$MULTI" '^\| Hooks \|' 'the Stop gate (`require-check`: `make check-fast` when the Makefile defines it, else `make check`)'
 
+INSTALL="$ROOT/install.sh"
+echo "== install.sh: the agy Stop timeout names both limits =="
+assert 'the comment names the 300 s fallback and the 60 s fast tier' \
+  line_has "$INSTALL" "^ *# Stop's 330 s timeout" "covers require-check's 300 s make check fallback; check-fast stops at 60 s"
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
