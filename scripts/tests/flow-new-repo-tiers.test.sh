@@ -41,6 +41,12 @@ assert 'carries the agent rule' file_has "$AGENTS" "$RULE"
 assert 'no longer says the hook runs make check' \
   test "$(grep -cF 'The toolkit Stop hook runs it before an agent may finish' "$AGENTS")" = 0
 
+PERMS="$FLOW/foundation/templates/permissions.md"
+echo "== foundation permissions template allows check-fast =="
+assert 'the settings template allows make check-fast' file_has "$PERMS" '      "Bash(make check-fast:*)",'
+assert 'the example allow list has make check-fast' \
+  file_has "$PERMS" '"allow": ["Bash(make check:*)", "Bash(make check-fast:*)",'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
