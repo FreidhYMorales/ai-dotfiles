@@ -17,7 +17,7 @@ Load only when the user runs `/toolkit:delegate-local` or explicitly asks to del
 - The worker runs in a throwaway clone inside `pi-box`; never in the real repo, never with `PI_BOX_NETWORK=host`.
 - Never trust the worker's report. Re-run the check yourself; when it added a test, break the code on purpose and confirm the test fails.
 - Commits and PR bodies carry no AI attribution; record that a worker wrote the change in engram, not in git.
-- One task per worker run. If it fails twice, do the task yourself and record why in engram.
+- One task per worker run: pi runs once per task; a second run is a new task, not a retry that feeds back the failure. If it fails twice, do the task yourself and record why in engram.
 
 ## Decision Gates
 
