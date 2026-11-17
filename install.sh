@@ -536,7 +536,7 @@ resolve_targets() {
           TARGETS=(claude opencode antigravity)
           return
           ;;
-        claude | opencode | antigravity)
+        claude | opencode)
           TARGETS+=("$item")
           ;;
         *)
