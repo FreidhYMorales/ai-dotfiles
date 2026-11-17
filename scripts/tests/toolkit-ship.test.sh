@@ -37,6 +37,19 @@ assert 'the gate saves HEAD before the rebase' line_has "$GATE" 'Save `git rev-p
 assert 'the gate reruns make check only on changed files' \
   line_has "$GATE" 'rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files'
 
+NOWF='^\| No active workflow \|'
+DONE='^- Done means CI is green'
+
+echo "== with no active workflow, ship skips the CI watch =="
+assert 'the gate detects no active workflow with gh workflow list --all' \
+  line_has "$NOWF" '`gh workflow list --all` shows no workflow `active`'
+assert 'the gate looks for no run and says why CI was skipped' \
+  line_has "$NOWF" 'look for no run; say CI was skipped because no workflow is active'
+assert 'the gate reports done with make check green and the pushed SHA' \
+  line_has "$NOWF" 'done is `make check` green and the pushed SHA'
+assert 'done means CI green only when a workflow is active' \
+  line_has "$DONE" 'when the repo has an active workflow'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
