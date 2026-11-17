@@ -133,6 +133,11 @@ assert 'a red final suite on tests the story did not add starts a regression rou
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'the round ends with the Test command under the repeat rule' \
   grep -qF 'After the round, run the `Test command:` again under the repeat rule below.' <<<"$check_line"
+assert 'an existing test that must change in the round is stop rule 3' \
+  grep -qF 'In the round, an existing test that must change, be skipped or be deleted is stop rule 3' <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'a full run still red after the round is stop rule 4' \
+  grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$check_line"
 
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
