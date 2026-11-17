@@ -32,7 +32,7 @@ Load when finished work must reach the remote: the user says ship / commit and p
 
 ## Execution Steps
 
-1. `make check` from the git root; on failure stop and fix.
+1. `make check` from the git root, once (allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result); when it passes, record its `HEAD`. On failure stop and fix.
 2. `git status --short` and `git diff --stat`; group changes into work units.
 3. Show the planned commits (type, scope, subject) and the push target. Ask once unless already approved.
 4. Commit each unit; then push.
