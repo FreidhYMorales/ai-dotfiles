@@ -340,6 +340,12 @@ git -C "$root" add -A
 CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints every script in a repo with no HEAD' check-shell.sh "$root"
 output_has 'changed mode reaches a staged script with no HEAD' 'ERROR shellcheck staged.sh'
 
+root=$(changed_fixture changed-no-origin)
+git -C "$root" update-ref -d refs/remotes/origin/main
+printf '#!/usr/bin/env bash\necho new\n' >"$root/new.sh"
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode with no origin/main lints only uncommitted work' check-shell.sh "$root"
+output_has 'changed mode with no origin/main reports the uncommitted script' 'ok    shellcheck new.sh'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
