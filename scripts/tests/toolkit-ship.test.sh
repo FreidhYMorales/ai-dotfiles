@@ -50,6 +50,16 @@ assert 'the gate reports done with make check green and the pushed SHA' \
 assert 'done means CI green only when a workflow is active' \
   line_has "$DONE" 'when the repo has an active workflow'
 
+WATCH='^5\. '
+
+echo "== with an active workflow, ship still watches the run =="
+assert 'step 5 watches the run only when a workflow is active' \
+  line_has "$WATCH" 'When `gh workflow list --all` shows an `active` workflow, find the run for the pushed SHA'
+assert 'step 5 still watches the run until it is green' \
+  line_has "$WATCH" '`gh run watch <id> --exit-status`'
+assert 'step 5 points to the no-active-workflow gate otherwise' \
+  line_has "$WATCH" 'otherwise follow the "No active workflow" gate'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
