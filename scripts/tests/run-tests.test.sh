@@ -106,7 +106,8 @@ report() {
   out=$(TEST_SHARD=${2:-} bash "$ROOT/scripts/run-tests.sh" "$1" 2>/dev/null)
   CODE=$?
   local block
-  block=$(awk 'f; /^slowest test files:$/ {f=1}' <<<"$out")
+  # The report's lines are the indented ones after the header.
+  block=$(awk 'f && /^  / ; /^slowest test files:$/ {f=1}' <<<"$out")
   REPORT=$(awk '{print $2}' <<<"$block")
   TIMED=$(rg -c '^  [0-9]+\.[0-9]s  scripts/tests/[a-z0-9]+\.test\.sh$' <<<"$block" || echo 0)
 }
