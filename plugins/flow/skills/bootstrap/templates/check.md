@@ -1,10 +1,11 @@
 # `make check` template
 
-Every project exposes ONE quality gate: `make check`. Agents and CI run it; work is done only when it passes. The toolkit Stop hook runs it before an agent may finish a turn with uncommitted changes.
+Every project exposes two targets: `make check`, the full quality gate, and `make check-fast`, its fast tier. A story, a ship and CI are done when `make check` passes. Between turns the hook runs `check-fast`. (The toolkit Stop hook runs `check-fast` before an agent may finish a turn with uncommitted changes; without that target it runs `make check`.)
 
 ## Rules
 
 - `check` runs, in order: format check (no rewrite), lint, typecheck (when the language has one), tests. Drop a step only when the stack has no such tool; say so in a comment.
+- `check-fast` runs the static steps only (format check, lint), on the changed files when the tools allow it; no tests. It must finish in about 10 s.
 - Read-only and non-interactive: no `--watch`, no prompts, no auto-fix. Put fixers in a separate `fmt` target.
 - Wrap the stack's native tools (npm scripts, cargo, uv...) instead of duplicating their config. Even when `make` is unusual for the stack, the Makefile is a thin wrapper and stays.
 - At least one smoke test exists from the first commit, so `check` is green from day one.
@@ -13,12 +14,15 @@ Every project exposes ONE quality gate: `make check`. Agents and CI run it; work
 ## Skeleton
 
 ```make
-.PHONY: check fmt
+.PHONY: check check-fast fmt
 check:
 	<format check>
 	<lint>
 	<typecheck>
 	<tests>
+check-fast:
+	<format check>
+	<lint>
 fmt:
 	<format write>
 ```
