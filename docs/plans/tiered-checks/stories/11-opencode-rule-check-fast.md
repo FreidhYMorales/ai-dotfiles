@@ -36,3 +36,8 @@ Risk: item 6 (OpenCode obeying a rule line cannot be tested here; only its text 
 ## Log
 
 - L1 request: /flow:story 11
+- Commits: 55f3b1c test (check-fast rule, pre-approved change to gen-agents.test.sh:125-126), 1879f91 feat (gen.sh rule line + OpenCode golden), 2bbe49d test (make check fallback), 97f97cd test + 453c313 docs (docs/multi-agent.md), b2d44e7 docs (story bookkeeping). `./install.sh` rerun; `~/.config/opencode/AGENTS.md` has the new line.
+- Evidence: `bash scripts/tests/gen-agents.test.sh` and `bash scripts/tests/tiered-docs.test.sh`: "All cases passed"; `make check` on 453c313: "All checks passed (8 steps)".
+- Verifier: FAIL on commit order only (criteria 1-3 PASS, tamper PASS, assertions PASS, its own `make check` run passed). Refs and HEAD unchanged across the run.
+- Accepted deviation (user decision, L2): 1879f91 wrote the whole rule line, including the `make check` fallback clause, before its test 2bbe49d; the fallback was production code written before a failing test (Law 1). 2bbe49d was shown red against main's gen.sh before committing. History kept as is, not rewritten.
+- Risk: item 6 (OpenCode obeying a rule line cannot be tested here; only its text is pinned)
