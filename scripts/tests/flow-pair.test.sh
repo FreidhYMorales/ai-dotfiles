@@ -130,6 +130,9 @@ echo "== a red final suite starts a regression round =="
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'a red final suite on tests the story did not add starts a regression round' \
   grep -qF 'If it is red on tests the story did not add, run a regression round: for each failing existing test, show its output (no `test:` commit, no red marker), commit one `fix:`, rerun that test file and log the `fix:` in the story `## Log` naming the test it turns green' <<<"$check_line"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'the round ends with the Test command under the repeat rule' \
+  grep -qF 'After the round, run the `Test command:` again under the repeat rule below.' <<<"$check_line"
 
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
