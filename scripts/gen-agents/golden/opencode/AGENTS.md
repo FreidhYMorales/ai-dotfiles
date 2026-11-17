@@ -42,4 +42,4 @@ Strict TDD: enabled.
 ## OpenCode
 
 - A skill's support files (`references/`, `templates/`) may still name `/flow:<skill>` or `/toolkit:<skill>`; in OpenCode that is `/flow-<skill>` or `/toolkit-<skill>`.
-- Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.
+- Before saying work is done, when the tree has uncommitted changes, run `make check-fast` from the git root if the root Makefile has a `check-fast` target, else `make check` if it has a `check` target; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.
