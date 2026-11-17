@@ -533,7 +533,7 @@ resolve_targets() {
     for item in "${items[@]}"; do
       case "$item" in
         all)
-          TARGETS=(claude opencode antigravity)
+          TARGETS=(claude opencode)
           return
           ;;
         claude | opencode)
