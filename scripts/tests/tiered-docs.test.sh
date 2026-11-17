@@ -35,6 +35,10 @@ assert 'verification names both tiers' \
   line_has "$README" '^Agent output is accepted' 'Between turns the `require-check` Stop hook runs `make check-fast`; a story, a ship and CI are done when `make check` passes'
 assert 'verification says what a green hook means' \
   line_has "$README" '^Agent output is accepted' "$GREEN"
+assert 'the Makefile row: check-fast is static and changed-files only' \
+  line_has "$README" '^\| `Makefile`, `scripts/`' '`make check-fast`: shellcheck on the changed scripts plus JSON/structure/settings validation, skill lint and workflow lint; no tests or bench'
+assert 'the Makefile row: who runs each target' \
+  line_has "$README" '^\| `Makefile`, `scripts/`' '`check-fast` run by `require-check` between turns; `check` at a story'"'"'s end, at ship and in CI'
 
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
