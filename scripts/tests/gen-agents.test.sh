@@ -124,6 +124,9 @@ assert 'AGENTS.md matches golden' same_as_golden opencode/AGENTS.md
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'OpenCode rules run make check-fast before done' \
   grep -qF 'Before saying work is done, when the tree has uncommitted changes, run `make check-fast` from the git root if the root Makefile has a `check-fast` target' "$OUT/opencode/AGENTS.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert 'OpenCode rules fall back to make check without check-fast' \
+  grep -qF 'target, else `make check` if it has a `check` target; fix any failure first' "$OUT/opencode/AGENTS.md"
 assert 'OpenCode rules skip the gate on a red marker' grep -qF 'flow-pair-red' "$OUT/opencode/AGENTS.md"
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'OpenCode rules map support-file names' \
