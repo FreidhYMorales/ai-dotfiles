@@ -371,6 +371,10 @@ assert 'timeout message names check-fast, the elapsed seconds and the limit' \
 rm -f "$stub/limit"
 expect 0 'a timed-out check-fast is not cached as green' "$(payload "$repo")" PATH="$stub:$PATH"
 assert 'the next stop runs check-fast again' test -e "$stub/limit"
+expect 0 'a check-fast timeout on a second stop does not block' \
+  "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')" PATH="$stub:$PATH"
+assert 'a second stop reports the same timeout message' \
+  message_has '^require-check: make check-fast timed out after [0-9]s \(limit 60s\)' "$LAST_STDOUT"
 
 repo=$(new_repo check-timeout)
 write_makefile "$repo" 'true'
