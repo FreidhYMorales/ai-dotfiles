@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Structural test for new repos set up by /flow:foundation and /flow:bootstrap:
+# their skills and templates teach both targets (check-fast between turns,
+# check as the full gate), the agent rule and the check-fast permission.
+# Run: bash scripts/tests/flow-new-repo-tiers.test.sh
+# shellcheck disable=SC2016 # literal markdown backticks
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+FLOW="$ROOT/plugins/flow/skills"
+failures=0
+
+assert() {
+  local label=$1
+  shift
+  if "$@"; then
+    printf 'PASS  %s\n' "$label"
+  else
+    printf 'FAIL  %s\n' "$label"
+    failures=$((failures + 1))
+  fi
+}
+
+# file_has FILE TEXT: FILE contains TEXT literally.
+file_has() { grep -qF -- "$2" "$1" 2>/dev/null; }
+
+RULE='A story, a ship and CI are done when `make check` passes. Between turns the hook runs `check-fast`.'
+
+CHECK="$FLOW/bootstrap/templates/check.md"
+echo "== bootstrap check template: two targets and the agent rule =="
+assert 'names both targets' \
+  file_has "$CHECK" 'Every project exposes two targets: `make check`, the full quality gate, and `make check-fast`, its fast tier.'
+assert 'carries the agent rule' file_has "$CHECK" "$RULE"
+assert 'check-fast is static and has no tests' \
+  file_has "$CHECK" '`check-fast` runs the static steps only (format check, lint), on the changed files when the tools allow it; no tests. It must finish in about 10 s.'
+assert 'the skeleton defines check-fast' file_has "$CHECK" 'check-fast:'
+
+if ((failures)); then
+  printf '%d case(s) failed\n' "$failures"
+  exit 1
+fi
+echo 'All cases passed'
