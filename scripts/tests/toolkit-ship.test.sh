@@ -60,6 +60,12 @@ assert 'step 5 still watches the run until it is green' \
 assert 'step 5 points to the no-active-workflow gate otherwise' \
   line_has "$WATCH" 'otherwise follow the "No active workflow" gate'
 
+OUTPUT='^Commit SHAs with subjects'
+
+echo "== the output names the CI skip instead of a run URL =="
+assert 'the output gives the run URL or says CI was skipped' \
+  line_has "$OUTPUT" 'CI result with run URL, or that CI was skipped because no workflow is active'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
