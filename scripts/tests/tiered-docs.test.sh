@@ -55,6 +55,16 @@ echo "== the CI workflow header: CI runs the full tier =="
 assert 'the header says CI runs the full make check and the hook check-fast' \
   line_has "$WORKFLOW" '^# Runs ' 'the full make check, the gate for a story, a ship and CI; between turns the require-check Stop hook runs make check-fast'
 
+# idea28 prints the idea 28 section of docs/ideas.md.
+idea28() { awk '/^## 28\./ { on = 1; print; next } on && /^## / { exit } on' "$ROOT/docs/ideas.md"; }
+idea28_has() { idea28 | grep -qF -- "$1"; }
+
+echo "== idea 28 records what a green hook means and drops the parallel runner =="
+assert 'idea 28 section is found' idea28_has '## 28. Tiered checks'
+assert 'idea 28 says what a green hook means' idea28_has "$GREEN"
+assert 'idea 28 drops the parallel test runner' \
+  idea28_has 'no parallel test runner (`scripts/run-tests.sh` is already parallel)'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
