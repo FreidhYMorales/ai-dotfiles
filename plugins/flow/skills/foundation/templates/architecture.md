@@ -69,6 +69,8 @@ Strict TDD: write the failing test first.
   2. Lint: `<command>`
   3. Typecheck: `<command or "n/a: compiler covers it">`
   4. Tests: `<command>`
+- Fast tier: `make check-fast`, steps 1-2 only (on the changed files when the tools allow it); the Stop hook runs it between turns.
+- A story, a ship and CI are done when `make check` passes. Between turns the hook runs `check-fast`.
 - CI on every PR: `make check` (<workflow file>).
 - Deploy target: <platform, trigger>.
 

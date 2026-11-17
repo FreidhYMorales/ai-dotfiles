@@ -24,7 +24,7 @@ Load during planning of a greenfield project (or one with no established convent
 - Commits use conventional commits with no AI attribution. The user runs Strict TDD: the testing strategy must allow tests first.
 - Delegate reading beyond one bounded read, or library/hosting research, to one research subagent (context7 MCP for library docs); cite its findings.
 - Persist each decision to engram (`mem_save`, type `decision`, topic `foundation/<project>/<area>`; one topic per decision, never reused for a different one, since a reused topic overwrites the earlier entry). For another project: `engram save "<title>" "<content>" --type decision --project <name>`.
-- Every project gets a `make check` quality gate (format check, lint, typecheck when the language has one, tests), whatever the stack. Record the exact commands in `docs/architecture.md`; `/flow-bootstrap` creates the Makefile and a smoke test. Read-only and non-interactive: no `--watch`, no auto-fix.
+- Every project gets a `make check` quality gate (format check, lint, typecheck when the language has one, tests) and a `make check-fast` fast tier (format check and lint, no tests) that the Stop hook runs between turns, whatever the stack. A story, a ship and CI are done when `make check` passes. Record the exact commands in `docs/architecture.md`; `/flow-bootstrap` creates the Makefile and a smoke test. Read-only and non-interactive: no `--watch`, no auto-fix.
 - This skill writes only the docs and `.claude/settings.json`. Scaffolding, installs, file moves and remotes belong to `/flow-bootstrap`.
 
 ## Decision Gates

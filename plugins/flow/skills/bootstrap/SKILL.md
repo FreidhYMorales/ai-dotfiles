@@ -16,7 +16,7 @@ Load after `/flow:foundation` has written `docs/architecture.md` (stack, folder 
 - Talk to the user in their language; commits, files and engram entries are in English.
 - Never scaffold, move files, install dependencies or create remotes without approval. Fill in `templates/sequences.md` completely and get ONE approval for the whole plan, then run it end to end without further stops.
 - Stop at the first failing command and report it; do not improvise around it.
-- `make check` must pass before the first commit, with at least one real smoke test (`templates/check.md`). An empty suite does not count.
+- `make check` must pass before the first commit, with at least one real smoke test (`templates/check.md`). An empty suite does not count. `make check-fast` (format check and lint, no tests) is created next to it and must pass too.
 - Never overwrite an existing remote, never force-push, never move files without an approved migration table, and only with `git mv`.
 - Conventional commits, no AI attribution. Moves and behavior changes never share a commit.
 

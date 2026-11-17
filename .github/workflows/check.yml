@@ -1,4 +1,4 @@
-# Runs the same verification harness as the require-check Stop hook.
+# Runs the full make check, the gate for a story, a ship and CI; between turns the require-check Stop hook runs make check-fast.
 name: check
 
 on:

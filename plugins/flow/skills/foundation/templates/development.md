@@ -67,6 +67,7 @@ make check             # must pass before you change anything
 | Run the app | <command> |
 | Tests | <command> |
 | Format | `make fmt` |
+| Fast checks (the hook runs them between turns) | `make check-fast` |
 | Full quality gate | `make check` |
 
 ## Troubleshooting

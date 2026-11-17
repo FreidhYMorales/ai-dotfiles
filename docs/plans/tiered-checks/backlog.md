@@ -16,7 +16,7 @@
 04. [x] da51db6 As a developer, I want /flow:pair to loop on the focused test and run the full suite once on the final tree so that TDD does not wait on the suite at every step.
 05. [x] 94ae6eb As a developer, I want a red final suite in /flow:pair to become a regression round so that late regressions get fixed without breaking Strict TDD. Requires: #04
 06. [x] c37f844 As a developer, I want ship to run make check once so that shipping does not repeat the full suite.
-07. [~] As a developer, I want the docs, agent rules and new-repo templates to teach the two tiers so that agents stop running the full suite every turn. Requires: #01
+07. [x] a32a85c As a developer, I want the docs, agent rules and new-repo templates to teach the two tiers so that agents stop running the full suite every turn. Requires: #01
 08. [ ] As a developer of the notch, I want a check-fast tier there and the hook trusted so that the notch gets a gate between turns without grabbing the keyboard. Requires: #01, #07
 09. [ ] As a developer using local workers, I want delegate-local to hand the worker the focused test and rerun the full suite after applying so that workers start fast without weakening the safeguard.
 10. [ ] As a developer, I want make test to print its five slowest test files so that I can see where the suite's time goes.
