@@ -119,6 +119,13 @@ assert 'lists the five slowest, slowest first' test "$REPORT" = $'scripts/tests/
 assert 'each listed file shows its time in seconds' test "$TIMED" = 5
 assert 'exit 0' test "$CODE" -eq 0
 
+echo "== fewer than five files, one failing: every file is reported =="
+slow_repo three f1:0.6 f2:0:1 f3:0.3
+report "$TMP/three"
+assert 'lists all three, slowest first' test "$REPORT" = $'scripts/tests/f1.test.sh\nscripts/tests/f3.test.sh\nscripts/tests/f2.test.sh'
+assert 'each listed file shows its time in seconds' test "$TIMED" = 3
+assert 'exit 1 is unchanged' test "$CODE" -eq 1
+
 if [[ $failures -gt 0 ]]; then
   printf '%d case(s) failed\n' "$failures"
   exit 1
