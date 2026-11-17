@@ -28,7 +28,13 @@ STEP1='^1\. `make check`'
 echo "== step 1 runs make check once, with the long-run wording =="
 assert 'step 1 allows up to 10 minutes' \
   line_has "$STEP1" 'allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result'
-assert 'step 1 records the HEAD of the green run' line_has "$STEP1" 'record its `HEAD`'
+
+GATE='^\| Branch is behind its upstream \|'
+
+echo "== a rebase reruns make check only when it changed the tree =="
+assert 'the gate saves HEAD before the rebase' line_has "$GATE" 'Save `git rev-parse HEAD`, `git pull --rebase`'
+assert 'the gate reruns make check only on changed files' \
+  line_has "$GATE" 'rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files'
 
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
