@@ -53,7 +53,7 @@ They also delete or weaken existing tests (4 of 13 passing patches; see `docs/lo
 3. Run: `timeout 1200 pi-box --provider ollama --model <model> --no-session -p "<prompt>"`. Run it in the background; it takes minutes.
 4. Review `git status --short` and `git diff`: scope, size, no unrelated edits.
 5. Verify independently: run the check yourself; mutate the code to confirm new tests bite.
-6. Apply: `git -C <worker> diff > <scratchpad>/worker.patch && git -C <repo> apply --check <patch> && git -C <repo> apply <patch>`, then the repo's normal gate (`make check`).
+6. Apply: `git -C <worker> diff > <scratchpad>/worker.patch && git -C <repo> apply --check <patch> && git -C <repo> apply <patch>`, then rerun the full `Test command:` (or `make check`) once on the applied tree (allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result); when it is red, report the change as rejected or fix it yourself.
 7. Save an engram note: task, model, time, verdict, anything the worker got wrong.
 
 ## Output Contract
