@@ -47,6 +47,15 @@ assert 'the settings template allows make check-fast' file_has "$PERMS" '      "
 assert 'the example allow list has make check-fast' \
   file_has "$PERMS" '"allow": ["Bash(make check:*)", "Bash(make check-fast:*)",'
 
+ARCH="$FLOW/foundation/templates/architecture.md"
+DEV="$FLOW/foundation/templates/development.md"
+echo "== foundation architecture and development templates name both targets =="
+assert 'architecture records the check-fast recipe' \
+  file_has "$ARCH" '- Fast tier: `make check-fast`, steps 1-2 only (on the changed files when the tools allow it); the Stop hook runs it between turns.'
+assert 'architecture keeps the agent rule' file_has "$ARCH" "$RULE"
+assert 'development lists the fast tier command' file_has "$DEV" '| Fast checks (the hook runs them between turns) | `make check-fast` |'
+assert 'development keeps the full gate command' file_has "$DEV" '| Full quality gate | `make check` |'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
