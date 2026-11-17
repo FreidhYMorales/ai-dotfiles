@@ -380,6 +380,9 @@ repo=$(new_repo check-timeout)
 write_makefile "$repo" 'true'
 expect 2 'a check timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
 assert 'check keeps its 300 s limit' test "$(<"$stub/limit")" = 300
+assert 'a check timeout keeps its blocking message' \
+  grep -q '^make check timed out after 300s — fix these before finishing:' <<<"$LAST_STDERR"
+assert 'a check timeout sends no systemMessage' test -z "$LAST_STDOUT"
 
 echo
 if [[ $failures -gt 0 ]]; then
