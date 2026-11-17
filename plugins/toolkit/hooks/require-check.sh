@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Stop hook: refuse to finish while the project's fast tier fails. It runs
 # `make check-fast` when the root Makefile defines it (static checks, 60 s
-# limit) and `make check` otherwise (300 s); `make check` stays the gate for a
+# limit; a timeout is reported, not blocked) and `make check` otherwise (300 s,
+# a timeout blocks); `make check` stays the gate for a
 # story, a ship and CI. Runs from the git root of the cwd when the repo has
 # uncommitted changes, and only in a repo opted in
 # with `git config require-check.trusted true`. Exit 2 feeds the failure tail
@@ -99,10 +100,19 @@ state=$({
 
 limit=300
 [[ $target == check-fast ]] && limit=60
+started=$SECONDS
 output=$(cd "$dir" && timeout "$limit" make -f "$makefile" "$target" 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
   mkdir -p "${cache_file%/*}" && printf '%s\n' "$state" >"$cache_file.tmp" && mv -f "$cache_file.tmp" "$cache_file"
+  exit 0
+fi
+
+# A slow machine is not a red check: a check-fast timeout is reported, never
+# blocked, and never cached, so the next stop runs it again.
+if [[ $target == check-fast && $status -eq 124 ]]; then
+  jq -n --arg m "require-check: make check-fast timed out after $((SECONDS - started))s (limit ${limit}s), so this turn was not checked." \
+    '{systemMessage: $m}'
   exit 0
 fi
 

@@ -362,15 +362,27 @@ printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1" >"%s/limit"\nexit 124\n' "$stu
 chmod +x "$stub/timeout"
 repo=$(new_repo fast-timeout)
 printf 'check-fast:\n\ttrue\n' >"$repo/Makefile"
-expect 2 'a check-fast timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
+expect 0 'a check-fast timeout reports without blocking' "$(payload "$repo")" PATH="$stub:$PATH"
 assert 'check-fast runs under a 60 s limit' test "$(<"$stub/limit")" = 60
-assert 'timeout message names check-fast and its limit' \
-  grep -q 'make check-fast timed out after 60s' <<<"$LAST_STDERR"
+assert 'a check-fast timeout writes nothing to stderr' test -z "$LAST_STDERR"
+# The stub returns at once, so the elapsed time is a single digit, not the limit.
+assert 'timeout message names check-fast, the elapsed seconds and the limit' \
+  message_has '^require-check: make check-fast timed out after [0-9]s \(limit 60s\)' "$LAST_STDOUT"
+rm -f "$stub/limit"
+expect 0 'a timed-out check-fast is not cached as green' "$(payload "$repo")" PATH="$stub:$PATH"
+assert 'the next stop runs check-fast again' test -e "$stub/limit"
+expect 0 'a check-fast timeout on a second stop does not block' \
+  "$(jq -n --arg cwd "$repo" '{stop_hook_active: true, cwd: $cwd}')" PATH="$stub:$PATH"
+assert 'a second stop reports the same timeout message' \
+  message_has '^require-check: make check-fast timed out after [0-9]s \(limit 60s\)' "$LAST_STDOUT"
 
 repo=$(new_repo check-timeout)
 write_makefile "$repo" 'true'
 expect 2 'a check timeout blocks' "$(payload "$repo")" PATH="$stub:$PATH"
 assert 'check keeps its 300 s limit' test "$(<"$stub/limit")" = 300
+assert 'a check timeout keeps its blocking message' \
+  grep -q '^make check timed out after 300s — fix these before finishing:' <<<"$LAST_STDERR"
+assert 'a check timeout sends no systemMessage' test -z "$LAST_STDOUT"
 
 echo
 if [[ $failures -gt 0 ]]; then
