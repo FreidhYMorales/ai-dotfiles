@@ -56,6 +56,12 @@ assert 'architecture keeps the agent rule' file_has "$ARCH" "$RULE"
 assert 'development lists the fast tier command' file_has "$DEV" '| Fast checks (the hook runs them between turns) | `make check-fast` |'
 assert 'development keeps the full gate command' file_has "$DEV" '| Full quality gate | `make check` |'
 
+FOUNDATION_RULE='and a `make check-fast` fast tier (format check and lint, no tests) that the Stop hook runs between turns'
+BOOTSTRAP_RULE='`make check-fast` (format check and lint, no tests) is created next to it'
+echo "== foundation and bootstrap skills require both targets =="
+assert 'foundation requires check-fast' file_has "$FLOW/foundation/SKILL.md" "$FOUNDATION_RULE"
+assert 'bootstrap creates check-fast' file_has "$FLOW/bootstrap/SKILL.md" "$BOOTSTRAP_RULE"
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
