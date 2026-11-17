@@ -361,6 +361,12 @@ else
   failures=$((failures + 1))
 fi
 
+# The full gate ignores the mode even when a caller exported it.
+root=$(changed_fixture changed-exported)
+CHECK_SHELL_CHANGED=1 expect 1 'check.sh lints every script with changed mode exported' check.sh "$root"
+output_has 'check.sh reaches the unchanged bad script' 'ERROR shellcheck old/bad.sh'
+output_has 'check.sh fails the shell step' 'FAILED: shell'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.
