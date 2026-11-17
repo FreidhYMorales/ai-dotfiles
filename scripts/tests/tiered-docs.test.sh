@@ -44,6 +44,8 @@ MULTI="$ROOT/docs/multi-agent.md"
 echo "== docs/multi-agent.md: the agy Stop gate runs the fast tier =="
 assert 'the Hooks row names check-fast with the make check fallback' \
   line_has "$MULTI" '^\| Hooks \|' 'the Stop gate (`require-check`: `make check-fast` when the Makefile defines it, else `make check`)'
+assert 'OpenCode runs check-fast before done, else make check' \
+  line_has "$MULTI" '^The repo-root `AGENTS.md`' 'OpenCode runs `make check-fast` before saying done when the Makefile defines it, else `make check` (it has no Stop gate)'
 
 INSTALL="$ROOT/install.sh"
 echo "== install.sh: the agy Stop timeout names both limits =="

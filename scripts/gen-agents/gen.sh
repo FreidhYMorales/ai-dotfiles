@@ -233,7 +233,7 @@ agy_agent() {
   # OpenCode has the pause hook (#20) but no Stop gate, so the gate is a rule
   # line that mirrors require-check.
   opencode_rules() {
-    printf -- '- Before saying work is done, run `make check` from the git root when the root Makefile has a `check` target and the tree has uncommitted changes; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.\n'
+    printf -- '- Before saying work is done, when the tree has uncommitted changes, run `make check-fast` from the git root if the root Makefile has a `check-fast` target, else `make check` if it has a `check` target; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.\n'
   }
 
   # agy has the Stop gate (#06) but no prompt hook, so pause is a rule line

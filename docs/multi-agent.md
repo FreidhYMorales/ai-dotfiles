@@ -19,7 +19,7 @@ Status (2026-11-02): agy work is frozen (little expected use) and OpenCode is th
 | Status line, `look` band | yes | no | no |
 | `bin/*`, systemd units, git hooks | yes | yes | yes |
 
-The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode and Antigravity read a generated copy of it with `/flow-x` names and a closing section for the rules their hooks do not cover: OpenCode runs `make check` before saying done (it has no Stop gate), Antigravity follows the pause protocol (it has no prompt hook); both read `/flow:<skill>` in raw support files as `/flow-<skill>`.
+The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode and Antigravity read a generated copy of it with `/flow-x` names and a closing section for the rules their hooks do not cover: OpenCode runs `make check-fast` before saying done when the Makefile defines it, else `make check` (it has no Stop gate), Antigravity follows the pause protocol (it has no prompt hook); both read `/flow:<skill>` in raw support files as `/flow-<skill>`.
 
 ## Manual setup per machine
 
