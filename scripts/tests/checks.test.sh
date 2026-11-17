@@ -279,6 +279,94 @@ for s in run-tests.sh check-bench.sh check.sh; do
   fi
 done
 
+echo "== check-shell, changed-files mode =="
+# changed_fixture NAME: a fixture with one commit holding a script shellcheck
+# rejects (old/bad.sh), and origin/main pointing at that commit.
+changed_fixture() {
+  local root
+  root=$(fixture "$1")
+  mkdir -p "$root/old"
+  printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/old/bad.sh"
+  git -C "$root" add -A
+  git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m base
+  git -C "$root" update-ref refs/remotes/origin/main HEAD
+  printf '%s\n' "$root"
+}
+
+root=$(changed_fixture changed-only)
+printf '#!/usr/bin/env bash\necho new\n' >"$root/new.sh"
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode lints only the changed script' check-shell.sh "$root"
+output_has 'changed mode reports the changed script' 'ok    shellcheck new.sh'
+
+root=$(changed_fixture changed-error)
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/plugins/p/hooks/h.sh"
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode fails on a lint error in a changed script' check-shell.sh "$root"
+output_has 'changed mode names the failing changed script' 'ERROR shellcheck plugins/p/hooks/h.sh'
+
+root=$(changed_fixture changed-committed)
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/branch.sh"
+git -C "$root" add branch.sh
+git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m branch
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints a script committed on the branch only' check-shell.sh "$root"
+output_has 'changed mode names the committed script' 'ERROR shellcheck branch.sh'
+
+root=$(changed_fixture changed-none)
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode passes with no changed script' check-shell.sh "$root"
+output_has 'changed mode says no script changed' 'no changed shell scripts'
+
+root=$(changed_fixture changed-deleted)
+git -C "$root" rm -q old/bad.sh
+git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m delete
+rm "$root/plugins/p/hooks/h.sh"
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode skips deleted scripts without error' check-shell.sh "$root"
+output_has 'changed mode treats deleted scripts as no change' 'no changed shell scripts'
+
+root=$(changed_fixture changed-lib)
+mkdir -p "$root/lib"
+printf '#!/usr/bin/env bash\n# shellcheck disable=SC2034\nGREETING=hi\n' >"$root/lib/l.sh"
+# shellcheck disable=SC2016 # literal $0 and $GREETING in the generated script.
+printf '#!/usr/bin/env bash\n# shellcheck source=lib/l.sh\nsource "$(dirname "$0")/lib/l.sh"\necho "$GREETING"\n' >"$root/user.sh"
+git -C "$root" add -A
+git -C "$root" -c user.name=t -c user.email=t@example.com commit -q -m lib
+git -C "$root" update-ref refs/remotes/origin/main HEAD
+printf '#!/usr/bin/env bash\n# shellcheck disable=SC2034\nGREETING=hello\n' >"$root/lib/l.sh"
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints every script when a sourced lib changed' check-shell.sh "$root"
+output_has 'changed mode reaches an unchanged script after a lib change' 'ERROR shellcheck old/bad.sh'
+
+# No commit yet: the staged scripts are neither untracked nor diffable with HEAD.
+root=$(fixture changed-no-head)
+printf '#!/usr/bin/env bash\ncd somewhere\n' >"$root/staged.sh"
+git -C "$root" add -A
+CHECK_SHELL_CHANGED=1 expect 1 'changed mode lints every script in a repo with no HEAD' check-shell.sh "$root"
+output_has 'changed mode reaches a staged script with no HEAD' 'ERROR shellcheck staged.sh'
+
+root=$(changed_fixture changed-no-origin)
+git -C "$root" update-ref -d refs/remotes/origin/main
+printf '#!/usr/bin/env bash\necho new\n' >"$root/new.sh"
+CHECK_SHELL_CHANGED=1 expect 0 'changed mode with no origin/main lints only uncommitted work' check-shell.sh "$root"
+output_has 'changed mode with no origin/main reports the uncommitted script' 'ok    shellcheck new.sh'
+
+# The check-fast recipe ($fast_recipe, above) switches the mode on for the
+# shell step only, inline, so no other step and no later make call inherits it.
+if grep -qxF 'CHECK_SHELL_CHANGED=1 bash scripts/check-shell.sh' <<<"$fast_recipe"; then
+  printf 'PASS  check-fast runs check-shell.sh in changed mode\n'
+else
+  printf 'FAIL  check-fast runs check-shell.sh in changed mode\n%s\n' "$fast_recipe"
+  failures=$((failures + 1))
+fi
+if [[ $(grep -c 'CHECK_SHELL_CHANGED' <<<"$fast_recipe") -eq 1 ]]; then
+  printf 'PASS  check-fast sets changed mode on the shell step only\n'
+else
+  printf 'FAIL  check-fast sets changed mode on the shell step only\n%s\n' "$fast_recipe"
+  failures=$((failures + 1))
+fi
+
+# The full gate ignores the mode even when a caller exported it.
+root=$(changed_fixture changed-exported)
+CHECK_SHELL_CHANGED=1 expect 1 'check.sh lints every script with changed mode exported' check.sh "$root"
+output_has 'check.sh reaches the unchanged bad script' 'ERROR shellcheck old/bad.sh'
+output_has 'check.sh fails the shell step' 'FAILED: shell'
+
 echo "== git's local variables, as a hook exports them =="
 # git_fixture NAME: a fixture with one commit and no remote, holding a test that
 # builds its own repo and commits there, as the real suite's tests do.

@@ -8,7 +8,7 @@ check:
 # The fast tier the require-check Stop hook runs between turns: static checks
 # only, no tests or bench. `check` stays the gate for a story, a ship and CI.
 check-fast:
-	@bash scripts/check-shell.sh
+	@CHECK_SHELL_CHANGED=1 bash scripts/check-shell.sh
 	@bash scripts/check-json.sh
 	@bash scripts/check-structure.sh
 	@bash scripts/check-settings.sh

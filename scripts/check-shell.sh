@@ -7,6 +7,35 @@ set -u
 # shellcheck source=scripts/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+# changed_files: uncommitted work plus the branch's commits not on origin/main.
+changed_files() {
+  {
+    git -C "$ROOT" diff --name-only HEAD
+    git -C "$ROOT" diff --name-only origin/main...HEAD 2>/dev/null
+    git -C "$ROOT" ls-files --others --exclude-standard
+  } | sort -u
+}
+
+# sourced_files: every path named by a `# shellcheck source=` directive.
+sourced_files() {
+  rg --no-filename --only-matching --replace '$1' '^\s*# shellcheck source=(\S+)' "$ROOT" | sort -u
+}
+
+# candidates: every repo file, or with CHECK_SHELL_CHANGED=1 only the changed
+# ones; a changed sourced lib can break any script, so it brings back every
+# file, and so does a repo with no HEAD, where nothing can be diffed.
+candidates() {
+  local changed
+  if [[ -n ${CHECK_SHELL_CHANGED:-} ]] && git -C "$ROOT" rev-parse --verify --quiet HEAD >/dev/null; then
+    changed=$(changed_files)
+    if ! rg --quiet --fixed-strings --line-regexp --file <(sourced_files) <<<"$changed"; then
+      printf '%s\n' "$changed"
+      return
+    fi
+  fi
+  repo_files
+}
+
 scripts=()
 while IFS= read -r f; do
   path="$ROOT/$f"
@@ -14,10 +43,10 @@ while IFS= read -r f; do
   if [[ $f == *.sh ]] || head -n1 "$path" | rg -q '^#!.*\b(ba)?sh\b'; then
     scripts+=("$f")
   fi
-done < <(repo_files)
+done < <(candidates)
 
 if [[ ${#scripts[@]} -eq 0 ]]; then
-  ok "no shell scripts found"
+  if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then ok "no changed shell scripts"; else ok "no shell scripts found"; fi
   finish shell
 fi
 
