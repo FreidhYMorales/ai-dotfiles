@@ -4,6 +4,8 @@
 set -u
 here=$(dirname "${BASH_SOURCE[0]}")
 root=${1:-$here/..}
+# The full gate lints every script; only the check-fast recipe sets this mode.
+unset CHECK_SHELL_CHANGED
 
 steps=(shell:check-shell.sh json:check-json.sh structure:check-structure.sh
   settings:check-settings.sh skills:check-skills.sh workflows:check-workflows.sh tests:run-tests.sh bench:check-bench.sh)
