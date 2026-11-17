@@ -42,4 +42,4 @@ Load when finished work must reach the remote: the user says ship / commit and p
 
 ## Output Contract
 
-Commit SHAs with subjects, push target (or PR URL), CI result with run URL, and any follow-up (e.g. plugin update, restart).
+Commit SHAs with subjects, push target (or PR URL), CI result with run URL, or that CI was skipped because no workflow is active, and any follow-up (e.g. plugin update, restart).
