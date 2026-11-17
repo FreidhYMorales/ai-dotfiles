@@ -40,6 +40,11 @@ assert 'the Makefile row: check-fast is static and changed-files only' \
 assert 'the Makefile row: who runs each target' \
   line_has "$README" '^\| `Makefile`, `scripts/`' '`check-fast` run by `require-check` between turns; `check` at a story'"'"'s end, at ship and in CI'
 
+MULTI="$ROOT/docs/multi-agent.md"
+echo "== docs/multi-agent.md: the agy Stop gate runs the fast tier =="
+assert 'the Hooks row names check-fast with the make check fallback' \
+  line_has "$MULTI" '^\| Hooks \|' 'the Stop gate (`require-check`: `make check-fast` when the Makefile defines it, else `make check`)'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
