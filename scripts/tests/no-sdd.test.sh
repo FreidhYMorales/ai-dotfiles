@@ -38,6 +38,10 @@ done
 assert 'flow plugin is at least 0.11.0' at_least 0.11.0 "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")"
 assert 'marketplace lists flow at least 0.11.0' \
   at_least 0.11.0 "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")"
+# Story tiered-checks/05: the regression round ships in flow 0.12.0.
+assert 'flow plugin is at least 0.12.0' at_least 0.12.0 "$(jq -r .version "$FLOW/.claude-plugin/plugin.json")"
+assert 'marketplace lists flow at least 0.12.0' \
+  at_least 0.12.0 "$(jq -r '.plugins[] | select(.name == "flow") | .version' "$ROOT/.claude-plugin/marketplace.json")"
 
 echo "== toolkit skills name no sdd =="
 TOOLKIT="$ROOT/plugins/toolkit"
