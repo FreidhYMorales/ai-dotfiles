@@ -209,6 +209,17 @@ for target in opencode antigravity; do
     "$OUT/$target/skills/toolkit-ship/SKILL.md"
 done
 
+echo "== generated delegate-local hands the worker the focused test =="
+# Story tiered-checks/09: only the OpenCode copy is pinned; Antigravity is unused.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "opencode delegate-local prompt names the Single test: command" \
+  grep -qE "^1\. Write the task as a prompt.*the backlog's \`Single test:\` command filled in for the task" \
+  "$OUT/opencode/skills/toolkit-delegate-local/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "opencode delegate-local reruns the full Test command: once after applying" \
+  grep -qE '^6\. Apply:.*rerun the full `Test command:` \(or `make check`\) once on the applied tree' \
+  "$OUT/opencode/skills/toolkit-delegate-local/SKILL.md"
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"

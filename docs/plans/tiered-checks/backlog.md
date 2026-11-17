@@ -18,6 +18,6 @@
 06. [x] c37f844 As a developer, I want ship to run make check once so that shipping does not repeat the full suite.
 07. [x] a32a85c As a developer, I want the docs, agent rules and new-repo templates to teach the two tiers so that agents stop running the full suite every turn. Requires: #01
 08. [x] ffce544 As a developer of the notch, I want a check-fast tier there and the hook trusted so that the notch gets a gate between turns without grabbing the keyboard. Requires: #01, #07
-09. [ ] As a developer using local workers, I want delegate-local to hand the worker the focused test and rerun the full suite after applying so that workers start fast without weakening the safeguard.
+09. [x] c48651f As a developer using local workers, I want delegate-local to hand the worker the focused test and rerun the full suite after applying so that workers start fast without weakening the safeguard.
 10. [ ] As a developer, I want make test to print its five slowest test files so that I can see where the suite's time goes.
 11. [ ] As a developer using OpenCode, I want its generated rule to run make check-fast before done so that OpenCode stops paying the full suite every turn. Requires: #01
