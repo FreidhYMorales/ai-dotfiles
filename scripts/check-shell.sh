@@ -12,6 +12,7 @@ candidates() {
   if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then
     {
       git -C "$ROOT" diff --name-only HEAD
+      git -C "$ROOT" diff --name-only origin/main...HEAD 2>/dev/null
       git -C "$ROOT" ls-files --others --exclude-standard
     } | sort -u
   else
