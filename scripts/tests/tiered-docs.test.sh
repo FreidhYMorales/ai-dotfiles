@@ -50,6 +50,11 @@ echo "== install.sh: the agy Stop timeout names both limits =="
 assert 'the comment names the 300 s fallback and the 60 s fast tier' \
   line_has "$INSTALL" "^ *# Stop's 330 s timeout" "covers require-check's 300 s make check fallback; check-fast stops at 60 s"
 
+WORKFLOW="$ROOT/.github/workflows/check.yml"
+echo "== the CI workflow header: CI runs the full tier =="
+assert 'the header says CI runs the full make check and the hook check-fast' \
+  line_has "$WORKFLOW" '^# Runs ' 'the full make check, the gate for a story, a ship and CI; between turns the require-check Stop hook runs make check-fast'
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
