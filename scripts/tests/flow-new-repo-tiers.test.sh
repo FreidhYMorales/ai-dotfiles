@@ -35,6 +35,12 @@ assert 'check-fast is static and has no tests' \
   file_has "$CHECK" '`check-fast` runs the static steps only (format check, lint), on the changed files when the tools allow it; no tests. It must finish in about 10 s.'
 assert 'the skeleton defines check-fast' file_has "$CHECK" 'check-fast:'
 
+AGENTS="$FLOW/foundation/templates/agents.md"
+echo "== foundation AGENTS.md template: the agent rule =="
+assert 'carries the agent rule' file_has "$AGENTS" "$RULE"
+assert 'no longer says the hook runs make check' \
+  test "$(grep -cF 'The toolkit Stop hook runs it before an agent may finish' "$AGENTS")" = 0
+
 if ((failures)); then
   printf '%d case(s) failed\n' "$failures"
   exit 1
