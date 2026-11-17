@@ -25,14 +25,14 @@ Load when finished work must reach the remote: the user says ship / commit and p
 |---|---|
 | No `check` target in the root Makefile | Run the project's documented test/lint commands; say which |
 | On the default branch and the repo uses a PR flow (AGENTS.md, branch protection) | Create a branch and open a PR with `gh pr create` instead of pushing to it |
-| Branch is behind its upstream | `git pull --rebase`, rerun `make check`, then push |
+| Branch is behind its upstream | Save `git rev-parse HEAD`, `git pull --rebase`, then rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files; then push |
 | No remote, or no CI workflow | Stop after commit / after push and say so |
 | CI fails | Read `gh run view <id> --log-failed`, report the cause, propose the fix; push a fix only after approval |
 | A pre-commit hook rejects the commit | Fix the cause and create a NEW commit; never amend blindly or bypass |
 
 ## Execution Steps
 
-1. `make check` from the git root, once (allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result); when it passes, record its `HEAD`. On failure stop and fix.
+1. `make check` from the git root, once (allow up to 10 minutes (Claude: Bash `timeout` 600000), or run it in the background and read the result); on failure stop and fix.
 2. `git status --short` and `git diff --stat`; group changes into work units.
 3. Show the planned commits (type, scope, subject) and the push target. Ask once unless already approved.
 4. Commit each unit; then push.
