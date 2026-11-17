@@ -2,6 +2,7 @@
 # Structural test for the toolkit:ship skill: asserts it runs make check once,
 # with the long-run wording, and again only when a rebase changed the tree.
 # Run: bash scripts/tests/toolkit-ship.test.sh
+# shellcheck disable=SC2016 # literal markdown backticks
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
