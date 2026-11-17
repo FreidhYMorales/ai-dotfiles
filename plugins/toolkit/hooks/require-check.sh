@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Stop hook: refuse to finish while the project's fast tier fails. It runs
 # `make check-fast` when the root Makefile defines it (static checks, 60 s
-# limit) and `make check` otherwise (300 s); `make check` stays the gate for a
+# limit; a timeout is reported, not blocked) and `make check` otherwise (300 s,
+# a timeout blocks); `make check` stays the gate for a
 # story, a ship and CI. Runs from the git root of the cwd when the repo has
 # uncommitted changes, and only in a repo opted in
 # with `git config require-check.trusted true`. Exit 2 feeds the failure tail
