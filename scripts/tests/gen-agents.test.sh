@@ -220,6 +220,17 @@ assert "opencode delegate-local reruns the full Test command: once after applyin
   grep -qE '^6\. Apply:.*rerun the full `Test command:` \(or `make check`\) once on the applied tree' \
   "$OUT/opencode/skills/toolkit-delegate-local/SKILL.md"
 
+echo "== generated ship skips the CI watch without an active workflow =="
+# Story tiered-checks/12: only the OpenCode copy is pinned; Antigravity is unused.
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "opencode ship skips the CI watch when no workflow is active" \
+  grep -qE '^\| No active workflow \|.*look for no run; say CI was skipped because no workflow is active' \
+  "$OUT/opencode/skills/toolkit-ship/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "opencode ship watches the run only when a workflow is active" \
+  grep -qE '^5\. When `gh workflow list --all` shows an `active` workflow, find the run for the pushed SHA' \
+  "$OUT/opencode/skills/toolkit-ship/SKILL.md"
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
