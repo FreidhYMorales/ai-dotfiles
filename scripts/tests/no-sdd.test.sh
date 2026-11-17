@@ -50,6 +50,10 @@ assert 'chained-pr names no sdd' no_sdd "$TOOLKIT/skills/chained-pr/SKILL.md"
 assert 'toolkit plugin is at least 0.14.0' at_least 0.14.0 "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")"
 assert 'marketplace lists toolkit at least 0.14.0' \
   at_least 0.14.0 "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")"
+# Story tiered-checks/06: ship's run-once rule ships in toolkit 0.19.0.
+assert 'toolkit plugin is at least 0.19.0' at_least 0.19.0 "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")"
+assert 'marketplace lists toolkit at least 0.19.0' \
+  at_least 0.19.0 "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")"
 
 echo "== no sdd outside history and retirement files =="
 # History stays as written; these files name sdd only to retire, reject or

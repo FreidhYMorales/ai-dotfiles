@@ -196,6 +196,19 @@ for target in opencode antigravity; do
     grep -qE '^6\. \*\*Check\.\*\*.*run the `Test command:` once on the final tree' "$OUT/$target/skills/flow-pair/SKILL.md"
 done
 
+echo "== generated ship runs make check once =="
+# Story tiered-checks/06: the generated copies carry the long-run wording and
+# rerun make check after a rebase only on changed files.
+for target in opencode antigravity; do
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$target ship allows up to 10 minutes in step 1" \
+    grep -qE '^1\. `make check`.*allow up to 10 minutes' "$OUT/$target/skills/toolkit-ship/SKILL.md"
+  # shellcheck disable=SC2016 # literal markdown backticks
+  assert "$target ship reruns make check after a rebase only on changed files" \
+    grep -qE '^\| Branch is behind its upstream \|.*rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files' \
+    "$OUT/$target/skills/toolkit-ship/SKILL.md"
+done
+
 echo "== a tool outside the agy map is an error =="
 # A copy of the sources whose reviewer also asks for WebFetch.
 SRC="$TMP_ROOT/src"
