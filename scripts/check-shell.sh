@@ -30,7 +30,7 @@ while IFS= read -r f; do
 done < <(candidates)
 
 if [[ ${#scripts[@]} -eq 0 ]]; then
-  ok "no shell scripts found"
+  if [[ -n ${CHECK_SHELL_CHANGED:-} ]]; then ok "no changed shell scripts"; else ok "no shell scripts found"; fi
   finish shell
 fi
 
