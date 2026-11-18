@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Structural test for the tiered-checks docs: README, docs/multi-agent.md,
-# install.sh, the CI workflow and idea 28 describe the two tiers (check-fast
-# between turns, make check at a story's end, at ship and in CI), the
-# check-fast contract and what a green hook means.
+# Structural test for the tiered-checks docs: README, docs/multi-agent.md, the
+# CI workflow and idea 28 describe the two tiers (check-fast between turns,
+# make check at a story's end, at ship and in CI), the check-fast contract and
+# what a green hook means.
 # Run: bash scripts/tests/tiered-docs.test.sh
 # shellcheck disable=SC2016 # literal markdown backticks
 set -u
@@ -46,11 +46,6 @@ assert 'the Hooks row names check-fast with the make check fallback' \
   line_has "$MULTI" '^\| Hooks \|' 'the Stop gate (`require-check`: `make check-fast` when the Makefile defines it, else `make check`)'
 assert 'OpenCode runs check-fast before done, else make check' \
   line_has "$MULTI" '^The repo-root `AGENTS.md`' 'OpenCode runs `make check-fast` before saying done when the Makefile defines it, else `make check` (it has no Stop gate)'
-
-INSTALL="$ROOT/install.sh"
-echo "== install.sh: the agy Stop timeout names both limits =="
-assert 'the comment names the 300 s fallback and the 60 s fast tier' \
-  line_has "$INSTALL" "^ *# Stop's 330 s timeout" "covers require-check's 300 s make check fallback; check-fast stops at 60 s"
 
 WORKFLOW="$ROOT/.github/workflows/check.yml"
 echo "== the CI workflow header: CI runs the full tier =="

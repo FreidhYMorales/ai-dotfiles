@@ -125,7 +125,7 @@ update() {
   local home=$1 answer=$2
   shift 2
   LAST_OUTPUT=$(printf '%s' "$answer" | env -u UPDATE_CHECK_CACHE -u ENGRAM_REPO \
-    -u OPENCODE_CONFIG_DIR -u ANTIGRAVITY_CONFIG_DIR -u AI_BUILD_DIR AI_DOTFILES_DIR="$home/repo" \
+    -u OPENCODE_CONFIG_DIR -u AI_BUILD_DIR AI_DOTFILES_DIR="$home/repo" \
     HOME="$home" XDG_CACHE_HOME="$home/.cache" PATH="$home/bin:$home/local/bin:$PATH" \
     FAKE_REMOTE="$home/remote" FAKE_STATE="$home/state" \
     ENGRAM_BIN="$home/local/bin/engram" ENGRAM_DATA_DIR="$home/.engram" \
@@ -720,7 +720,7 @@ home=$(sandbox major-yes 3.4.0 4.0.0)
 update "$home" $'y\n' --yes
 assert 'major bump applies after confirmation' engram_is "$home" 4.0.0
 
-echo "== regenerates the OpenCode and Antigravity build =="
+echo "== regenerates the OpenCode build =="
 
 installed_with() { rg -qxF -- "$2" "$1/state/install-calls" 2>/dev/null; }
 
@@ -737,15 +737,16 @@ echo v2 >"$home/repo/source"
 update "$home" ''
 assert 'a pulled change asks to restart again' says 'Restart OpenCode'
 
+no_install() { [[ ! -e $1/state/install-calls ]]; }
 home=$(sandbox regen-agy 3.4.0 3.4.0)
 mkdir -p "$home/.gemini/antigravity-cli"
 update "$home" ''
-assert 'Antigravity installed: its build is regenerated' installed_with "$home" '--target antigravity'
+assert 'only an Antigravity dir: nothing is regenerated' no_install "$home"
 
 home=$(sandbox regen-both 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
 update "$home" ''
-assert 'both installed: both builds are regenerated' installed_with "$home" '--target opencode,antigravity'
+assert 'OpenCode and an Antigravity dir: only OpenCode is regenerated' installed_with "$home" '--target opencode'
 
 home=$(sandbox regen-fail 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode"
@@ -753,16 +754,15 @@ FAKE_INSTALL_FAIL=1 update "$home" ''
 assert 'a failed generation fails ai-update' test "$LAST_EXIT" -ne 0
 assert 'a failed generation is reported' says 'gen.sh failed; the previous build is kept'
 
-no_install() { [[ ! -e $1/state/install-calls ]]; }
 home=$(sandbox regen-check 3.4.0 3.4.0)
-mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
+mkdir -p "$home/.config/opencode"
 update "$home" '' --check
 assert 'check leaves the build alone' no_install "$home"
 
 home=$(sandbox regen-none 3.4.0 3.4.0)
 update "$home" ''
-assert 'no OpenCode or Antigravity: nothing is regenerated' no_install "$home"
-assert 'no OpenCode or Antigravity: no restart line' silent_restart
+assert 'no OpenCode: nothing is regenerated' no_install "$home"
+assert 'no OpenCode: no restart line' silent_restart
 
 echo "== failures leave engram intact =="
 
