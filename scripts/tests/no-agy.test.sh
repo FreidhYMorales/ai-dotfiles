@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Structural test for the retired Antigravity (agy) support: the open items
-# no longer name it.
+# and the tracked files outside history no longer name it.
 # Run: bash scripts/tests/no-agy.test.sh
 set -u
 
@@ -32,6 +32,27 @@ assert 'idea 20 still names the plugins and the marketplace' rg -q 'plugins.*mar
 assert 'idea 20 names no agy' test -z "$(rg -i 'agy' <<<"$idea20")"
 assert 'multi-agent-port #47 is dropped' rg -q '^47\. \[-\] dropped: superseded by retire-antigravity' \
   "$ROOT/docs/plans/multi-agent-port/backlog.md"
+
+echo "== only history and the retirement tests name agy =="
+# Tracked files only, so this machine and CI scan the same set.
+files=$(git -C "$ROOT" -c core.quotepath=off ls-files)
+pattern='agy|antigravity|\.gemini'
+# scan: the hits in the listed files (one path per line on stdin).
+scan() { (cd "$ROOT" && tr '\n' '\0' | xargs -0 rg -n -i -H --no-heading "$@" -- "$pattern") || true; }
+# Guard against a scan that finds nothing at all: the ideas log must show up.
+assert 'the scan sees the ideas log' rg -qx 'docs/ideas.md' <<<"$(scan -l <<<"$files")"
+history='^(docs/plans/|docs/ideas\.md$|packs/vendor/|scripts/tests/no-agy\.test\.sh$)'
+hits=$(rg -v "$history" <<<"$files" | scan)
+# The regression tests of retire-antigravity stories 01-03, by file and a
+# stable fragment of each line.
+allowed_lines='^(scripts/tests/install-targets\.test\.sh:[0-9]+:'
+allowed_lines+='|scripts/tests/ai-update\.test\.sh:[0-9]+:.*(regen-agy|\.gemini/antigravity-cli|an Antigravity dir)'
+allowed_lines+='|scripts/tests/gen-agents\.test\.sh:[0-9]+:.*(no antigravity/ directory|names only OpenCode files)'
+allowed_lines+='|scripts/tests/no-sdd\.test\.sh:[0-9]+:.*(retire-antigravity/03|hooks/agy)'
+allowed_lines+='|scripts/tests/port-docs\.test\.sh:[0-9]+:.*names no agy, antigravity or \.gemini)'
+stray=$(rg -v "$allowed_lines" <<<"$hits")
+assert 'no file outside history names agy' test -z "$stray"
+[[ -n $stray ]] && printf '%s\n' "$stray"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
