@@ -13,4 +13,4 @@
 01. [x] 527ae6a As a developer, I want install.sh and ai-update to stop installing Antigravity so that an install sets up only Claude Code and OpenCode.
 02. [x] dbafdca As a developer, I want the agent generator to produce only OpenCode output so that a skill change touches one golden set. Requires: #01
 03. [x] 6f662e4 As a developer, I want the toolkit plugin to drop its Antigravity hook adapters so that its hooks serve only Claude Code and OpenCode. Requires: #01
-04. [ ] As a developer, I want the docs and open items to describe only Claude Code and OpenCode so that nothing in the repo points at Antigravity. Requires: #01, #02, #03
+04. [x] bd44069 As a developer, I want the docs and open items to describe only Claude Code and OpenCode so that nothing in the repo points at Antigravity. Requires: #01, #02, #03
