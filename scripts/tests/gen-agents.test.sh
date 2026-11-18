@@ -312,6 +312,8 @@ CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-revie
 assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
 
 echo "== the role model map =="
+assert 'the shipped map gives the reviewer only an opencode model' \
+  test "$(jq -c '.reviewer | keys' "$ROOT/scripts/gen-agents/models.json")" = '["opencode"]'
 # One map gives each reviewer agent its model per target (story 12).
 # models MAP_JSON NAME: generate with that map into $TMP_ROOT/NAME.
 models() {
@@ -319,7 +321,7 @@ models() {
   LAST_OUTPUT=$(GEN_MODELS="$TMP_ROOT/$2.json" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/$2" 2>&1)
   LAST_EXIT=$?
 }
-models '{"reviewer": {"opencode": "ollama/qwen3", "antigravity": "pro"}}' local-reviewer
+models '{"reviewer": {"opencode": "ollama/qwen3"}}' local-reviewer
 assert 'map: generator exits 0' test "$LAST_EXIT" -eq 0
 [[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
 for name in flow-plan-reviewer flow-verifier; do
