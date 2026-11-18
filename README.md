@@ -1,12 +1,12 @@
 # ai-dotfiles
 
-Personal configuration for AI coding tools. Planning-first workflow and a story-by-story Strict TDD loop across Claude Code, OpenCode, and Antigravity on top of engram memory.
+Personal configuration for AI coding tools. Planning-first workflow and a story-by-story Strict TDD loop across Claude Code and OpenCode on top of engram memory.
 
 ## Layout
 
 | Path | What | How it is installed |
 |---|---|---|
-| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | A generated copy per target (`/flow-x` names plus each target's closing rules) is linked to `~/.config/opencode/AGENTS.md` and `~/.gemini/config/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
+| `AGENTS.md` | Symlink to `claude/CLAUDE.md` so other agents read the same rules | A generated copy (`/flow-x` names plus OpenCode's closing rules) is linked to `~/.config/opencode/AGENTS.md` (see [docs/multi-agent.md](docs/multi-agent.md)) |
 | `claude/CLAUDE.md` | Minimal always-on rules | Symlinked to `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | Settings fragment | Merged into `~/.claude/settings.json` with `jq` |
 | `.claude-plugin/marketplace.json` | Makes this repo a plugin marketplace | `claude plugin marketplace add` |
@@ -58,11 +58,11 @@ Memory: [engram](https://github.com/Gentleman-Programming/engram) is the only me
 
 ```bash
 ./install.sh --dry-run   # preview
-./install.sh             # auto-detects installed agents (claude, opencode, antigravity)
+./install.sh             # auto-detects installed agents (claude, opencode)
 ./install.sh --target all # install all agent configurations
 ```
 
-Requires `jq`, `rg`, and at least one supported agent CLI (`claude`, `opencode`, or `agy`/`antigravity`). See [docs/multi-agent.md](docs/multi-agent.md) for details on multi-agent architecture and compatibility.
+Requires `jq`, `rg`, and at least one supported agent CLI (`claude` or `opencode`). See [docs/multi-agent.md](docs/multi-agent.md) for details on multi-agent architecture and compatibility.
 
 ## Turning hooks off
 
@@ -122,5 +122,5 @@ Skill evals (`plugins/<plugin>/evals/`, run with `claude plugin eval`) check tha
 - [ ] Ideas from affaan-m/ECC (MIT): per-language rules (reuse for local-worker cheat sheets) and a cap on SessionStart context (low value today: the measured startup cost is ~3k tokens). Done elsewhere: one variable to disable hooks (`AI_HOOKS_OFF`); the minimal profile became opt-in packs. Its Memory Vault overlaps engram: reference only
 - [x] Opt-in packs (`ai-pack`, `web` and `diagrams`, startup hint): replaces the `install.sh --profile minimal` idea. Guide: [docs/packs.md](docs/packs.md)
 - [ ] Packs v2: bigcode/codebase-memory-mcp, design-md on demand, Ponytail eval, more packs, `ai-pack doctor` / prune
-- [x] OpenCode and Antigravity basics: shared rules, skill files and a multi-target installer ([docs/multi-agent.md](docs/multi-agent.md))
-- [x] Port the Claude-only parts to OpenCode and Antigravity: every `flow` and `toolkit` skill generated as `flow-x`/`toolkit-x`, the `plan-reviewer` and (OpenCode only) `verifier` agents, the hooks, the engram MCP check; agy work is frozen, OpenCode is the secondary agent; judgment-day stays Claude-only until v2 ([docs/multi-agent.md](docs/multi-agent.md))
+- [x] OpenCode basics: shared rules, skill files and a multi-target installer ([docs/multi-agent.md](docs/multi-agent.md))
+- [x] Port the Claude-only parts to OpenCode: every `flow` and `toolkit` skill generated as `flow-x`/`toolkit-x`, the `plan-reviewer` and `verifier` agents, the hooks, the engram MCP check; OpenCode is the secondary agent; judgment-day stays Claude-only until v2 ([docs/multi-agent.md](docs/multi-agent.md))
