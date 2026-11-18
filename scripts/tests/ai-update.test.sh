@@ -737,10 +737,11 @@ echo v2 >"$home/repo/source"
 update "$home" ''
 assert 'a pulled change asks to restart again' says 'Restart OpenCode'
 
+no_install() { [[ ! -e $1/state/install-calls ]]; }
 home=$(sandbox regen-agy 3.4.0 3.4.0)
 mkdir -p "$home/.gemini/antigravity-cli"
 update "$home" ''
-assert 'Antigravity installed: its build is regenerated' installed_with "$home" '--target antigravity'
+assert 'only an Antigravity dir: nothing is regenerated' no_install "$home"
 
 home=$(sandbox regen-both 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
@@ -753,7 +754,6 @@ FAKE_INSTALL_FAIL=1 update "$home" ''
 assert 'a failed generation fails ai-update' test "$LAST_EXIT" -ne 0
 assert 'a failed generation is reported' says 'gen.sh failed; the previous build is kept'
 
-no_install() { [[ ! -e $1/state/install-calls ]]; }
 home=$(sandbox regen-check 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
 update "$home" '' --check
