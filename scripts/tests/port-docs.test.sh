@@ -61,6 +61,9 @@ assert 'the manual setup section is found' test -n "$setup"
 assert 'setup names the extra plugin file hang on 2.2.2' rg -q 'extra file.*`plugins/`.*hang.*2\.2\.2|2\.2\.2.*extra file.*`plugins/`.*hang' <<<"$setup"
 assert 'setup keeps probes inside toolkit.ts' rg -q 'probe.*inside `toolkit\.ts`' <<<"$setup"
 assert 'the doc names OpenCode the secondary agent' rg -q 'OpenCode is the secondary agent' <<<"$doc"
+assert 'the doc title names Claude Code and OpenCode only' \
+  test "$(head -n1 <<<"$doc")" = '# Multi-agent support (Claude Code, OpenCode)'
+assert 'the doc names no agy, antigravity or .gemini' test -z "$(rg -n -i 'agy|antigravity|\.gemini' <<<"$doc")"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
