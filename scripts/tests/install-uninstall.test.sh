@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh tests: --uninstall removes only what the installer put in place (story 16). Run: bash scripts/tests/install-uninstall.test.sh
 # Each case runs the real installer against a throwaway HOME with stub
-# `claude`, `systemctl` and `agy` CLIs (setup in install-lib.sh).
+# `claude` and `systemctl` CLIs (setup in install-lib.sh).
 set -u
 # shellcheck source=scripts/tests/install-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/install-lib.sh"
@@ -77,18 +77,6 @@ for plugin in flow toolkit look; do
 done
 assert 'output names the marketplace' rg -qxF "removed marketplace: ai-dotfiles" <<<"$LAST_OUTPUT"
 
-echo "== drops the toolkit key from agy's hooks.json, keeps the others =="
-
-home=$(sandbox uninstall-agy-hooks)
-mkdir -p "$home/.gemini/config"
-hooks="$home/.gemini/config/hooks.json"
-jq -n '{herdr: {Stop: [{type: "command", command: "herdr stop"}]}}' >"$hooks"
-install "$home" --target antigravity
-assert 'the install set the toolkit key (setup)' json_true "$hooks" '.toolkit != null'
-install "$home" --uninstall --target antigravity
-assert 'hooks.json keeps only the herdr key' same "$(jq -c . "$hooks")" '{"herdr":{"Stop":[{"type":"command","command":"herdr stop"}]}}'
-assert 'output names the dropped key' rg -qxF "removed toolkit hooks: $hooks" <<<"$LAST_OUTPUT"
-
 echo "== leaves what the installer did not put there, points at settings.json =="
 
 # state_of PATH...: type, link target or content hash of each PATH, one per line.
@@ -112,12 +100,11 @@ install "$home" --target all
 ln -s /usr/bin/true "$home/.local/bin/my-tool"
 printf '# mine\n' >"$home/.claude/output-styles/mine.md"
 printf 'old copy\n' >"$home/.claude/CLAUDE.md.bak-20200101-000001"
-mkdir -p "$home/.config/opencode/skills/my-skill" "$home/.gemini/antigravity-cli/skills-backup/old-skill"
+mkdir -p "$home/.config/opencode/skills/my-skill"
 printf 'x\n' >"$home/.config/opencode/skills/my-skill/SKILL.md"
-printf 'x\n' >"$home/.gemini/antigravity-cli/skills-backup/old-skill/SKILL.md"
 kept=("$home/.local/bin/my-tool" "$home/.claude/output-styles/mine.md"
   "$home/.claude/CLAUDE.md.bak-20200101-000001" "$home/.config/opencode/skills/my-skill"
-  "$home/.gemini/antigravity-cli/skills-backup/old-skill" "$home/.claude/settings.json")
+  "$home/.claude/settings.json")
 before=$(state_of "${kept[@]}")
 assert 'every kept path exists (setup)' test -z "$(rg '^missing' <<<"$before")"
 install "$home" --uninstall --target all
@@ -136,8 +123,6 @@ everything() {
 }
 
 home=$(sandbox uninstall-dry-run)
-mkdir -p "$home/.gemini/config"
-jq -n '{herdr: {}}' >"$home/.gemini/config/hooks.json"
 install "$home" --target all
 links=$(our_links "$home")
 before=$(everything "$home")
@@ -157,20 +142,18 @@ assert 'dry-run names the plugin it would uninstall' \
   rg -qxF "[dry-run] claude plugin uninstall flow@ai-dotfiles" <<<"$LAST_OUTPUT"
 assert 'dry-run names the marketplace it would remove' \
   rg -qxF "[dry-run] claude plugin marketplace remove ai-dotfiles" <<<"$LAST_OUTPUT"
-assert 'dry-run names the hooks key it would remove' \
-  rg -qxF "[dry-run] would remove the toolkit key from $home/.gemini/config/hooks.json" <<<"$LAST_OUTPUT"
 assert 'dry-run claims no change it did not make' \
   test -z "$(rg '^(removed|disabled|unset|uninstalled plugin|removed marketplace|removed toolkit hooks): ' <<<"$LAST_OUTPUT")"
 
-echo "== --target claude keeps the OpenCode and agy links =="
+echo "== --target claude keeps the OpenCode links =="
 
 home=$(sandbox uninstall-target)
 install "$home" --target all
-other=$(our_links "$home" | rg -e "^$home/.config/opencode/" -e "^$home/.gemini/")
-assert 'the install linked OpenCode and agy (setup)' test "$(wc -l <<<"$other")" -gt 5
+other=$(our_links "$home" | rg -e "^$home/.config/opencode/")
+assert 'the install linked OpenCode (setup)' test "$(wc -l <<<"$other")" -gt 5
 install "$home" --uninstall --target claude
-assert 'the OpenCode and agy links stay' \
-  same "$(our_links "$home" | rg -e "^$home/.config/opencode/" -e "^$home/.gemini/")" "$other"
+assert 'the OpenCode links stay' \
+  same "$(our_links "$home" | rg -e "^$home/.config/opencode/")" "$other"
 assert 'the common and Claude links are gone' \
   same "$(our_links "$home" | rg -e "^$home/.local/bin/" -e "^$home/.config/systemd/" -e "^$home/.claude/")" ""
 

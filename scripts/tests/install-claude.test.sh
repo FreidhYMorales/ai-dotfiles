@@ -153,7 +153,6 @@ home=$(sandbox prune)
 broken=(
   "$home/.claude/output-styles/retired.md:$ROOT/claude/output-styles/retired.md"
   "$home/.config/opencode/skills/retired-skill:$ROOT/plugins/retired/skills/retired-skill"
-  "$home/.gemini/antigravity-cli/skills/retired-skill:$ROOT/plugins/retired/skills/retired-skill"
   "$home/.local/bin/retired-tool:$ROOT/bin/retired-tool"
   "$home/.config/systemd/user/retired.service:$ROOT/systemd/retired.service"
 )

@@ -73,8 +73,6 @@ assert 'it names the daemon-reload it would run' \
 would_link() { rg -q "^\[dry-run\] ln -s .+ $1\$" <<<"$LAST_OUTPUT"; }
 assert 'it lists the generated OpenCode agent links' would_link "$home/\.config/opencode/agents/flow-verifier\.md"
 assert 'it lists the generated OpenCode skill links' would_link "$home/\.config/opencode/skills/flow-backlog"
-assert 'it lists the generated Antigravity agent links' would_link "$home/\.gemini/config/agents/flow-plan-reviewer\.md"
-assert 'it lists the generated Antigravity skill links' would_link "$home/\.gemini/antigravity-cli/skills/flow-backlog"
 
 # Everything in the sandbox but its own stubs (bin/) and their state (state/).
 # BUILD_DIR lives in the sandbox here (AI_BUILD_DIR), so this also covers the
