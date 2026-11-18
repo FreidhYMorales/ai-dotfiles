@@ -43,7 +43,6 @@ UPDATE_CHECK_CACHE=${UPDATE_CHECK_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/ai-dotf
 REPO_DIR=${AI_DOTFILES_DIR:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}
 BUILD_DIR=${AI_BUILD_DIR:-$REPO_DIR/build/agents}
 OPENCODE_DIR=${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}
-ANTIGRAVITY_DIR=${ANTIGRAVITY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}
 
 require() {
   command -v "$1" >/dev/null || {
@@ -375,7 +374,6 @@ main() {
 regenerate_agents() {
   local targets=() before
   [[ -d $OPENCODE_DIR ]] && targets+=(opencode)
-  [[ -d $ANTIGRAVITY_DIR ]] && targets+=(antigravity)
   ((${#targets[@]})) || return 0
   before=$(build_hash)
   bash "$REPO_DIR/install.sh" --target "$(
