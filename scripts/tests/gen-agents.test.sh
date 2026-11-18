@@ -327,10 +327,10 @@ for name in flow-plan-reviewer flow-verifier; do
     "$TMP_ROOT/local-reviewer/opencode/agents/$name.md"
 done
 # A missing entry is an error, never a silent default.
-models '{"reviewer": {"opencode": "inherit"}}' missing-entry
+models '{"reviewer": {}}' missing-entry
 assert 'map: a missing entry fails' test "$LAST_EXIT" -ne 0
 assert 'map: the error names the role' grep -qF 'reviewer' <<<"$LAST_OUTPUT"
-assert 'map: the error names the target' grep -qF 'antigravity' <<<"$LAST_OUTPUT"
+assert 'map: the error names the target' grep -qF 'opencode' <<<"$LAST_OUTPUT"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
