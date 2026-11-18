@@ -41,3 +41,5 @@ Risk: item 1, 3, 5 (backup prune guard and uninstall, `--target` contract, insta
 - Tests 4 (41dba9b) and 6 (c5e83ed) passed on first run: the code came with 3b and 527ae6a. Both were shown red against main's install.sh / bin/ai-update before committing (triangulation, no feat of their own).
 - Closing scan over install.sh, bin/ai-update, install-*.test.sh, install-lib.sh, ai-update.test.sh: only the regression REDs (install-targets.test.sh, regen-agy, regen-both). Docs-owned lines left: port-docs.test.sh:34-35,62 and tiered-docs.test.sh:44.
 - Evidence: `make check` on bcc2ee8: "All checks passed (8 steps)"; slowest test file now install-opencode 53.0s (was install-agy-skills 79.5s).
+- Verifier: PASS (criteria 1-3 PASS with mutants in a scratch clone; commit order PASS; tamper PASS; assertions PASS; its own `make check` passed). Refs and HEAD unchanged across the run. Notes, no change made: aef0909 edited ai-update.test.sh labels/setup inside a refactor commit (all listed in the plan); the `--target all` check matches the done line anywhere, not as the last line.
+- Risk: item 1, 3, 5 (backup prune guard and uninstall, `--target` contract, installer)
