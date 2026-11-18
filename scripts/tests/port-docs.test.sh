@@ -31,8 +31,11 @@ echo "== README names the rules paths each agent reads =="
 row=$(rg -F '| `AGENTS.md` |' "$README")
 assert 'the AGENTS.md row is found' test -n "$row"
 assert 'README names the OpenCode rules path' has "$row" '~/.config/opencode/AGENTS.md'
-assert 'README names the agy rules path' has "$row" '~/.gemini/config/AGENTS.md'
-assert 'README drops the path agy does not read' lacks "$row" '~/.gemini/antigravity-cli/AGENTS.md'
+
+echo "== README names only Claude Code and OpenCode =="
+readme=$(<"$README")
+assert 'README names OpenCode' has "$readme" 'OpenCode'
+assert 'README names no agy, antigravity or .gemini' test -z "$(rg -n -i 'agy|antigravity|\.gemini' <<<"$readme")"
 
 echo "== README closes the port roadmap item =="
 item=$(rg -F 'Port the Claude-only parts' "$README")
@@ -55,12 +58,12 @@ doc=$(<"$ROOT/docs/multi-agent.md")
 # The manual setup section, up to the next level-2 heading.
 setup=$(awk '/^## Manual setup per machine/ { on = 1; next } /^## / { on = 0 } on' <<<"$doc")
 assert 'the manual setup section is found' test -n "$setup"
-assert 'setup says herdr can drop the toolkit key' rg -q 'herdr.*drop.*`toolkit`' <<<"$setup"
-assert 'setup says the next install puts the key back' rg -q 'install.*(puts|writes) it back' <<<"$setup"
 assert 'setup names the extra plugin file hang on 2.2.2' rg -q 'extra file.*`plugins/`.*hang.*2\.2\.2|2\.2\.2.*extra file.*`plugins/`.*hang' <<<"$setup"
 assert 'setup keeps probes inside toolkit.ts' rg -q 'probe.*inside `toolkit\.ts`' <<<"$setup"
-assert 'the doc says agy work is frozen' rg -q 'agy work is frozen' <<<"$doc"
 assert 'the doc names OpenCode the secondary agent' rg -q 'OpenCode is the secondary agent' <<<"$doc"
+assert 'the doc title names Claude Code and OpenCode only' \
+  test "$(head -n1 <<<"$doc")" = '# Multi-agent support (Claude Code, OpenCode)'
+assert 'the doc names no agy, antigravity or .gemini' test -z "$(rg -n -i 'agy|antigravity|\.gemini' <<<"$doc")"
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures case(s) failed"
