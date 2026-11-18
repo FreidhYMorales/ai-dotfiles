@@ -39,6 +39,7 @@ OUT="$TMP_ROOT/out"
 generate "$OUT"
 assert 'generator exits 0' test "$LAST_EXIT" -eq 0
 [[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
+assert 'the generated tree has no antigravity/ directory' test -d "$OUT/opencode" -a ! -e "$OUT/antigravity"
 
 echo "== OpenCode plan reviewer agent =="
 assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden opencode/agents/flow-plan-reviewer.md
@@ -202,7 +203,8 @@ cp -r "$ROOT/claude" "$STALE/"
 printf '\nA line the goldens lack.\n' >>"$STALE/plugins/flow/skills/plan-review/SKILL.md"
 verify "$STALE"
 assert 'a stale golden fails' test "$LAST_EXIT" -ne 0
-assert 'stale: names the file' grep -q 'antigravity/skills/flow-plan-review/SKILL.md' <<<"$LAST_OUTPUT"
+assert 'stale: names the OpenCode file' grep -q 'opencode/skills/flow-plan-review/SKILL.md' <<<"$LAST_OUTPUT"
+assert 'stale: names only OpenCode files' test -z "$(grep -F 'antigravity/' <<<"$LAST_OUTPUT")"
 
 # A Claude-only form the rewrite does not cover.
 LEFT="$TMP_ROOT/leftover"
