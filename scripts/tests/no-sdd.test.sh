@@ -66,6 +66,11 @@ assert 'marketplace lists toolkit at least 0.20.0' \
 assert 'toolkit plugin is at least 0.21.0' at_least 0.21.0 "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")"
 assert 'marketplace lists toolkit at least 0.21.0' \
   at_least 0.21.0 "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")"
+# Story retire-antigravity/03: the Antigravity hook adapters are gone.
+assert 'toolkit hooks/agy does not exist' test -d "$TOOLKIT/hooks" -a ! -e "$TOOLKIT/hooks/agy"
+assert 'toolkit plugin is at least 0.22.0' at_least 0.22.0 "$(jq -r .version "$TOOLKIT/.claude-plugin/plugin.json")"
+assert 'marketplace lists toolkit at least 0.22.0' \
+  at_least 0.22.0 "$(jq -r '.plugins[] | select(.name == "toolkit") | .version' "$ROOT/.claude-plugin/marketplace.json")"
 
 echo "== no sdd outside history and retirement files =="
 # History stays as written; these files name sdd only to retire, reject or
