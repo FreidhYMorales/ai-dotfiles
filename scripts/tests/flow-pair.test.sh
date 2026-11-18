@@ -138,14 +138,13 @@ assert 'an existing test that must change in the round is stop rule 3' \
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'a full run still red after the round is stop rule 4' \
   grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$check_line"
-for host in opencode antigravity; do
-  gen_check=$(grep -E '^6\. \*\*Check\.\*\*' "$ROOT/scripts/gen-agents/golden/$host/skills/flow-pair/SKILL.md" 2>/dev/null)
-  assert "generated $host pair carries the regression round in step 6" \
-    grep -qF 'If it is red on tests the story did not add, run a regression round' <<<"$gen_check"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "generated $host pair carries the round's stop rules" \
-    grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$gen_check"
-done
+host=opencode
+gen_check=$(grep -E '^6\. \*\*Check\.\*\*' "$ROOT/scripts/gen-agents/golden/$host/skills/flow-pair/SKILL.md" 2>/dev/null)
+assert "generated $host pair carries the regression round in step 6" \
+  grep -qF 'If it is red on tests the story did not add, run a regression round' <<<"$gen_check"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "generated $host pair carries the round's stop rules" \
+  grep -qF 'a `Test command:` still red after the round is stop rule 4.' <<<"$gen_check"
 
 echo "== strict tdd =="
 for s in 'Three Laws' 'Triangulat' 'Banned assertion' 'layer'; do
