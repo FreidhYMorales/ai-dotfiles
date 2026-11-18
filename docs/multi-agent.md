@@ -1,25 +1,25 @@
-# Multi-agent support (Claude Code, OpenCode, Antigravity)
+# Multi-agent support (Claude Code, OpenCode)
 
-Claude Code is the full target. OpenCode and Antigravity get the shared rules, the skill files and the generated ports. This page says what `install.sh` does for each one and what still works only in Claude Code.
+Claude Code is the full target. OpenCode gets the shared rules, the skill files and the generated ports. This page says what `install.sh` does for each one and what still works only in Claude Code.
 
-Status (2026-11-02): agy work is frozen (little expected use) and OpenCode is the secondary agent. The agy port stays installed as documented here; open agy stories are parked in the backlog.
+Status: OpenCode is the secondary agent.
 
 ## What the installer does
 
-`./install.sh` detects the installed agents; `--target claude|opencode|antigravity|all` (comma-separated) picks them by hand.
+`./install.sh` detects the installed agents; `--target claude|opencode|all` (comma-separated) picks them by hand.
 
-| Piece | Claude Code | OpenCode | Antigravity |
-|---|---|---|---|
-| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | generated `AGENTS.md` → `~/.config/opencode/AGENTS.md` | generated `AGENTS.md` → `~/.gemini/config/AGENTS.md`, when `~/.gemini` exists |
-| Skills | `flow`, `toolkit` plugins | none raw: every skill but judgment-day is generated (below) | none raw: every skill but judgment-day is generated (below) |
-| Plugin agents | yes | generated `flow-plan-reviewer`, `flow-verifier` → `~/.config/opencode/agents/` | generated `flow-plan-reviewer` → `~/.gemini/config/agents/` (no `flow-verifier`, below) |
-| Generated skills and commands | n/a | every `flow` and `toolkit` skill but judgment-day, as `flow-x`/`toolkit-x` → `~/.config/opencode/skills/`; each with a command of the same name (`/flow-next`, `/toolkit-ship`) → `~/.config/opencode/commands/`; `make check` fails if one shares a name with an OpenCode 2.2.5 built-in (`/pair` is one) | the same skills → `~/.gemini/antigravity-cli/skills/` |
-| Hooks | yes | `prefer-modern-cli` and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, run once per session and joined into one block appended to the system on each model call), and `pause` (a message starting with "pausa"/"pause" saves the engram checkpoint once and keeps the pause protocol, resuming with `opencode --continue`, in the system until the next message): plugin `toolkit.ts` → `~/.config/opencode/plugins/` | `prefer-modern-cli`, the Stop gate (`require-check`: `make check-fast` when the Makefile defines it, else `make check`) and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, joined into one injected system message): a `toolkit` key merged into `~/.gemini/config/hooks.json` |
-| Engram MCP | yes (plugin) | configure by hand; the installer warns when missing | configure by hand; the installer warns when missing |
-| Status line, `look` band | yes | no | no |
-| `bin/*`, systemd units, git hooks | yes | yes | yes |
+| Piece | Claude Code | OpenCode |
+|---|---|---|
+| Global rules | `claude/CLAUDE.md` → `~/.claude/CLAUDE.md` | generated `AGENTS.md` → `~/.config/opencode/AGENTS.md` |
+| Skills | `flow`, `toolkit` plugins | none raw: every skill but judgment-day is generated (below) |
+| Plugin agents | yes | generated `flow-plan-reviewer`, `flow-verifier` → `~/.config/opencode/agents/` |
+| Generated skills and commands | n/a | every `flow` and `toolkit` skill but judgment-day, as `flow-x`/`toolkit-x` → `~/.config/opencode/skills/`; each with a command of the same name (`/flow-next`, `/toolkit-ship`) → `~/.config/opencode/commands/`; `make check` fails if one shares a name with an OpenCode 2.2.5 built-in (`/pair` is one) |
+| Hooks | yes | `prefer-modern-cli` and the session-start hooks (`host-info`, `pack-hint`, `backup-status`, run once per session and joined into one block appended to the system on each model call), and `pause` (a message starting with "pausa"/"pause" saves the engram checkpoint once and keeps the pause protocol, resuming with `opencode --continue`, in the system until the next message): plugin `toolkit.ts` → `~/.config/opencode/plugins/` |
+| Engram MCP | yes (plugin) | configure by hand; the installer warns when missing |
+| Status line, `look` band | yes | no |
+| `bin/*`, systemd units, git hooks | yes | yes |
 
-The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode and Antigravity read a generated copy of it with `/flow-x` names and a closing section for the rules their hooks do not cover: OpenCode runs `make check-fast` before saying done when the Makefile defines it, else `make check` (it has no Stop gate), Antigravity follows the pause protocol (it has no prompt hook); both read `/flow:<skill>` in raw support files as `/flow-<skill>`.
+The repo-root `AGENTS.md` is a symlink to `claude/CLAUDE.md`. OpenCode reads a generated copy of it with `/flow-x` names and a closing section for the rules its hooks do not cover: OpenCode runs `make check-fast` before saying done when the Makefile defines it, else `make check` (it has no Stop gate), and it reads `/flow:<skill>` in raw support files as `/flow-<skill>`.
 
 ## Manual setup per machine
 
@@ -27,49 +27,15 @@ OpenCode's background service (`opencode serve --service`) loads plugins when it
 
 Any extra file in OpenCode's `plugins/` dir (`~/.config/opencode/plugins/`), even an empty one, made `opencode run --standalone` hang on OpenCode 2.2.2 (story #20). Keep a debug probe inside `toolkit.ts` instead of a file of its own, and remove leftovers there before blaming the hooks.
 
-herdr rewrites agy's `~/.gemini/config/hooks.json` and can drop the `toolkit` key; the next `./install.sh` puts it back, because the installer merges only that key and leaves herdr's as it is.
-
 The installer never writes engram's MCP config outside Claude Code (`engram setup` may rewrite the agent's config); it only checks it and prints a warning naming the manual step:
 
 - OpenCode: an enabled `mcp.engram` entry in `~/.config/opencode/opencode.json` running `engram mcp --tools=agent`. Missing or `"enabled": false` warns `run: engram setup opencode`.
-- Antigravity: `agy mcp list` must list `engram`. The installer asks `agy` instead of reading a file, because two `mcp_config.json` exist (`~/.gemini/config/` and `~/.gemini/antigravity-cli/`). Missing warns `run: engram setup antigravity-cli`; without `agy` on the PATH it says it cannot check.
-
-The installer pins agy 1.4.12, the version the two tables below were last checked on (story #41). When `agy --version` prints anything else, it warns and points here: re-run both sentinel checks on the new version before trusting the linked paths.
-
-### Which rules files Antigravity loads
-
-Checked on 2026-10-27 with agy 1.4.7 and again on 2026-11-02 with agy 1.4.12 (story #41), same results: a unique sentinel line in each candidate file, then `agy -p` from a directory outside any repo, run twice with the same result.
-
-| File | Loaded |
-|---|---|
-| `~/.gemini/config/AGENTS.md` | yes |
-| `~/.gemini/AGENTS.md` | yes |
-| `~/.gemini/GEMINI.md` | yes |
-| `~/.gemini/antigravity-cli/AGENTS.md` | no |
-
-`install.sh` links the rules only at `~/.gemini/config/AGENTS.md` (the global root agy's own docs name) and removes the link earlier runs made under `antigravity-cli/`. Because agy loads `~/.gemini/GEMINI.md` on top of these rules (gentle-ai writes one), the installer moves it to `~/.gemini/GEMINI.md.bak-<timestamp>` and prints the `mv` command that restores it.
-
-### Which skills dirs Antigravity discovers
-
-Checked on 2026-10-28 with agy 1.4.7 and again on 2026-11-02 with agy 1.4.12 (story #41), same results, the same way: sentinel skills in each candidate dir, two `agy -p` runs plus a control run.
-
-| Dir or case | Result |
-|---|---|
-| `~/.gemini/config/skills/` | discovered |
-| `~/.gemini/antigravity-cli/skills/` | discovered |
-| `~/.gemini/skills/` | discovered |
-| a `<name>.bak-<timestamp>` dir in a skills dir | discovered, by its `name:` frontmatter |
-| two skills with the same `name:` | the copy in `~/.gemini/antigravity-cli/skills/` wins |
-| `~/.gemini/antigravity-cli/skills-backup/` | not discovered |
-| a `<name>.md.bak-<timestamp>` file in `~/.gemini/config/agents/` (1.4.12 only) | not discovered as a subagent; a control `<name>.md` beside it was |
-
-The repo skills already live in the winning dir. `install.sh` moves every `*.bak-*` entry out of the three discovery dirs into `skills-backup/` (an earlier installer left gentle-ai's originals there under that name), adding a numeric suffix when the name is taken; nothing is deleted. It also moves there every real dir in the three discovery dirs (`~/.gemini/skills/`, `~/.gemini/config/skills/`, `~/.gemini/antigravity-cli/skills/`) named like a repo skill (gentle-ai copies such as `work-unit-commits` or `judgment-day`, which the prefixed repo names no longer shadow) or like a retired plugin's skills (`<plugin>-*`); other gentle-ai skills, `_shared` and links stay. Each move is printed as source -> destination, so a restore is one `mv`.
 
 ## What works outside Claude Code
 
 Skills that are plain instructions work: most of `flow` (`plan`, `research`, `foundation`, `bootstrap`, `fill-gaps`, `handoff`, `idea`, `next`, `split`, `integrate`) and most of `toolkit`.
 
-The story loop (`flow:backlog`, `flow:story`, `flow:pair`, `toolkit:work-unit-commits`) and its `flow:verifier` agent are generated for both targets (below). In OpenCode the verifier runs `git log`, `git diff`, `git show`, `rg` and `make check` without asking, never runs `rg --pre` or git `--output`/`--ext-diff`, asks before any other shell command or a redirection and cannot start subagents. Antigravity gets no verifier agent: without a shell tool it made up PASS reports in the smoke run (below), so the agy `flow-pair` stops a high-risk story with NEEDS DECISION and it is finished in Claude or OpenCode; the installer prunes the `flow-verifier` link earlier installs made.
+The story loop (`flow:backlog`, `flow:story`, `flow:pair`, `toolkit:work-unit-commits`) and its `flow:verifier` agent are generated for OpenCode (below). In OpenCode the verifier runs `git log`, `git diff`, `git show`, `rg` and `make check` without asking, never runs `rg --pre` or git `--output`/`--ext-diff`, asks before any other shell command or a redirection and cannot start subagents.
 
 This skill depends on Claude Code and is not linked elsewhere:
 
@@ -79,95 +45,22 @@ Porting judgment-day is v2 (plan `docs/plans/multi-agent-port/`).
 
 ### Generated skills and agents
 
-`scripts/gen-agents/gen.sh` turns ported skills and agents into each target's format; that is every `flow` and `toolkit` skill but `toolkit:judgment-day`, plus the `flow:plan-reviewer` agent and, for OpenCode only, `flow:verifier`. Their model comes from one role map, `scripts/gen-agents/models.json`: the `reviewer` role holds one model per target. OpenCode takes any `provider/id` (for a local model, `ollama/<model>`; `inherit` runs on the session model), Antigravity takes `inherit`, `pro` or `flash`; a missing entry or another agy value stops the generator. Edit the line and rerun `./install.sh`. Names follow one map (`flow:x` → `flow-x`, `toolkit:x` → `toolkit-x`), plugin-relative paths become absolute, and Claude tool names become the target's. `install.sh` generates into a new dir, points the gitignored `build/agents` symlink at it in one rename and links from there; a failed generation keeps the previous build. `make check` compares a fresh generation with `scripts/gen-agents/golden/` and fails on any Claude-only form left in it; the header of `scripts/gen-agents/verify.sh` shows how to regenerate the goldens.
-
-In Antigravity the reviewer gets only tool names agy proved in its registry: `read_file`, `view_file`, `grep_search` (1.4.9) and `find_by_name` for `Glob` (1.4.12, story #45: the installed reviewer listed a plan folder with it). `Bash` becomes `run_command` (story #46: the installed reviewer ran `git log -1 --oneline` in a repo), with `commandExecutionPolicy: off`; agy then runs only commands on the user's agy allow list without asking (below), so .docx/.pdf conversions need `pandoc`/`pdftotext` there. An unmapped tool stops the generator, because agy silently never builds such a subagent.
-
-### Antigravity subagents: engram and registry tools
-
-Checked live on 2026-11-02 (story #42) on agy 1.4.12, Gemini 3.8 Flash: one temporary sentinel agent per row in `~/.gemini/config/agents/` (`model: flash`), each invoked through `invoke_subagent` from `agy -p` outside any repo, with no permission flag; every sentinel was removed afterwards and the dir matched its backup. A row passes when the subagent's own transcript shows the call and its answer holds a value the prompt did not contain.
-
-| Case | Result |
-|---|---|
-| engram under `mcpServers:` exactly as the generator emits it, asked for observation #762 by ID | pass: the subagent called `call_mcp_tool` (server `engram`, tool `mem_get_observation`) and returned the exact title; the main agent called no engram tool; nothing was saved |
-| `tools: [find_by_name]`, asked to find a file by name | pass: built, `find_by_name` returned the file's path |
-| `tools: [run_command]` (no `commandExecutionPolicy`), asked to run `bat -pp <file>` | pass: built, `run_command` ran it and returned the file's random token; `bat` is in the user's agy allow list, so `-p` did not soft-deny it |
-| control: `tools: [view_file]` | pass: built, returned the same token |
-
-No log showed a registry error. Subagents also get `send_message` (to answer the main agent) without declaring it.
-
-### Antigravity `commandExecutionPolicy`
-
-agy documents four values (`off`, `auto`, `eager`, `sandbox`; default `sandbox`) without saying what each does. Checked live on 2026-11-02 (story #46) on agy 1.4.12, Gemini 3.8 Flash, `agy -p` with no permission flag, one temporary sentinel agent per value with only `run_command`:
-
-| Value | `cd <repo> && git log -1 --oneline` (on the allow list) | `cd <repo> && uname -r` (not on it) |
-|---|---|---|
-| `off` | ran, real hash | refused: "permission check failed for unsandboxed ...: user denied permission to run command" |
-| `auto` | ran, real hash | refused, same error |
-| `eager` | ran, real hash | refused, same error |
-| `sandbox` | ran, real hash | refused, same error |
-
-In `-p` the user's agy allow list (the `command(...)` entries agy prints as its permissions) decides, not the policy; subagents inherit it. The match is on the command prefix: the reviewer's `git -C <repo> log` was refused while `git log` ran. The generator keeps `off`, the most restrictive name. The `prefer-modern-cli` hook also blocks a subagent's `ls`. The allow list holds `git add` and `git commit`, so a subagent with `run_command` can commit without asking; trim the list by hand if that matters.
-
-## Antigravity hooks
-
-Checked live on 2026-11-02 (story #39) on agy 1.4.12 (the installer then pinned 1.4.9), Gemini 3.8 Flash, with a temporary probe as its own `hooks.json` key next to `toolkit` (matcher `run_command`, logging the payload); `toolkit` and `herdr` were identical to the backup afterwards.
-
-| Check | Result |
-|---|---|
-| probe answers `deny`, agy run with `--dangerously-skip-permissions`, asked for `echo probe39-hola > /tmp/probe39.txt` | pass: blocked ("tool call denied by pre-tool hook"), the file was not created. The flag does not bypass PreToolUse hooks, so the agy hook checks are proven, not "unproven" |
-| toolkit hook, no flag, asked for `eza /tmp` | pass: agy showed its own "Run this command?" prompt (the probe, still installed, also answered `ask`); the real payload replayed through `hooks/agy/prefer-modern-cli.sh` answers `{"decision": "ask"}` |
-| payload fields the adapter reads | pass: `.toolCall.name` is `"run_command"`, `.toolCall.args.CommandLine` holds the command line as typed |
-
-The PreToolUse payload agy sends for `run_command` (values shortened):
-
-```json
-{
-  "artifactDirectoryPath": "~/.gemini/antigravity-cli/brain/<conversationId>",
-  "conversationId": "<uuid>",
-  "lastUserInput": "<the user's last message>",
-  "modelName": "gemini-3.8-flash-high",
-  "stepIdx": 3,
-  "toolCall": {
-    "name": "run_command",
-    "args": {"CommandLine": "eza /tmp", "WaitMsBeforeAsync": 5000, "toolSummary": "<model's summary>"}
-  },
-  "transcriptPath": "<artifactDirectoryPath>/.system_generated/logs/transcript_full.jsonl",
-  "workspacePaths": ["<the session's working dir>"]
-}
-```
-
-It has no working-directory field for the command itself; `workspacePaths` is the closest.
-
-### Stop and SessionStart
-
-Checked live on 2026-11-02 (story #40), same agy and model, in a throwaway repo with an uncommitted file and a `make check` that sleeps 20 s and fails, under `--dangerously-skip-permissions`. A probe key logged every Stop and SessionStart payload and answered `{}`; for one turn it answered `continue` once. `toolkit` and `herdr` were identical to the backup afterwards.
-
-| Check | Result |
-|---|---|
-| failing `make check`, two user turns that end without a tool call | pass since #43: both Stop payloads carry `executionNum: 0`, which the adapter first read as unusable, so the gate never held a turn in #40. #43 gates 0 and lets 1 or more go; re-run the same day in a new session: agy answered, then 23 s later "Stop hook blocked termination: make check failed …", answered once more and stopped |
-| a `continue` forced by another Stop hook | lets the gate go on the next turn end without a check, as Claude's `stop_hook_active` does: agy's payload does not say which hook continued |
-| what `executionNum` counts | the continuations forced by a Stop hook inside one user turn: 0 on a normal turn end, 1 after one `continue`. After the probe's `continue`, the next turn end was gated by the toolkit hook (agy injected "Stop hook blocked termination: make check failed …", so the pre-#43 adapter saw 1, ran the check and continued; the 1 is inferred from that message, not logged); the model then fixed the Makefile and the next Stop carried 2. Each new user turn starts at 0 again. The probe was not called on the turn end right after its own `continue` |
-| cancel (esc) while `sleep 60` runs (agy had moved it to a background task) | pass: agy stopped and the gate did not hold it. No Stop hook ran at all on the cancel, so there is no `terminationReason` to record |
-| session start | pass: agy injected the adapter's message as a system message ("injected by a SessionStart hook"), and the model quoted the host info and the backup notice. The SessionStart payload carries `conversationId`, `modelName`, `lastUserInput`, `workspacePaths` (absolute), `transcriptPath` and `artifactDirectoryPath`; replayed, the adapter returns the same host info |
-
-The Stop payload adds `executionNum`, `terminationReason` (`NO_TOOL_CALL` on a normal end), `error` (empty) and `fullyIdle` (`true`) to the SessionStart fields.
+`scripts/gen-agents/gen.sh` turns ported skills and agents into OpenCode's format; that is every `flow` and `toolkit` skill but `toolkit:judgment-day`, plus the `flow:plan-reviewer` and `flow:verifier` agents. Their model comes from one role map, `scripts/gen-agents/models.json`: the `reviewer` role holds the OpenCode model. OpenCode takes any `provider/id` (for a local model, `ollama/<model>`; `inherit` runs on the session model); a missing entry stops the generator. Edit the line and rerun `./install.sh`. Names follow one map (`flow:x` → `flow-x`, `toolkit:x` → `toolkit-x`), plugin-relative paths become absolute, and Claude tool names become OpenCode's. `install.sh` generates into a new dir, points the gitignored `build/agents` symlink at it in one rename and links from there; a failed generation keeps the previous build. `make check` compares a fresh generation with `scripts/gen-agents/golden/` and fails on any Claude-only form left in it; the header of `scripts/gen-agents/verify.sh` shows how to regenerate the goldens.
 
 ## Smoke run
 
 Run on 2026-10-31 (story #13) on a throwaway toy repo (a bash `greet.sh` with a `--log FILE` flag, four stories, all high risk), after a fresh `./install.sh`. OpenCode `/flow-plan-review` was already proven in backlog #08.
 
-| Check | OpenCode 2.2.2 (`opencode run --standalone --auto -m opencode/big-pickle`) | Antigravity 1.4.9, re-runs on 1.4.12 (interactive, Gemini 3.8 Flash) | Claude Code |
-|---|---|---|---|
-| `/flow-plan-review` | pass (#08) | pass: `flow-plan-reviewer` subagent returned the full structure and wrote `plan-review-1.md`; with no `plan.md` it stopped at the gate | n/a |
-| `/flow-backlog`, `/flow-story` | pass: story marked `Risk: item 2` | pass (`/flow-story`): `Risk: item 2` | n/a |
-| `/flow-pair` on a high-risk story | pass: 3 test→code pairs, `make check` green, no red marker, `flow-verifier` subagent ran, PASS | **fail**: the `flow-verifier` subagent called only engram (`mem_search`, `mem_context`), ran no command, yet reported `make check` passed and `Verdict: PASS`; pair accepted it instead of ending in NEEDS DECISION (backlog #37); after #37 Gemini 3.8 Flash still spawned the verifier and got the same fake PASS, so #38 removes the agy verifier; re-run on 1.4.12 after #38: pass, no subagent spawned, the story stopped at NEEDS DECISION and stayed open | n/a |
-| `ls` blocked by `prefer-modern-cli` | pass: `ls` and `sed` blocked | pass on 1.4.12 when asked for `ls` explicitly (blocked; the model then offered the `# legacy-cli` escape the hook names); unprompted, it picks `eza` itself | pass (live) |
-| engram observation saved in OpenCode found here | saved (#961-963, project `toy-greet`) | pass: found #962 | pass: found #961-963 |
+| Check | OpenCode 2.2.2 (`opencode run --standalone --auto -m opencode/big-pickle`) | Claude Code |
+|---|---|---|
+| `/flow-plan-review` | pass (#08) | n/a |
+| `/flow-backlog`, `/flow-story` | pass: story marked `Risk: item 2` | n/a |
+| `/flow-pair` on a high-risk story | pass: 3 test→code pairs, `make check` green, no red marker, `flow-verifier` subagent ran, PASS | n/a |
+| `ls` blocked by `prefer-modern-cli` | pass: `ls` and `sed` blocked | pass (live) |
+| engram observation saved in OpenCode found here | saved (#961-963, project `toy-greet`) | pass: found #961-963 |
 
 Notes from the run:
 
-- agy asked for approval on almost every command, the verifier's file reads included; a fallback session needs the user at the keyboard.
 - `opencode/deepseek-v4.1-flash-free` (the session default) once turned the quoted absolute path with a space into a broken relative one and recovered with `fd`; the generated file was correct.
 - `opencode/nemotron-3-ultra-free` is gone from the OpenCode catalog; any agent config pointing at it fails with "Model unavailable".
 - Claude Code's auto mode refuses to launch `opencode run --auto` for `/flow-pair` itself; the user runs it.
