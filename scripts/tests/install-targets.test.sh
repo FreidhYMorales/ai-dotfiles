@@ -23,4 +23,40 @@ assert 'it exits 0' test "$LAST_EXIT" -eq 0
 assert 'it installs exactly claude and opencode' \
   rg -qxF 'done. Active targets: claude opencode.' <<<"$LAST_OUTPUT"
 
+# agy_home NAME: a sandbox with an `agy` on PATH and an existing ~/.gemini
+# (the Antigravity dir and a hooks.json carrying the old toolkit key).
+agy_home() {
+  local home
+  home=$(sandbox "$1")
+  printf '#!/usr/bin/env bash\nexit 0\n' >"$home/bin/agy"
+  chmod +x "$home/bin/agy"
+  mkdir -p "$home/.gemini/antigravity-cli/skills" "$home/.gemini/config"
+  printf '{"toolkit":{"Stop":[]},"mine":{}}\n' >"$home/.gemini/config/hooks.json"
+  printf '%s\n' "$home"
+}
+# gemini_state HOME: every path under ~/.gemini with its content hash.
+gemini_state() {
+  local path
+  while IFS= read -r path; do
+    if [[ -f $path ]]; then
+      printf '%s %s\n' "${path#"$1"}" "$(sha256sum <"$path" | cut -d' ' -f1)"
+    else
+      printf '%s\n' "${path#"$1"}"
+    fi
+  done < <(find "$1/.gemini" | sort)
+}
+# done_line: the installer's final "done." line.
+done_line() { rg '^done\.' <<<"$LAST_OUTPUT"; }
+no_antigravity() { ! rg -q antigravity <<<"$(done_line)"; }
+
+echo "== auto-detection never picks Antigravity =="
+
+home=$(agy_home detect-install)
+before=$(gemini_state "$home")
+install "$home"
+assert 'the install exits 0' test "$LAST_EXIT" -eq 0
+assert 'the install reaches its done line' rg -q '^done\. Active targets:' <<<"$LAST_OUTPUT"
+assert 'the done line names no antigravity target' no_antigravity
+assert 'the ~/.gemini tree is left exactly as it was' same "$(gemini_state "$home")" "$before"
+
 finish_cases
