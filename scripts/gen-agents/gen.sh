@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Generate the OpenCode and Antigravity versions of the ported skills and
-# agents from the Claude Code plugin sources.
+# Generate the OpenCode version of the ported skills and agents from the
+# Claude Code plugin sources.
 # Usage: scripts/gen-agents/gen.sh OUT_DIR
-# Writes OUT_DIR/opencode/ and OUT_DIR/antigravity/. GEN_REPO_PATH sets the
+# Writes OUT_DIR/opencode/. GEN_REPO_PATH sets the
 # repo path written into the output and GEN_SOURCE the repo the sources
 # are read from (both default to this repo). GEN_MODELS sets the role model
 # map (default: models.json next to this script).
@@ -20,7 +20,7 @@ REPO_SED=$(printf '%s' "$REPO_PATH" | sed -e 's/[\\&#]/\\&/g')
 rename() { sed -E 's/(^|[^A-Za-z0-9_-])(flow|toolkit):([a-z])/\1\2-\3/g'; }
 
 # plugin_paths PLUGIN: plugin-relative paths become absolute and quoted;
-# neither target resolves them.
+# OpenCode does not resolve them.
 plugin_paths() {
   sed -E \
     -e "s#\`\\.\\./\\.\\./([^\`]+)\`#\`\"$REPO_SED/plugins/$1/\\1\"\`#g" \
@@ -71,35 +71,18 @@ support_paths() {
     sed -e 's/`general-purpose`/`general`/g' -e 's/mcp__engram__/engram_/g' \
       -e '/^disable-model-invocation: /d'
   }
-
-  # agy_words: subagents are launched through invoke_subagent; engram tools
-  # go by their own names. pair's verifier step ends in NEEDS DECISION while
-  # no agy verifier is built (#38); whether it comes back is backlog #47.
-  agy_words() {
-    sed -E \
-      -e '/invoke the `flow-verifier` agent/ s/$/ In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline./' \
-      -e 's/invoke the `flow-verifier` agent on the story diff[^;]*; if it is not available, say so and recommend `\/toolkit-judgment-day` \(Claude Code only\)\./stop with NEEDS DECISION, do not run the `flow-verifier` agent and leave the story open; when the story moves to Claude Code and its verifier is not available, recommend `\/toolkit-judgment-day` (Claude Code only)./' \
-      -e 's/(launch a fresh `[^`]+`) subagent/\1 subagent through `invoke_subagent`/g' \
-      -e 's/(Launch the `[^`]+`) agent/\1 subagent through `invoke_subagent`/g' \
-      -e 's/Launch `general-purpose`/Launch the default subagent through `invoke_subagent`/g' \
-      -e 's/mcp__engram__//g'
-  }
 }
 
 # field FILE KEY: a frontmatter value.
 field() { awk -v key="$2" 'NR > 1 && /^---$/ { exit } index($0, key ": ") == 1 { print substr($0, length(key) + 3) }' "$1"; }
 
 # model_for ROLE TARGET: the model the role map gives ROLE in TARGET.
-# A missing entry stops the generator; agy accepts inherit, pro or flash only.
+# A missing entry stops the generator.
 model_for() {
   local model
   model=$(jq -r --arg r "$1" --arg t "$2" '.[$r][$t] // empty' "$MODELS")
   if [[ -z $model ]]; then
     echo "gen-agents: $MODELS: no model for role $1 in $2" >&2
-    return 1
-  fi
-  if [[ $2 == antigravity && ! $model =~ ^(inherit|pro|flash)$ ]]; then
-    echo "gen-agents: $MODELS: agy accepts inherit, pro or flash, not $model (role $1)" >&2
     return 1
   fi
   printf '%s\n' "$model"
@@ -140,13 +123,9 @@ opencode_agent() {
 
 # skill TARGET PLUGIN SKILL: the skill as <plugin>-<skill>, in TARGET's words.
 skill() {
-  local src="$SRC_DIR/plugins/$2/skills/$3/SKILL.md" dst="$OUT/$1/skills/$2-$3" words
-  case $1 in
-    opencode) words=opencode_words ;;
-    antigravity) words=agy_words ;;
-  esac
+  local src="$SRC_DIR/plugins/$2/skills/$3/SKILL.md" dst="$OUT/$1/skills/$2-$3"
   mkdir -p "$dst"
-  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | claude_only | "$words" >"$dst/SKILL.md"
+  sed "s/^name: $3\$/name: $2-$3/" "$src" | rename | plugin_paths "$2" | support_paths "$2" "$3" | claude_only | opencode_words >"$dst/SKILL.md"
 }
 
 # opencode_skill PLUGIN SKILL: the skill plus a command of the same name that
@@ -161,52 +140,6 @@ opencode_skill() {
     printf -- '---\ndescription: %s\n---\n\n' "$(field "$src" description)"
     printf 'Load the `%s` skill and follow it. $ARGUMENTS\n' "$name"
   } | rename >"$OUT/opencode/commands/$name.md"
-}
-
-# agy_tools TOOL: the agy registry names for a Claude tool. Only names agy
-# proved: read_file, view_file, grep_search on 1.4.9 (story 16), find_by_name
-# and run_command on 1.4.12 (story 42).
-agy_tools() {
-  case $1 in
-    Read) echo read_file view_file ;;
-    Grep) echo grep_search ;;
-    Glob) echo find_by_name ;;
-    Bash) echo run_command ;;
-    # Engram is declared under mcpServers: (agy_agent), never as a tool.
-    mcp__engram__*) ;;
-    *)
-      echo "gen-agents: $2: no agy name for tool $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-# agy_agent SRC NAME: Claude tools mapped through agy_tools; the model comes
-# from the role map.
-# An unmapped tool stops the generator: agy never builds such a subagent and
-# says nothing. An agent with an engram tool declares engram under
-# mcpServers: (story 16).
-agy_agent() {
-  local src=$1 dst="$OUT/antigravity/agents/$2.md" tool mapped names=() engram=
-  local model
-  model=$(model_for reviewer antigravity)
-  for tool in $(field "$src" tools | tr -d ','); do
-    [[ $tool == mcp__engram__* ]] && engram=1
-    mapped=$(agy_tools "$tool" "$src")
-    # shellcheck disable=SC2206 # split the space-separated names
-    names+=($mapped)
-  done
-  mkdir -p "$(dirname "$dst")"
-  {
-    printf -- '---\nname: %s\ndescription: %s\ntools:\n' "$2" "$(field "$src" description)"
-    printf '  - %s\n' "${names[@]}"
-    # off for every agent: in a live -p run each policy value ran a command on
-    # the user's agy allow list and refused the rest (story 46).
-    printf 'model: %s\ncommandExecutionPolicy: off\n' "$model"
-    [[ -z $engram ]] || printf 'mcpServers:\n  - name: engram\n    command: engram\n    args:\n      - mcp\n      - --tools=agent\n'
-    printf -- '---\n'
-    body "$src"
-  } | rename | plugin_paths "$(plugin_of "$src")" >"$dst"
 }
 
 # Backticks in the rule lines are literal markdown.
@@ -235,20 +168,11 @@ agy_agent() {
   opencode_rules() {
     printf -- '- Before saying work is done, when the tree has uncommitted changes, run `make check-fast` from the git root if the root Makefile has a `check-fast` target, else `make check` if it has a `check` target; fix any failure first. Skip it while the `/flow-pair` red marker (`git rev-parse --git-path flow-pair-red`) names the current branch on its first line and its commit, on the second, is in HEAD.\n'
   }
-
-  # agy has the Stop gate (#06) but no prompt hook, so pause is a rule line
-  # with pause.sh's protocol; the agent saves the checkpoint itself.
-  agy_rules() {
-    printf -- '- Pause: when a message starts with "pausa", "pausar" or "pause", first save a checkpoint to engram (`mem_save`, topic `checkpoint/pause`: branch, last commit, uncommitted files); then start no new work, make at most one more tool call and reply in at most 5 lines: what was in progress, anything still running and whether it is safe to stop it, uncommitted changes, and how to resume: `agy --continue` from the project.\n'
-  }
 }
 
 rules opencode OpenCode opencode_rules
-rules antigravity Antigravity agy_rules
 opencode_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
 opencode_agent "$SRC_DIR/plugins/flow/agents/verifier.md" flow-verifier readonly-shell
-agy_agent "$SRC_DIR/plugins/flow/agents/plan-reviewer.md" flow-plan-reviewer
-# No agy verifier: without a shell tool it made up PASS reports (#13, #38).
 opencode_skill flow plan-review
 opencode_skill flow backlog
 opencode_skill flow story
@@ -262,10 +186,3 @@ TOOLKIT_REST="ship chained-pr cli-tools cognitive-doc-design comment-writer dele
   go-testing skill-creator skill-improver"
 for name in $FLOW_REST; do opencode_skill flow "$name"; done
 for name in $TOOLKIT_REST; do opencode_skill toolkit "$name"; done
-skill antigravity flow plan-review
-skill antigravity flow backlog
-skill antigravity flow story
-skill antigravity flow pair
-skill antigravity toolkit work-unit-commits
-for name in plan fill-gaps $FLOW_REST; do skill antigravity flow "$name"; done
-for name in $TOOLKIT_REST; do skill antigravity toolkit "$name"; done
