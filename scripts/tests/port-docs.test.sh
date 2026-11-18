@@ -32,6 +32,11 @@ row=$(rg -F '| `AGENTS.md` |' "$README")
 assert 'the AGENTS.md row is found' test -n "$row"
 assert 'README names the OpenCode rules path' has "$row" '~/.config/opencode/AGENTS.md'
 
+echo "== README names only Claude Code and OpenCode =="
+readme=$(<"$README")
+assert 'README names OpenCode' has "$readme" 'OpenCode'
+assert 'README names no agy, antigravity or .gemini' test -z "$(rg -n -i 'agy|antigravity|\.gemini' <<<"$readme")"
+
 echo "== README closes the port roadmap item =="
 item=$(rg -F 'Port the Claude-only parts' "$README")
 assert 'the port roadmap item is found once' test "$(wc -l <<<"$item")" -eq 1 -a -n "$item"
