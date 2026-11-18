@@ -549,9 +549,6 @@ resolve_targets() {
     # Auto-detect installed agents
     command -v claude >/dev/null && TARGETS+=(claude)
     command -v opencode >/dev/null && TARGETS+=(opencode)
-    if command -v agy >/dev/null || command -v antigravity >/dev/null || [[ -d "$ANTIGRAVITY_DIR" ]]; then
-      TARGETS+=(antigravity)
-    fi
     if [[ ${#TARGETS[@]} -eq 0 ]]; then
       TARGETS=(claude)
     fi

@@ -31,18 +31,7 @@ EOF
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CLAUDE_STATE/systemctl"
 EOF
-  # `agy mcp list` prints state/agy-mcp-list; engram is registered by default.
-  printf 'NAME    TYPE   STATUS   COMMAND/URL\nengram  stdio  enabled  engram mcp --tools=agent\n' \
-    >"$home/state/agy-mcp-list"
-  # `agy --version` prints state/agy-version; the pinned 1.4.12 by default.
-  printf '1.4.12\n' >"$home/state/agy-version"
-  cat >"$home/bin/agy" <<'EOF'
-#!/usr/bin/env bash
-[[ "$*" == "mcp list" ]] && cat "$FAKE_CLAUDE_STATE/agy-mcp-list"
-[[ "$*" == "--version" ]] && cat "$FAKE_CLAUDE_STATE/agy-version"
-exit 0
-EOF
-  chmod +x "$home/bin/claude" "$home/bin/systemctl" "$home/bin/agy"
+  chmod +x "$home/bin/claude" "$home/bin/systemctl"
   printf '%s\n' "$home"
 }
 
