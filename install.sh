@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install AI dotfiles for Claude Code, OpenCode, and Antigravity.
+# Install AI dotfiles for Claude Code and OpenCode.
 #   - Common:
 #     - Symlinks bin/* (e.g. ai-update, engram-backup) into ~/.local/bin.
 #     - Symlinks systemd/* user units and enables the engram backup timer once
@@ -10,50 +10,39 @@
 #     - Merges claude/settings.json into ~/.claude/settings.json.
 #     - Symlinks claude/output-styles/*.md into ~/.claude/output-styles/.
 #     - Registers this repo as a plugin marketplace and installs plugins.
-#   - OpenCode and Antigravity share one generated build (scripts/gen-agents/gen.sh
-#     into build/agents; a failed generation keeps the previous build).
 #   - OpenCode:
+#     - Uses a generated build (scripts/gen-agents/gen.sh into build/agents; a
+#       failed generation keeps the previous build).
 #     - Symlinks the generated AGENTS.md into ~/.config/opencode/AGENTS.md.
 #     - Symlinks the generated flow-x/toolkit-x skills, commands and agents into
 #       ~/.config/opencode/{skills,commands,agents}/.
 #     - Symlinks the toolkit.ts hooks plugin into ~/.config/opencode/plugins/.
 #     - Warns when engram is not registered in opencode.json.
-#   - Antigravity:
-#     - Symlinks the generated AGENTS.md into ~/.gemini/config/ (the global rules
-#       path agy reads) and moves ~/.gemini/GEMINI.md aside.
-#     - Merges a "toolkit" key into ~/.gemini/config/hooks.json; other keys stay.
-#     - Symlinks the generated skills into ~/.gemini/antigravity-cli/skills/ and
-#       agents into ~/.gemini/config/agents/.
-#     - Moves *.bak-* entries and gentle-ai copies of repo skills out of the agy
-#       skills dirs into ~/.gemini/antigravity-cli/skills-backup/; never deletes.
-#     - Warns when engram is not registered or agy is not the pinned version.
 #   - Details: docs/multi-agent.md.
 #
-#   - --uninstall removes the links, timers, git hooksPath, plugins and agy
-#     hooks key this installer put in place; everything else stays.
+#   - --uninstall removes the links, timers, git hooksPath and plugins this
+#     installer put in place; everything else stays.
 #
-# Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]
+# Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|all]
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 OPENCODE_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
-ANTIGRAVITY_DIR="${ANTIGRAVITY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}"
-GEMINI_CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
 # Claude-only skills: judgment-day relies on Claude Code agents, so
-# link_skills keeps it out of OpenCode and Antigravity until v2.
+# link_skills keeps it out of OpenCode until v2.
 CLAUDE_ONLY_SKILLS="judgment-day"
-# Skills scripts/gen-agents/gen.sh generates for OpenCode and Antigravity:
-# their raw copies are never linked there.
+# Skills scripts/gen-agents/gen.sh generates for OpenCode: their raw copies
+# are never linked there.
 PORTED_SKILLS="plan-review backlog story pair work-unit-commits plan fill-gaps research handoff \
 next idea split integrate foundation bootstrap ship chained-pr cli-tools cognitive-doc-design \
 comment-writer delegate-local go-testing skill-creator skill-improver"
-# Generated OpenCode and Antigravity files (gitignored): a symlink to the
+# Generated OpenCode files (gitignored): a symlink to the
 # latest generation, swapped in one rename.
 BUILD_DIR="${AI_BUILD_DIR:-$REPO_DIR/build/agents}"
 
@@ -73,7 +62,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --target)
       if [[ -z "${2:-}" || "$2" == -* ]]; then
-        echo "--target needs a value: claude|opencode|antigravity|all" >&2
+        echo "--target needs a value: claude|opencode|all" >&2
         exit 1
       fi
       TARGET_ARG="$2"
@@ -84,7 +73,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h | --help)
-      echo "Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|antigravity|all]"
+      echo "Usage: ./install.sh [--dry-run] [--uninstall] [--target claude|opencode|all]"
       exit 0
       ;;
     *)
@@ -108,10 +97,8 @@ require() {
 # prune_backups DST: before a new DST.bak-<stamp> is made, remove all but the 2
 # newest existing ones, so 3 remain. Only the exact name the installer writes
 # matches; the stamp sorts as text, so the glob lists them oldest first.
-# agy's skills dir is skipped: its skill backups are moved, never deleted.
 prune_backups() {
   local old=() f i
-  [[ $(dirname "$1") == "$ANTIGRAVITY_DIR/skills" ]] && return 0
   for f in "$1".bak-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]; do
     [[ -e $f || -L $f ]] && old+=("$f")
   done
@@ -243,7 +230,7 @@ link_skills() {
   done
 }
 
-# build_agents: generate the OpenCode and Antigravity files once per run into
+# build_agents: generate the OpenCode files once per run into
 # a new dir, then point BUILD_DIR at it with one rename, so a reader never sees
 # half a build; the previous generation is removed after the swap.
 # A dry run generates into a throwaway dir instead (GEN_DIR), removed on

@@ -6,9 +6,9 @@
 #     the database (sqlite3 VACUUM INTO) and the binary, keeping the last two of
 #     each, swap it atomically, check the version and `engram doctor`; on a failure
 #     offer to restore both (always asks); restart a running `engram serve`.
-#   - OpenCode and Antigravity: rerun install.sh for the installed ones (by
-#     config dir), so their generated build follows the repo after a pull;
-#     without a prompt, since it only rebuilds derived files.
+#   - OpenCode: rerun install.sh when it is installed (by config dir), so its
+#     generated build follows the repo after a pull; without a prompt, since it
+#     only rebuilds derived files.
 # Shows the plan and asks once. A MAJOR engram bump always asks, even with --yes.
 #
 # Usage: ai-update [--check] [--yes]
@@ -369,8 +369,8 @@ main() {
   return "$status"
 }
 
-# regenerate_agents: rerun install.sh for the installed OpenCode and Antigravity
-# targets, so their generated build follows the repo after a pull.
+# regenerate_agents: rerun install.sh for an installed OpenCode, so its
+# generated build follows the repo after a pull.
 regenerate_agents() {
   local targets=() before
   [[ -d $OPENCODE_DIR ]] && targets+=(opencode)
