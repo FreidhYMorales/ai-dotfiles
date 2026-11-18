@@ -45,8 +45,6 @@ MARKETPLACE="ai-dotfiles"
 PLUGINS=(flow toolkit look)
 # Plugins this marketplace no longer ships: uninstalled when found.
 RETIRED_PLUGINS=(sdd)
-# The agy version the Antigravity discovery checks in docs/multi-agent.md ran on.
-AGY_PINNED=1.4.12
 # Claude-only skills: judgment-day relies on Claude Code agents, so
 # link_skills keeps it out of OpenCode and Antigravity until v2.
 CLAUDE_ONLY_SKILLS="judgment-day"
@@ -293,21 +291,6 @@ link_generated() {
   done
 }
 
-# move_to_backup SRC LABEL: move SRC into agy's skills-backup/, outside skill
-# discovery; never deleted. A taken name gets a numeric suffix, so no backup
-# is ever overwritten.
-move_to_backup() {
-  local backup_dir="$ANTIGRAVITY_DIR/skills-backup" new n=1
-  new="$backup_dir/$(basename "$1")"
-  while [[ -e "$new" || -L "$new" ]]; do
-    new="$backup_dir/$(basename "$1").$n"
-    n=$((n + 1))
-  done
-  run mkdir -p "$backup_dir"
-  run mv "$1" "$new"
-  echo "moved $2: $1 -> $new"
-}
-
 # link_rules TARGET DST: link TARGET's generated AGENTS.md at DST. An earlier
 # run's raw rules link is ours, so it goes without a backup; anything else
 # at DST is moved aside by link_file.
@@ -419,111 +402,6 @@ install_opencode() {
   fi
 }
 
-# agy reads every top-level key of hooks.json as a named hook set; herdr owns
-# its own key there, so only the "toolkit" key is ever written. A hooks.json
-# jq cannot parse stops the install instead of being overwritten.
-merge_agy_hooks() {
-  local target="$GEMINI_CONFIG_DIR/hooks.json" current='{}' merged
-  [[ -f "$target" ]] && current=$(<"$target")
-  # Stop's 330 s timeout covers require-check's 300 s make check fallback; check-fast stops at 60 s.
-  # SessionStart's 15 s covers its three hooks' 5 + 2 + 5 s.
-  merged=$(jq --arg pre "bash '$REPO_DIR/plugins/toolkit/hooks/agy/prefer-modern-cli.sh'" \
-    --arg stop "bash '$REPO_DIR/plugins/toolkit/hooks/agy/require-check.sh'" \
-    --arg start "bash '$REPO_DIR/plugins/toolkit/hooks/agy/session-start.sh'" \
-    '.toolkit = {PreToolUse: [{matcher: "run_command", hooks: [{type: "command", command: $pre}]}],
-      Stop: [{type: "command", command: $stop, timeout: 330}],
-      SessionStart: [{type: "command", command: $start, timeout: 15}]}' <<<"$current")
-  if [[ "$merged" == "$current" ]]; then
-    echo "ok: $target"
-    return
-  fi
-  if ((DRY_RUN)); then
-    echo "[dry-run] would set the toolkit key in $target"
-    return
-  fi
-  mkdir -p "$GEMINI_CONFIG_DIR"
-  # A temp file of its own beside the target: two installs never share one.
-  local tmp
-  tmp=$(mktemp "$target.tmp.XXXXXX")
-  printf '%s\n' "$merged" >"$tmp"
-  # mktemp makes the file 0600: keep the target's mode, 0644 for a new file.
-  if [[ -f "$target" ]]; then chmod --reference="$target" "$tmp"; else chmod 644 "$tmp"; fi
-  mv "$tmp" "$target"
-  echo "merged toolkit hooks: $target"
-}
-
-install_antigravity() {
-  # agy never reads antigravity-cli/AGENTS.md: drop the link an earlier run
-  # made there, but only our own symlink; anything else is the user's.
-  local dst="$ANTIGRAVITY_DIR/AGENTS.md" target repo_real
-  repo_real=$(readlink -f "$REPO_DIR")
-  if [[ -L "$dst" ]]; then
-    target=$(readlink "$dst")
-    if [[ $target == "$REPO_DIR"/* || $target == "$repo_real"/* ]]; then
-      run rm "$dst"
-      echo "removed unread rules link: $dst"
-    fi
-  fi
-  # agy also loads ~/.gemini/GEMINI.md (gentle-ai) on top of these rules, so
-  # move it aside; the backup is never deleted.
-  local gemini_md="$HOME/.gemini/GEMINI.md" backup
-  if [[ -e "$gemini_md" || -L "$gemini_md" ]]; then
-    backup="$gemini_md.bak-$(date +%Y%m%d-%H%M%S)"
-    run mv "$gemini_md" "$backup"
-    echo "moved $gemini_md aside (agy loads it over these rules); restore: mv '$backup' '$gemini_md'"
-  fi
-  if [[ -d "$GEMINI_CONFIG_DIR" || -d "$HOME/.gemini" ]]; then
-    link_rules antigravity "$GEMINI_CONFIG_DIR/AGENTS.md"
-    merge_agy_hooks
-  fi
-  link_skills "$ANTIGRAVITY_DIR/skills"
-  link_generated antigravity skills "$ANTIGRAVITY_DIR/skills"
-  # The global subagents dir agy reads (story 16).
-  link_generated antigravity agents "$GEMINI_CONFIG_DIR/agents"
-  # agy discovers a skill in a *.bak-* dir of any of its three skills dirs by its name: and can let it shadow
-  # ours; skills-backup/ is outside discovery. Moved, never deleted. Runs after
-  # the link step, which itself renames a clashing user dir to *.bak-*.
-  local old dir name
-  for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
-    for old in "$dir"/*.bak-*; do
-      [[ -e "$old" || -L "$old" ]] || continue
-      move_to_backup "$old" "skill backup"
-    done
-  done
-  # gentle-ai's copies named like a repo skill and the skills of a retired
-  # plugin (named <plugin>-*) load beside the prefixed repo skills in every
-  # agy discovery dir (story 32). Real dirs only: links are the installer's
-  # or the user's.
-  local retired keep
-  for dir in "$HOME/.gemini/skills" "$GEMINI_CONFIG_DIR/skills" "$ANTIGRAVITY_DIR/skills"; do
-    for old in "$dir"/*; do
-      [[ -d "$old" && ! -L "$old" ]] || continue
-      name=$(basename "$old")
-      keep=1
-      for retired in "${RETIRED_PLUGINS[@]}"; do
-        [[ $name == "$retired"-* ]] && keep=0
-      done
-      compgen -G "$REPO_DIR/plugins/*/skills/$name/SKILL.md" >/dev/null && keep=0
-      ((keep)) && continue
-      move_to_backup "$old" "gentle-ai skill"
-    done
-  done
-  # Ask agy, not its files: two mcp_config.json exist and only one is read.
-  if ! command -v agy >/dev/null; then
-    echo "warning: engram cannot be checked in Antigravity (agy not found); if missing, run: engram setup antigravity-cli"
-  elif ! agy mcp list 2>/dev/null | rg -q '^engram\s'; then
-    echo "warning: engram is not registered in Antigravity; run: engram setup antigravity-cli"
-  fi
-  # The rules and skills paths above were proven on one agy version only.
-  local version
-  if command -v agy >/dev/null; then
-    version=$(agy --version 2>/dev/null | head -n 1)
-    if [[ $version != "$AGY_PINNED" ]]; then
-      echo "warning: agy is ${version:-unknown}, but its rules and skills paths were proven on $AGY_PINNED; re-run the sentinel checks in $REPO_DIR/docs/multi-agent.md"
-    fi
-  fi
-}
-
 resolve_targets() {
   local raw="$1"
   if [[ -n "$raw" ]]; then
@@ -586,24 +464,6 @@ uninstall_plugins() {
   fi
 }
 
-# unmerge_agy_hooks: drop only the "toolkit" key merge_agy_hooks wrote; the
-# other hook sets stay. A hooks.json jq cannot parse stops the uninstall.
-unmerge_agy_hooks() {
-  local target="$GEMINI_CONFIG_DIR/hooks.json" merged tmp
-  [[ -f "$target" ]] || return 0
-  jq -e 'has("toolkit")' "$target" >/dev/null || return 0
-  merged=$(jq 'del(.toolkit)' "$target")
-  if ((DRY_RUN)); then
-    echo "[dry-run] would remove the toolkit key from $target"
-    return
-  fi
-  tmp=$(mktemp "$target.tmp.XXXXXX")
-  printf '%s\n' "$merged" >"$tmp"
-  chmod --reference="$target" "$tmp"
-  mv "$tmp" "$target"
-  echo "removed toolkit hooks: $target"
-}
-
 uninstall() {
   remove_links "$BIN_DIR"
   local unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" src
@@ -640,12 +500,6 @@ uninstall() {
       opencode)
         for dir in "$OPENCODE_DIR" "$OPENCODE_DIR"/{skills,agents,commands,plugins}; do remove_links "$dir"; done
         ;;
-      antigravity)
-        for dir in "$ANTIGRAVITY_DIR" "$ANTIGRAVITY_DIR/skills" "$GEMINI_CONFIG_DIR" "$GEMINI_CONFIG_DIR/agents"; do
-          remove_links "$dir"
-        done
-        unmerge_agy_hooks
-        ;;
     esac
   done
   echo "done. Uninstalled targets: ${TARGETS[*]}."
@@ -677,7 +531,6 @@ main() {
     case "$target" in
       claude) install_claude ;;
       opencode) install_opencode ;;
-      antigravity) install_antigravity ;;
     esac
   done
 
