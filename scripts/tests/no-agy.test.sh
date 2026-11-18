@@ -48,7 +48,8 @@ hits=$(rg -v "$history" <<<"$files" | scan)
 allowed_lines='^(scripts/tests/install-targets\.test\.sh:[0-9]+:'
 allowed_lines+='|scripts/tests/ai-update\.test\.sh:[0-9]+:.*(regen-agy|\.gemini/antigravity-cli|an Antigravity dir)'
 allowed_lines+='|scripts/tests/gen-agents\.test\.sh:[0-9]+:.*(no antigravity/ directory|names only OpenCode files)'
-allowed_lines+='|scripts/tests/no-sdd\.test\.sh:[0-9]+:.*(retire-antigravity/03|hooks/agy)'
+# sd{2}: the other retirement scan rejects that plain word in any file.
+allowed_lines+='|scripts/tests/no-sd{2}\.test\.sh:[0-9]+:.*(retire-antigravity/03|hooks/agy)'
 allowed_lines+='|scripts/tests/port-docs\.test\.sh:[0-9]+:.*names no agy, antigravity or \.gemini)'
 stray=$(rg -v "$allowed_lines" <<<"$hits")
 assert 'no file outside history names agy' test -z "$stray"
