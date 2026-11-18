@@ -289,7 +289,10 @@ awk '/^tools: / { $0 = $0 ", mcp__engram__mem_search" } 1' "$ROOT/plugins/flow/a
 MEM_OUT="$TMP_ROOT/mem-out"
 LAST_OUTPUT=$(GEN_SOURCE="$MEM" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$MEM_OUT" 2>&1)
 LAST_EXIT=$?
-assert 'mem: generator exits 0' test "$LAST_EXIT" -eq 0
+# The tool never reaches OpenCode: its agents list no tools.
+assert 'mem: generator exits 0 and the OpenCode reviewer holds no mcp__engram__' \
+  test "$LAST_EXIT" -eq 0 -a -f "$MEM_OUT/opencode/agents/flow-plan-reviewer.md" \
+  -a -z "$(grep -F 'mcp__engram__' "$MEM_OUT/opencode/agents/flow-plan-reviewer.md" 2>/dev/null)"
 [[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
 
 echo "== the OpenCode verifier step =="
