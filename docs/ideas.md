@@ -224,9 +224,9 @@ Triage log for ideas outside current scope. One row per idea; details below.
 
 ## 20. Uninstall says so when jq or rg is missing
 
-- Idea: `install.sh --uninstall` should stop, or say what it skipped, when `jq` or `rg` is missing, instead of silently leaving plugins, the marketplace or agy's `toolkit` hooks key in place.
+- Idea: `install.sh --uninstall` should stop, or say what it skipped, when `jq` or `rg` is missing, instead of silently leaving plugins or the marketplace in place.
 - Raised during: audit-fixes story 16 verifier note 1 (2026-11-04).
-- Findings: `main` returns into the uninstall path before `require jq` / `require rg`. Without `rg`, `uninstall_plugins` treats every `rg` failure as "not installed" and skips each plugin and the marketplace; without `jq`, `unmerge_agy_hooks` treats the failed `has("toolkit")` as "no key" and keeps it. The output names neither.
+- Findings: `main` returns into the uninstall path before `require jq` / `require rg`. Without `rg`, `uninstall_plugins` treats every `rg` failure as "not installed" and skips each plugin and the marketplace. The output does not say so.
 - Score: feasibility high; complexity low (run the uninstall after the same `require` checks); effort 0.1 d; value medium (an uninstall that reports success while leaving plugins behind); risk item 5, contained; no dependencies; audit-fixes backlog; displaces nothing.
 - Recommendation: GO; tradeoff: one more small story.
 - Decision: pending (raised 2026-11-04; user asked to record it).
@@ -312,3 +312,4 @@ Triage log for ideas outside current scope. One row per idea; details below.
 - Score: feasibility high (removal only, no external dependency); complexity medium (OpenCode output must stay byte for byte); effort 1–1.5 d; value medium-high (one target fewer per skill change, the two slowest install tests go); risk medium (installer, item 5; OpenCode regressions caught by its goldens); no dependencies (no open stories); fit now, before the system reinstall; displaces nothing (makes the agy parts of the closed multi-agent-port and tiered-checks plans obsolete).
 - Recommendation: GO via `/flow:plan`. Tradeoff: 1–1.5 d, and returning to agy means rebuilding the adapters from git history.
 - Decision: GO (user, 2026-11-17). The installer only stops installing agy; it does not remove what is already under `~/.gemini/` (the user is reinstalling the system).
+- Done: retire-antigravity stories 01-04 (2026-11-18).
