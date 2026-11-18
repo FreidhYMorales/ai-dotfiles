@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Golden tests for the OpenCode and Antigravity generator.
+# Golden tests for the OpenCode generator.
 # Run: bash scripts/tests/gen-agents.test.sh
 set -u
 
@@ -134,86 +134,36 @@ assert 'OpenCode rules map support-file names' \
 assert 'OpenCode rules hold no pause line' \
   test -f "$OUT/opencode/AGENTS.md" -a -z "$(grep -F 'pausa' "$OUT/opencode/AGENTS.md" 2>/dev/null)"
 
-echo "== Antigravity rules =="
-# agy has the Stop gate (#06) but no prompt hook, so pause is a rule line.
-assert 'AGENTS.md matches golden' same_as_golden antigravity/AGENTS.md
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy rules save a pause checkpoint' \
-  grep -qF 'when a message starts with "pausa", "pausar" or "pause", first save a checkpoint to engram (`mem_save`, topic `checkpoint/pause`' "$OUT/antigravity/AGENTS.md"
-assert 'agy rules reply in at most 5 lines' grep -qF 'reply in at most 5 lines' "$OUT/antigravity/AGENTS.md"
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy rules resume with agy --continue' grep -qF '`agy --continue`' "$OUT/antigravity/AGENTS.md"
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy rules map support-file names' \
-  grep -qF 'name `/flow:<skill>` or `/toolkit:<skill>`; in Antigravity that is `/flow-<skill>` or `/toolkit-<skill>`' "$OUT/antigravity/AGENTS.md"
-assert 'agy rules hold no make check line' \
-  test -f "$OUT/antigravity/AGENTS.md" -a -z "$(grep -F 'Before saying work is done' "$OUT/antigravity/AGENTS.md" 2>/dev/null)"
-
-echo "== Antigravity plan reviewer agent =="
-# Only registry tool names agy proved (stories 16, 42).
-assert 'agents/flow-plan-reviewer.md matches golden' same_as_golden antigravity/agents/flow-plan-reviewer.md
-
-echo "== no Antigravity verifier agent =="
-# A shell-less agy verifier made up PASS reports (#13 smoke); none is built.
-assert 'no agy verifier agent is generated' test ! -e "$OUT/antigravity/agents/flow-verifier.md"
-# The real pair skill, with the ref comparison in its check step (story 24).
-AGY_PAIR_CHECK=$(grep '^6\. \*\*Check\.\*\*' "$OUT/antigravity/skills/flow-pair/SKILL.md")
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy pair stops a high-risk story at NEEDS DECISION' \
-  grep -qF 'High-risk story (any item): stop with NEEDS DECISION, do not run the `flow-verifier` agent' <<<"$AGY_PAIR_CHECK"
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy pair never says to invoke the verifier' \
-  test -z "$(grep -F 'invoke the `flow-verifier` agent' <<<"$AGY_PAIR_CHECK")"
-
-echo "== Antigravity plan-review skill =="
-assert 'skills/flow-plan-review/SKILL.md matches golden' same_as_golden antigravity/skills/flow-plan-review/SKILL.md
-
-echo "== Antigravity story loop skills =="
-for name in flow-backlog flow-story flow-pair toolkit-work-unit-commits; do
-  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
-done
-for name in $REMAINING; do
-  assert "skills/$name/SKILL.md matches golden" same_as_golden "antigravity/skills/$name/SKILL.md"
-done
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'agy pair marks judgment-day Claude Code only' \
-  grep -qF 'recommend `/toolkit-judgment-day` (Claude Code only)' "$OUT/antigravity/skills/flow-pair/SKILL.md"
-assert 'agy pair no longer points at its base directory' \
-  test -f "$OUT/antigravity/skills/flow-pair/SKILL.md" -a -z "$(grep -F 'base directory' "$OUT/antigravity/skills/flow-pair/SKILL.md" 2>/dev/null)"
-
 echo "== a skill story closes with the eval pending outside Claude =="
-for target in opencode antigravity; do
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "$target pair records make eval pending in the Done step" \
-    grep -qE '^7\. \*\*Done\.\*\*.*write `make eval pending \(needs Claude\)` in the story log' "$OUT/$target/skills/flow-pair/SKILL.md"
-done
+target=opencode
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "$target pair records make eval pending in the Done step" \
+  grep -qE '^7\. \*\*Done\.\*\*.*write `make eval pending \(needs Claude\)` in the story log' "$OUT/$target/skills/flow-pair/SKILL.md"
 
 echo "== generated pair loops on the focused test =="
 # Story tiered-checks/04: the generated copies carry the focused-test loop
 # and the single full run on the final tree.
-for target in opencode antigravity; do
-  assert "$target pair reruns the focused test until green" \
-    grep -qF 'rerun the focused test until green' "$OUT/$target/skills/flow-pair/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "$target pair runs the Test command once on the final tree" \
-    grep -qE '^6\. \*\*Check\.\*\*.*run the `Test command:` once on the final tree' "$OUT/$target/skills/flow-pair/SKILL.md"
-done
+target=opencode
+assert "$target pair reruns the focused test until green" \
+  grep -qF 'rerun the focused test until green' "$OUT/$target/skills/flow-pair/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "$target pair runs the Test command once on the final tree" \
+  grep -qE '^6\. \*\*Check\.\*\*.*run the `Test command:` once on the final tree' "$OUT/$target/skills/flow-pair/SKILL.md"
 
 echo "== generated ship runs make check once =="
 # Story tiered-checks/06: the generated copies carry the long-run wording and
 # rerun make check after a rebase only on changed files.
-for target in opencode antigravity; do
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "$target ship allows up to 10 minutes in step 1" \
-    grep -qE '^1\. `make check`.*allow up to 10 minutes' "$OUT/$target/skills/toolkit-ship/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "$target ship reruns make check after a rebase only on changed files" \
-    grep -qE '^\| Branch is behind its upstream \|.*rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files' \
-    "$OUT/$target/skills/toolkit-ship/SKILL.md"
-done
+target=opencode
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "$target ship allows up to 10 minutes in step 1" \
+  grep -qE '^1\. `make check`.*allow up to 10 minutes' "$OUT/$target/skills/toolkit-ship/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "$target ship reruns make check after a rebase only on changed files" \
+  grep -qE '^\| Branch is behind its upstream \|.*rerun `make check` only when `git diff --name-only <saved sha> HEAD` lists files' \
+  "$OUT/$target/skills/toolkit-ship/SKILL.md"
 
 echo "== generated delegate-local hands the worker the focused test =="
-# Story tiered-checks/09: only the OpenCode copy is pinned; Antigravity is unused.
+# Story tiered-checks/09: only the OpenCode copy is pinned.
 # shellcheck disable=SC2016 # literal markdown backticks
 assert "opencode delegate-local prompt names the Single test: command" \
   grep -qE "^1\. Write the task as a prompt.*the backlog's \`Single test:\` command filled in for the task" \
@@ -224,7 +174,7 @@ assert "opencode delegate-local reruns the full Test command: once after applyin
   "$OUT/opencode/skills/toolkit-delegate-local/SKILL.md"
 
 echo "== generated ship skips the CI watch without an active workflow =="
-# Story tiered-checks/12: only the OpenCode copy is pinned; Antigravity is unused.
+# Story tiered-checks/12: only the OpenCode copy is pinned.
 # shellcheck disable=SC2016 # literal markdown backticks
 assert "opencode ship skips the CI watch when no workflow is active" \
   grep -qE '^\| No active workflow \|.*look for no run; say CI was skipped because no workflow is active' \
@@ -233,19 +183,6 @@ assert "opencode ship skips the CI watch when no workflow is active" \
 assert "opencode ship watches the run only when a workflow is active" \
   grep -qE '^5\. When `gh workflow list --all` shows an `active` workflow, find the run for the pushed SHA' \
   "$OUT/opencode/skills/toolkit-ship/SKILL.md"
-
-echo "== a tool outside the agy map is an error =="
-# A copy of the sources whose reviewer also asks for WebFetch.
-SRC="$TMP_ROOT/src"
-mkdir -p "$SRC/plugins"
-cp -r "$ROOT/plugins/flow" "$ROOT/plugins/toolkit" "$SRC/plugins/"
-cp -r "$ROOT/claude" "$SRC/"
-awk '/^tools: / { $0 = $0 ", WebFetch" } 1' "$ROOT/plugins/flow/agents/plan-reviewer.md" \
-  >"$SRC/plugins/flow/agents/plan-reviewer.md"
-LAST_OUTPUT=$(GEN_SOURCE="$SRC" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$TMP_ROOT/unmapped" 2>&1)
-LAST_EXIT=$?
-assert 'generator fails' test "$LAST_EXIT" -ne 0
-assert 'error names the tool' grep -q 'WebFetch' <<<"$LAST_OUTPUT"
 
 echo "== the goldens are current and hold no Claude-only form =="
 VERIFY="$ROOT/scripts/gen-agents/verify.sh"
@@ -304,28 +241,27 @@ REFS_OUT="$TMP_ROOT/refs-out"
 LAST_OUTPUT=$(GEN_SOURCE="$REFS" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$REFS_OUT" 2>&1)
 LAST_EXIT=$?
 assert 'refs: generator exits 0' test "$LAST_EXIT" -eq 0
-for target in opencode antigravity; do
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "refs: $target own files become absolute" grep -qF \
-    'Read `"/repo path/plugins/flow/skills/plan-review/references/x.md"`, then fill `"/repo path/plugins/flow/skills/plan-review/templates/y.md"`.' \
-    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "refs: $target markdown link becomes absolute" grep -qxF -e \
-    '- `"/repo path/plugins/flow/skills/plan-review/references/x.md"` — the notes.' \
-    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "refs: $target sibling skill file becomes absolute" grep -qxF \
-    'Size it with `"/repo path/plugins/flow/skills/pair/references/high-risk.md"`.' \
-    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "refs: $target directory prose and missing files stay" grep -qxF \
-    'Put fixtures in `assets/` and notes in `references/missing.md`.' \
-    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
-  # shellcheck disable=SC2016 # literal markdown backticks
-  assert "refs: $target cheatsheets and assets become absolute" grep -qxF \
-    'Use `"/repo path/plugins/flow/skills/plan-review/cheatsheets/z.md"` with `"/repo path/plugins/flow/skills/plan-review/assets/w.json"`.' \
-    "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
-done
+target=opencode
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "refs: $target own files become absolute" grep -qF \
+  'Read `"/repo path/plugins/flow/skills/plan-review/references/x.md"`, then fill `"/repo path/plugins/flow/skills/plan-review/templates/y.md"`.' \
+  "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "refs: $target markdown link becomes absolute" grep -qxF -e \
+  '- `"/repo path/plugins/flow/skills/plan-review/references/x.md"` — the notes.' \
+  "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "refs: $target sibling skill file becomes absolute" grep -qxF \
+  'Size it with `"/repo path/plugins/flow/skills/pair/references/high-risk.md"`.' \
+  "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "refs: $target directory prose and missing files stay" grep -qxF \
+  'Put fixtures in `assets/` and notes in `references/missing.md`.' \
+  "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
+# shellcheck disable=SC2016 # literal markdown backticks
+assert "refs: $target cheatsheets and assets become absolute" grep -qxF \
+  'Use `"/repo path/plugins/flow/skills/plan-review/cheatsheets/z.md"` with `"/repo path/plugins/flow/skills/plan-review/assets/w.json"`.' \
+  "$REFS_OUT/$target/skills/flow-plan-review/SKILL.md"
 
 # A bare reference the rewrite does not cover: plain prose, no backticks.
 BARE="$TMP_ROOT/bare"
@@ -340,7 +276,7 @@ assert 'a bare support path fails' test "$LAST_EXIT" -ne 0
 assert 'bare: names the file and line' grep -qE \
   'bare support path: opencode/skills/flow-plan-review/SKILL\.md:[0-9]+:.*references/x\.md' <<<"$LAST_OUTPUT"
 
-echo "== agy agents that use engram =="
+echo "== agents that use engram =="
 # A copy of the sources whose reviewer also asks for an engram tool.
 MEM="$TMP_ROOT/mem"
 mkdir -p "$MEM/plugins"
@@ -353,31 +289,8 @@ LAST_OUTPUT=$(GEN_SOURCE="$MEM" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$MEM_OUT
 LAST_EXIT=$?
 assert 'mem: generator exits 0' test "$LAST_EXIT" -eq 0
 [[ $LAST_EXIT -eq 0 ]] || printf '%s\n' "$LAST_OUTPUT"
-# frontmatter FILE: the lines between the two '---' markers.
-frontmatter() { awk 'NR > 1 && /^---$/ { exit } NR > 1' "$1"; }
-MEM_FM=$(frontmatter "$MEM_OUT/antigravity/agents/flow-plan-reviewer.md" 2>/dev/null)
-ENGRAM_BLOCK='mcpServers:
-  - name: engram
-    command: engram
-    args:
-      - mcp
-      - --tools=agent'
-assert 'mem: engram declared under mcpServers' test "${MEM_FM#*"$ENGRAM_BLOCK"}" != "$MEM_FM"
-assert 'mem: no engram name in tools' test -z "$(grep -E '^  - .*mem_' <<<"$MEM_FM")"
-# The real reviewer has no engram tool.
-assert 'mem: an agent without engram has no mcpServers' \
-  test -z "$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" | grep '^mcpServers:')"
 
-echo "== agy maps Glob to find_by_name, Bash to run_command =="
-# Both proven on agy 1.4.12 (story 42). commandExecutionPolicy stays off: in
-# a live -p run every value ran an allow-listed command and refused the rest
-# (story 46), and off is the most restrictive.
-REV_FM=$(frontmatter "$OUT/antigravity/agents/flow-plan-reviewer.md" 2>/dev/null)
-assert 'agy reviewer gets find_by_name for Glob' grep -qx '  - find_by_name' <<<"$REV_FM"
-assert 'agy reviewer gets run_command for Bash' grep -qx '  - run_command' <<<"$REV_FM"
-assert 'agy reviewer keeps commandExecutionPolicy off' grep -qx 'commandExecutionPolicy: off' <<<"$REV_FM"
-
-echo "== the agy verifier step ends in NEEDS DECISION =="
+echo "== the OpenCode verifier step =="
 # A copy of the sources whose plan-review holds pair's real check step;
 # flow-pair itself is generated in #09.
 CHK="$TMP_ROOT/chk"
@@ -392,21 +305,9 @@ CHK_OUT="$TMP_ROOT/chk-out"
 LAST_OUTPUT=$(GEN_SOURCE="$CHK" GEN_REPO_PATH="$REPO_PATH" bash "$GEN" "$CHK_OUT" 2>&1)
 LAST_EXIT=$?
 assert 'chk: generator exits 0' test "$LAST_EXIT" -eq 0
-# shellcheck disable=SC2016 # literal markdown backticks
-NEEDS_DECISION='In Antigravity the `flow-verifier` subagent has no shell tool to run the `Test command:`, so a high-risk story ends in NEEDS DECISION: stop, say so and finish the story in Claude or OpenCode; never verify inline.'
-CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/antigravity/skills/flow-plan-review/SKILL.md")
-assert 'chk: agy check step says NEEDS DECISION' grep -qF "$NEEDS_DECISION" <<<"$CHK_STEP"
-# The #13 smoke: agy obeyed "invoke the verifier" and trusted its fake PASS.
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'chk: agy check step never says to invoke the verifier' \
-  test -z "$(grep -F 'invoke the `flow-verifier` agent' <<<"$CHK_STEP")"
-# shellcheck disable=SC2016 # literal markdown backticks
-assert 'chk: agy high-risk clause stops with NEEDS DECISION and leaves the story open' \
-  grep -qF 'High-risk story (any item): stop with NEEDS DECISION, do not run the `flow-verifier` agent and leave the story open' <<<"$CHK_STEP"
 CHK_STEP=$(grep '^6\. \*\*Check\.\*\*' "$CHK_OUT/opencode/skills/flow-plan-review/SKILL.md")
 # shellcheck disable=SC2016 # literal markdown backticks
 assert 'chk: opencode check step is present' grep -qF 'invoke the `flow-verifier` agent' <<<"$CHK_STEP"
-assert 'chk: opencode check step has no agy line' test -z "$(grep -F 'In Antigravity' <<<"$CHK_STEP")"
 
 echo "== the role model map =="
 # One map gives each reviewer agent its model per target (story 12).
@@ -425,15 +326,6 @@ for name in flow-plan-reviewer flow-verifier; do
     <(awk '{ print } /^mode: subagent$/ { print "model: ollama/qwen3" }' "$GOLDEN/opencode/agents/$name.md") \
     "$TMP_ROOT/local-reviewer/opencode/agents/$name.md"
 done
-models '{"reviewer": {"opencode": "inherit", "antigravity": "flash"}}' flash-reviewer
-assert 'map: agy flash run exits 0' test "$LAST_EXIT" -eq 0
-assert "map: agy flow-plan-reviewer uses flash" diff -u \
-  <(sed 's/^model: pro$/model: flash/' "$GOLDEN/antigravity/agents/flow-plan-reviewer.md") \
-  "$TMP_ROOT/flash-reviewer/antigravity/agents/flow-plan-reviewer.md"
-# agy accepts inherit, pro or flash only.
-models '{"reviewer": {"opencode": "inherit", "antigravity": "gpt-5"}}' bad-agy-model
-assert 'map: a bad agy model fails' test "$LAST_EXIT" -ne 0
-assert 'map: the error names the bad model' grep -qF 'gpt-5' <<<"$LAST_OUTPUT"
 # A missing entry is an error, never a silent default.
 models '{"reviewer": {"opencode": "inherit"}}' missing-entry
 assert 'map: a missing entry fails' test "$LAST_EXIT" -ne 0

@@ -34,7 +34,7 @@ for s in backlog story pair plan plan-review fill-gaps research foundation hando
   assert "$s looks up docs/plans/<feature>/" rg -qF '`docs/plans/<feature>/' "$SKILLS/$s/SKILL.md"
   assert "$s names no openspec" no_openspec "$SKILLS/$s/SKILL.md"
 done
-assert 'the goldens are present' test -d "$GOLDEN/opencode/skills" -a -d "$GOLDEN/antigravity/skills"
+assert 'the goldens are present' test -d "$GOLDEN/opencode/skills"
 assert 'no golden names openspec' no_openspec "$GOLDEN"
 
 echo "== only history names openspec =="
