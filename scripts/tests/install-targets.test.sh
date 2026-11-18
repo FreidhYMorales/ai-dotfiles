@@ -59,4 +59,17 @@ assert 'the install reaches its done line' rg -q '^done\. Active targets:' <<<"$
 assert 'the done line names no antigravity target' no_antigravity
 assert 'the ~/.gemini tree is left exactly as it was' same "$(gemini_state "$home")" "$before"
 
+echo "== --uninstall with no target leaves ~/.gemini alone =="
+
+home=$(agy_home detect-uninstall)
+before=$(gemini_state "$home")
+install "$home" --uninstall
+assert 'the uninstall exits 0' test "$LAST_EXIT" -eq 0
+assert 'the uninstall reaches its done line' rg -q '^done\. Uninstalled targets:' <<<"$LAST_OUTPUT"
+assert 'the uninstall done line names no antigravity target' no_antigravity
+assert 'the old toolkit key stays in hooks.json' \
+  json_true "$home/.gemini/config/hooks.json" '.toolkit != null'
+assert 'the ~/.gemini tree is left exactly as it was after the uninstall' \
+  same "$(gemini_state "$home")" "$before"
+
 finish_cases
