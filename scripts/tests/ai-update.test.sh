@@ -745,7 +745,7 @@ assert 'Antigravity installed: its build is regenerated' installed_with "$home" 
 home=$(sandbox regen-both 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode" "$home/.gemini/antigravity-cli"
 update "$home" ''
-assert 'both installed: both builds are regenerated' installed_with "$home" '--target opencode,antigravity'
+assert 'OpenCode and an Antigravity dir: only OpenCode is regenerated' installed_with "$home" '--target opencode'
 
 home=$(sandbox regen-fail 3.4.0 3.4.0)
 mkdir -p "$home/.config/opencode"
