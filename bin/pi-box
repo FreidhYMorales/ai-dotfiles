@@ -9,7 +9,7 @@
 #   - Sessions go to ~/.local/state/pi-box/sessions.
 #   - Network: none, except ollama bridged in as 127.0.0.1:11434 (needs socat;
 #     PI_BOX_OLLAMA=host:port for another server). PI_BOX_NETWORK=host shares
-#     the full host network instead.
+#     the full host network instead; PI_BOX_NETWORK=none gives no network at all.
 #
 # Usage: pi-box [pi args...]        run pi
 #        pi-box -- CMD [ARGS...]    run another command (e.g. bash) in the box
@@ -51,7 +51,6 @@ args=(
   --dev /dev
   --tmpfs /tmp
   --tmpfs "$HOME"
-  --overlay-src "$pi_dir" --tmp-overlay "$pi_dir"
   --bind "$state" "$state"
   --bind "$root" "$root"
   --ro-bind-try "$root/.git" "$root/.git"
@@ -62,6 +61,10 @@ args=(
   --unshare-all
   --die-with-parent
 )
+# The pi install, copy-on-write; a plain command (pi-box -- CMD) runs without one.
+if [[ -d $pi_dir ]]; then
+  args+=(--overlay-src "$pi_dir" --tmp-overlay "$pi_dir")
+fi
 # Host git runs what core.hooksPath and the global git config say, in every
 # repo. When either lives inside the project (e.g. a dotfiles repo), it must
 # be read-only in the box.
@@ -94,9 +97,23 @@ if [[ $(sysctl -n dev.tty.legacy_tiocsti 2>/dev/null || echo 1) != 0 ]]; then
   args+=(--new-session)
 fi
 
+# PI_BOX_RO: extra host paths (colon-separated) the box may read but not change.
+IFS=: read -ra ro_paths <<<"${PI_BOX_RO:-}"
+for path in "${ro_paths[@]}"; do
+  if [[ -n $path ]]; then args+=(--ro-bind "$path" "$path"); fi
+done
+# PI_BOX_RW: extra host paths (colon-separated) the box may write, e.g. a tool cache.
+IFS=: read -ra rw_paths <<<"${PI_BOX_RW:-}"
+for path in "${rw_paths[@]}"; do
+  if [[ -n $path ]]; then args+=(--bind "$path" "$path"); fi
+done
+
 network=${PI_BOX_NETWORK:-ollama}
 if [[ $network == host ]]; then
   exec bwrap "${args[@]}" --share-net --ro-bind-try /run/systemd/resolve /run/systemd/resolve "${cmd[@]}"
+fi
+if [[ $network == none ]]; then
+  exec bwrap "${args[@]}" "${cmd[@]}"
 fi
 
 # Default: no network at all, except one bridge to ollama. Outside, socat maps

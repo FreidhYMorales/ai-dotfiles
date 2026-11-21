@@ -197,6 +197,31 @@ box "$project" 'echo "$PI_CODING_AGENT_SESSION_DIR"; echo s >"$PI_CODING_AGENT_S
 assert 'sessions go to a writable pi-box state dir' \
   test -f "$home/.local/state/pi-box/sessions/s.jsonl"
 
+echo "== extra binds =="
+
+# PI_BOX_RO: extra host paths (colon-separated) visible read-only in the box.
+mkdir -p "$home/bench/tasks" "$home/shared"
+printf 'hidden check\n' >"$home/bench/tasks/check.sh"
+printf 'helper\n' >"$home/shared/gate.sh"
+PI_BOX_RO="$home/bench:$home/shared" box "$project" 'cat "$HOME/bench/tasks/check.sh" "$HOME/shared/gate.sh"; echo weak >"$HOME/bench/tasks/check.sh"; echo x >"$HOME/shared/new.sh"; true'
+assert 'PI_BOX_RO paths are readable' says $'hidden check\nhelper'
+assert 'PI_BOX_RO files cannot be changed' test "$(cat "$home/bench/tasks/check.sh")" == 'hidden check'
+assert 'nothing can be added under PI_BOX_RO' test ! -e "$home/shared/new.sh"
+
+# PI_BOX_RW: extra host paths (colon-separated) the box may write, e.g. a tool cache.
+mkdir -p "$home/run/cache" "$home/run/go-cache"
+PI_BOX_RW="$home/run/cache:$home/run/go-cache" box "$project" 'echo built >"$HOME/run/cache/target.o"; echo mod >"$HOME/run/go-cache/m"'
+assert 'writes under PI_BOX_RW reach the host' test "$(cat "$home/run/cache/target.o")" == 'built'
+assert 'every PI_BOX_RW path is writable' test "$(cat "$home/run/go-cache/m")" == 'mod'
+
+# A plain command (pi-box -- CMD) does not need pi installed, e.g. on a CI runner.
+nopi_home="$TMP_ROOT/nopi-home"
+mkdir -p "$nopi_home/proj"
+git -C "$nopi_home/proj" init -q
+LAST_OUTPUT=$(cd "$nopi_home/proj" && env -u XDG_STATE_HOME HOME="$nopi_home" PI_BOX_NETWORK=host bash "$SCRIPT" -- bash -c 'echo ran' 2>&1)
+assert 'a plain command runs without a pi install' says 'ran'
+assert 'no pi install is created on the host' test ! -e "$nopi_home/.pi"
+
 echo "== outside git =="
 
 plain="$home/plain"
@@ -235,6 +260,10 @@ if command -v socat >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
   assert 'other host services are unreachable' lacks 'from-other'
   netbox PI_BOX_NETWORK=host
   assert 'PI_BOX_NETWORK=host shares the host network' says 'from-other'
+  netbox PI_BOX_NETWORK=none
+  assert 'PI_BOX_NETWORK=none blocks ollama too' lacks 'from-ollama'
+  assert 'PI_BOX_NETWORK=none blocks other host services' lacks 'from-other'
+  assert 'PI_BOX_NETWORK=none still runs the command' says 'end'
   assert 'no bridge socket is left behind' test -z "$(find "$home/.local/state/pi-box" -name '*.sock' 2>/dev/null)"
 
   # DNS is a data channel too: the host resolver must not be reachable.
