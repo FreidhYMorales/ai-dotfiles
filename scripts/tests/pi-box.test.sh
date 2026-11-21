@@ -197,6 +197,17 @@ box "$project" 'echo "$PI_CODING_AGENT_SESSION_DIR"; echo s >"$PI_CODING_AGENT_S
 assert 'sessions go to a writable pi-box state dir' \
   test -f "$home/.local/state/pi-box/sessions/s.jsonl"
 
+echo "== extra binds =="
+
+# PI_BOX_RO: extra host paths (colon-separated) visible read-only in the box.
+mkdir -p "$home/bench/tasks" "$home/shared"
+printf 'hidden check\n' >"$home/bench/tasks/check.sh"
+printf 'helper\n' >"$home/shared/gate.sh"
+PI_BOX_RO="$home/bench:$home/shared" box "$project" 'cat "$HOME/bench/tasks/check.sh" "$HOME/shared/gate.sh"; echo weak >"$HOME/bench/tasks/check.sh"; echo x >"$HOME/shared/new.sh"; true'
+assert 'PI_BOX_RO paths are readable' says $'hidden check\nhelper'
+assert 'PI_BOX_RO files cannot be changed' test "$(cat "$home/bench/tasks/check.sh")" == 'hidden check'
+assert 'nothing can be added under PI_BOX_RO' test ! -e "$home/shared/new.sh"
+
 echo "== outside git =="
 
 plain="$home/plain"
