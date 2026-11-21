@@ -99,6 +99,11 @@ IFS=: read -ra ro_paths <<<"${PI_BOX_RO:-}"
 for path in "${ro_paths[@]}"; do
   if [[ -n $path ]]; then args+=(--ro-bind "$path" "$path"); fi
 done
+# PI_BOX_RW: extra host paths (colon-separated) the box may write, e.g. a tool cache.
+IFS=: read -ra rw_paths <<<"${PI_BOX_RW:-}"
+for path in "${rw_paths[@]}"; do
+  if [[ -n $path ]]; then args+=(--bind "$path" "$path"); fi
+done
 
 network=${PI_BOX_NETWORK:-ollama}
 if [[ $network == host ]]; then
