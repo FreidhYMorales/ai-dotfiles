@@ -235,6 +235,10 @@ if command -v socat >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
   assert 'other host services are unreachable' lacks 'from-other'
   netbox PI_BOX_NETWORK=host
   assert 'PI_BOX_NETWORK=host shares the host network' says 'from-other'
+  netbox PI_BOX_NETWORK=none
+  assert 'PI_BOX_NETWORK=none blocks ollama too' lacks 'from-ollama'
+  assert 'PI_BOX_NETWORK=none blocks other host services' lacks 'from-other'
+  assert 'PI_BOX_NETWORK=none still runs the command' says 'end'
   assert 'no bridge socket is left behind' test -z "$(find "$home/.local/state/pi-box" -name '*.sock' 2>/dev/null)"
 
   # DNS is a data channel too: the host resolver must not be reachable.
