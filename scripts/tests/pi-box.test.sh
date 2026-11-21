@@ -208,6 +208,12 @@ assert 'PI_BOX_RO paths are readable' says $'hidden check\nhelper'
 assert 'PI_BOX_RO files cannot be changed' test "$(cat "$home/bench/tasks/check.sh")" == 'hidden check'
 assert 'nothing can be added under PI_BOX_RO' test ! -e "$home/shared/new.sh"
 
+# PI_BOX_RW: extra host paths (colon-separated) the box may write, e.g. a tool cache.
+mkdir -p "$home/run/cache" "$home/run/go-cache"
+PI_BOX_RW="$home/run/cache:$home/run/go-cache" box "$project" 'echo built >"$HOME/run/cache/target.o"; echo mod >"$HOME/run/go-cache/m"'
+assert 'writes under PI_BOX_RW reach the host' test "$(cat "$home/run/cache/target.o")" == 'built'
+assert 'every PI_BOX_RW path is writable' test "$(cat "$home/run/go-cache/m")" == 'mod'
+
 echo "== outside git =="
 
 plain="$home/plain"
