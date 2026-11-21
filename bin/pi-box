@@ -9,7 +9,7 @@
 #   - Sessions go to ~/.local/state/pi-box/sessions.
 #   - Network: none, except ollama bridged in as 127.0.0.1:11434 (needs socat;
 #     PI_BOX_OLLAMA=host:port for another server). PI_BOX_NETWORK=host shares
-#     the full host network instead.
+#     the full host network instead; PI_BOX_NETWORK=none gives no network at all.
 #
 # Usage: pi-box [pi args...]        run pi
 #        pi-box -- CMD [ARGS...]    run another command (e.g. bash) in the box
@@ -97,6 +97,9 @@ fi
 network=${PI_BOX_NETWORK:-ollama}
 if [[ $network == host ]]; then
   exec bwrap "${args[@]}" --share-net --ro-bind-try /run/systemd/resolve /run/systemd/resolve "${cmd[@]}"
+fi
+if [[ $network == none ]]; then
+  exec bwrap "${args[@]}" "${cmd[@]}"
 fi
 
 # Default: no network at all, except one bridge to ollama. Outside, socat maps
