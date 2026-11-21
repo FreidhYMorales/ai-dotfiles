@@ -214,6 +214,14 @@ PI_BOX_RW="$home/run/cache:$home/run/go-cache" box "$project" 'echo built >"$HOM
 assert 'writes under PI_BOX_RW reach the host' test "$(cat "$home/run/cache/target.o")" == 'built'
 assert 'every PI_BOX_RW path is writable' test "$(cat "$home/run/go-cache/m")" == 'mod'
 
+# A plain command (pi-box -- CMD) does not need pi installed, e.g. on a CI runner.
+nopi_home="$TMP_ROOT/nopi-home"
+mkdir -p "$nopi_home/proj"
+git -C "$nopi_home/proj" init -q
+LAST_OUTPUT=$(cd "$nopi_home/proj" && env -u XDG_STATE_HOME HOME="$nopi_home" PI_BOX_NETWORK=host bash "$SCRIPT" -- bash -c 'echo ran' 2>&1)
+assert 'a plain command runs without a pi install' says 'ran'
+assert 'no pi install is created on the host' test ! -e "$nopi_home/.pi"
+
 echo "== outside git =="
 
 plain="$home/plain"
